@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [payType, setPayType] = useState<'per_load' | 'hourly'>('per_load')
   const [payRate, setPayRate] = useState('')
   const [savingPay, setSavingPay] = useState(false)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const { register: registerUser, handleSubmit: handleUserSubmit, reset: resetUser } = useForm<{ full_name: string; email: string; phone: string; role: string; truck_number: string }>()
   const { register: registerCompany, handleSubmit: handleCompanySubmit } = useForm({ defaultValues: { name: '', address: '', phone: '' } })
@@ -50,12 +52,22 @@ export default function SettingsPage() {
 
   async function loadData() {
     const cid = profile!.company_id
-    const [usersRes, templatesRes] = await Promise.all([
+    const [usersRes, templatesRes, companyRes] = await Promise.all([
       supabase.from('users').select('*').eq('company_id', cid).order('full_name'),
       supabase.from('ticket_templates').select('*').eq('company_id', cid).order('name'),
+      supabase.from('companies').select('invite_token').eq('id', cid).single(),
     ])
     setUsers(usersRes.data ?? [])
     setTemplates(templatesRes.data ?? [])
+    setInviteToken((companyRes.data as any)?.invite_token ?? null)
+  }
+
+  async function copyInviteLink() {
+    if (!inviteToken) return
+    const url = `${window.location.origin}/join/${inviteToken}`
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function saveCompany(data: any) {
@@ -143,7 +155,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader title="Settings" />
 
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t ? 'border-[#1a1a1a] text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             {t}
@@ -178,13 +190,31 @@ export default function SettingsPage() {
       {/* Users Tab */}
       {tab === 'Users' && (
         <div>
+          {inviteToken && (
+            <div className="bg-white border border-gray-200 rounded-lg p-5 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">Driver invite link</h3>
+              <p className="text-xs text-gray-500 mb-3">Share this with new drivers. They register on their phone and join your company automatically.</p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={typeof window !== 'undefined' ? `${window.location.origin}/join/${inviteToken}` : ''}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm text-gray-700 bg-gray-50 font-mono"
+                  onClick={e => (e.target as HTMLInputElement).select()}
+                />
+                <button onClick={copyInviteLink} className="px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800 whitespace-nowrap">
+                  {copied ? 'Copied!' : 'Copy Link'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end mb-4">
             <button onClick={() => setShowUserModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800">
               <Plus size={16} /> Add User
             </button>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[720px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Name</th>
@@ -241,7 +271,7 @@ export default function SettingsPage() {
 
       {/* Ticket Templates Tab */}
       {tab === 'Ticket Templates' && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="col-span-1">
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -256,7 +286,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-5">
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
             <div className="mb-4">
               <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="Template name..." className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>

@@ -79,7 +79,7 @@ export default function DriversPage() {
     <div>
       <PageHeader title="Drivers" subtitle="All active drivers in your company" />
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         {loading ? (
           <div className="divide-y divide-gray-100">
             {[...Array(4)].map((_, i) => (
@@ -97,7 +97,7 @@ export default function DriversPage() {
             <p className="text-gray-500 text-sm">No drivers found. Add drivers in Settings → Users.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Driver</th>
@@ -148,7 +148,7 @@ export default function DriversPage() {
                         {detail.loading ? (
                           <div className="space-y-2">{[...Array(2)].map((_, i) => <div key={i} className="h-8 bg-gray-200 rounded animate-pulse" />)}</div>
                         ) : (
-                          <div className="grid grid-cols-3 gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* Loads */}
                             <div>
                               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Today's Loads ({detail.tickets.length})</h3>

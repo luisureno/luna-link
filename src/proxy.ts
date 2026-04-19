@@ -26,15 +26,22 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Unauthenticated users → /login
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/_next') && !pathname.startsWith('/api')) {
+  const isPublic =
+    pathname === '/' ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/join') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api')
+
+  // Unauthenticated users → /login (unless on a public page)
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Authenticated: fetch role and guard routes
   if (user) {
-    if (pathname === '/login') {
-      // Will be redirected after role check on login page
+    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/join')) {
+      // Let the page handle routing for logged-in users
       return supabaseResponse
     }
 

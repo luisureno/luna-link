@@ -106,7 +106,7 @@ export default function DispatchPage() {
       />
 
       {/* Dispatches Table */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         {loading ? (
           <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
         ) : dispatches.length === 0 ? (
@@ -114,7 +114,7 @@ export default function DispatchPage() {
             <p className="text-gray-500 text-sm">No dispatches yet. Create your first dispatch above.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Title</th>

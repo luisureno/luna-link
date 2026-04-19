@@ -84,7 +84,7 @@ export default function TicketsPage() {
         )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         {loading ? (
           <div className="p-4 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
         ) : tickets.length === 0 ? (
@@ -92,7 +92,7 @@ export default function TicketsPage() {
             <p className="text-gray-500 text-sm">No tickets found for the selected filters.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="w-10 px-4 py-3"><input type="checkbox" onChange={e => setSelected(e.target.checked ? tickets.map(t => t.id) : [])} checked={selected.length === tickets.length && tickets.length > 0} className="w-4 h-4" /></th>

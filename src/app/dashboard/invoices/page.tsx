@@ -50,7 +50,7 @@ export default function InvoicesPage() {
         To create an invoice, go to <strong>Tickets</strong>, select confirmed tickets, and click &quot;Add to Invoice&quot;.
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         {loading ? (
           <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
         ) : invoices.length === 0 ? (
@@ -58,7 +58,7 @@ export default function InvoicesPage() {
             <p className="text-gray-500 text-sm">No invoices yet.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Invoice #</th>

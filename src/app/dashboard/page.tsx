@@ -150,7 +150,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <MetricCard label="Active Drivers Today" value={activeDrivers} icon={<Users size={18} />} />
         <MetricCard label="Loads Submitted Today" value={loadsToday} icon={<FileText size={18} />} />
         <MetricCard label="Pending Confirmations" value={pendingConfirmations} icon={<Clock size={18} />} />
@@ -158,7 +158,7 @@ export default function DashboardPage() {
         <MetricCard label="Fuel Spend Today" value={`$${fuelSpendToday.toFixed(2)}`} icon={<Fuel size={18} />} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Driver Activity */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <h2 className="text-base font-medium text-gray-900 mb-4">Today's Driver Activity</h2>

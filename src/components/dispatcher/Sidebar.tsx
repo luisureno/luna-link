@@ -1,9 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck,
+  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -20,53 +21,89 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const { profile, signOut } = useAuth()
+  const [open, setOpen] = useState(false)
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-[#1a1a1a] text-white flex flex-col h-screen fixed left-0 top-0">
-      <div className="p-5 border-b border-white/10">
+    <>
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <Truck size={20} className="text-white/70" />
-          <span className="font-semibold text-base">HaulProof</span>
+          <Truck size={18} className="text-white/70" />
+          <span className="font-semibold text-sm">HaulProof</span>
         </div>
-        <p className="text-xs text-white/40 mt-1 truncate">{profile?.full_name ?? ''}</p>
-      </div>
-
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors ${
-                active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
-
-      <div className="p-3 border-t border-white/10">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-medium">
-            {profile?.full_name?.charAt(0) ?? '?'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{profile?.full_name}</p>
-            <p className="text-xs text-white/40 capitalize">{profile?.role}</p>
-          </div>
-        </div>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
-        >
-          <LogOut size={16} />
-          Sign out
+        <button onClick={() => setOpen(true)} className="p-2 -mr-2" aria-label="Open menu">
+          <Menu size={20} />
         </button>
       </div>
-    </aside>
+
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`w-60 flex-shrink-0 bg-[#1a1a1a] text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-transform md:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="p-5 border-b border-white/10 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Truck size={20} className="text-white/70" />
+              <span className="font-semibold text-base">HaulProof</span>
+            </div>
+            <p className="text-xs text-white/40 mt-1 truncate">{profile?.full_name ?? ''}</p>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="md:hidden p-1 -mr-1 text-white/60 hover:text-white"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  active ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Icon size={16} />
+                {label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-3 border-t border-white/10">
+          <div className="flex items-center gap-3 px-3 py-2 mb-1">
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-medium">
+              {profile?.full_name?.charAt(0) ?? '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{profile?.full_name}</p>
+              <p className="text-xs text-white/40 capitalize">{profile?.role}</p>
+            </div>
+          </div>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
+          >
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }

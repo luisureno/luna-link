@@ -58,7 +58,7 @@ export default function ClientsPage() {
         }
       />
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-x-auto">
         {loading ? (
           <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
         ) : clients.length === 0 ? (
@@ -66,7 +66,7 @@ export default function ClientsPage() {
             <p className="text-gray-500 text-sm">No clients yet. Add your first client above.</p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Company</th>

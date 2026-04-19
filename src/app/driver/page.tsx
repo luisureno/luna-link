@@ -6,16 +6,13 @@ import { MapPin, PlusCircle, List, Fuel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import type { Dispatch, DispatchAssignment, LoadTicket, CheckIn, PreTripInspection } from '@/types'
-
-type DispatchWithAssignment = Dispatch & { dispatch_assignments: DispatchAssignment[] }
+import type { LoadTicket, CheckIn, PreTripInspection } from '@/types'
 
 export default function DriverTodayPage() {
   const { profile } = useAuth()
   const supabase = createClient()
   const today = new Date().toISOString().split('T')[0]
 
-  const [dispatches, setDispatches] = useState<DispatchWithAssignment[]>([])
   const [tickets, setTickets] = useState<LoadTicket[]>([])
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null)
   const [inspection, setInspection] = useState<PreTripInspection | null | undefined>(undefined)
@@ -29,11 +26,7 @@ export default function DriverTodayPage() {
   async function loadData() {
     const id = profile!.id
 
-    const [assignmentsRes, ticketsRes, checkInsRes, inspectionRes] = await Promise.all([
-      supabase
-        .from('dispatch_assignments')
-        .select('*, dispatches(*)')
-        .eq('driver_id', id),
+    const [ticketsRes, checkInsRes, inspectionRes] = await Promise.all([
       supabase
         .from('load_tickets')
         .select('*')
@@ -56,29 +49,10 @@ export default function DriverTodayPage() {
         .limit(1),
     ])
 
-    const assignments = assignmentsRes.data ?? []
-    const todayDispatches = assignments
-      .filter(a => (a as any).dispatches?.scheduled_date === today)
-      .map(a => ({ ...(a as any).dispatches, dispatch_assignments: [a] }))
-
-    setDispatches(todayDispatches)
     setTickets(ticketsRes.data ?? [])
     setLastCheckIn((checkInsRes.data ?? [])[0] ?? null)
     setInspection((inspectionRes.data ?? [])[0] ?? null)
     setLoading(false)
-  }
-
-  async function acknowledge(assignmentId: string, dispatchId: string) {
-    await supabase.from('dispatch_assignments').update({
-      status: 'acknowledged',
-      acknowledged_at: new Date().toISOString(),
-    }).eq('id', assignmentId)
-
-    setDispatches(prev => prev.map(d =>
-      d.id === dispatchId
-        ? { ...d, dispatch_assignments: d.dispatch_assignments.map(a => a.id === assignmentId ? { ...a, status: 'acknowledged' as const } : a) }
-        : d
-    ))
   }
 
   const firstCheckIn = lastCheckIn
@@ -159,45 +133,6 @@ export default function DriverTodayPage() {
         </div>
       </div>
 
-      {/* Today's Dispatches */}
-      <div>
-        <h2 className="text-base font-medium text-gray-900 mb-2">My Dispatches</h2>
-        {loading ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse h-20" />
-        ) : dispatches.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
-            <p className="text-sm text-gray-500">No dispatches for today.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {dispatches.map(dispatch => {
-              const assignment = dispatch.dispatch_assignments[0]
-              const isNew = assignment.status === 'assigned'
-              return (
-                <div key={dispatch.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="text-sm font-medium text-gray-900">{dispatch.title}</p>
-                    <StatusBadge status={assignment.status} />
-                  </div>
-                  {dispatch.notes && <p className="text-xs text-gray-500 mb-2">{dispatch.notes}</p>}
-                  {dispatch.scheduled_time && (
-                    <p className="text-xs text-gray-500">Scheduled: {dispatch.scheduled_time}</p>
-                  )}
-                  {isNew && (
-                    <button
-                      onClick={() => acknowledge(assignment.id, dispatch.id)}
-                      className="mt-3 w-full py-2 bg-[#1a1a1a] text-white text-sm rounded font-medium"
-                    >
-                      Acknowledge
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
@@ -235,6 +170,12 @@ export default function DriverTodayPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {!loading && tickets.length === 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <p className="text-sm text-gray-500">No loads submitted yet today.</p>
         </div>
       )}
     </div>
