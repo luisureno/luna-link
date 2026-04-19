@@ -30,6 +30,7 @@ export async function proxy(request: NextRequest) {
     pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/join') ||
+    pathname.startsWith('/admin') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api')
 
@@ -40,7 +41,7 @@ export async function proxy(request: NextRequest) {
 
   // Authenticated: fetch role and guard routes
   if (user) {
-    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/join')) {
+    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/join') || pathname.startsWith('/admin')) {
       // Let the page handle routing for logged-in users
       return supabaseResponse
     }

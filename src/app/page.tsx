@@ -33,18 +33,18 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#F8F7F5] text-gray-900">
       {/* Nav */}
       <nav className="border-b border-gray-200 bg-white/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Truck size={22} className="text-gray-900" />
-            <span className="text-lg font-semibold tracking-tight">HaulProof</span>
+            <Truck size={20} className="text-gray-900" />
+            <span className="text-base md:text-lg font-semibold tracking-tight">HaulProof</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2">
+          <div className="flex items-center gap-1 md:gap-2">
+            <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Log in
             </Link>
             <button
               onClick={() => setRequestOpen(true)}
-              className="text-sm font-medium bg-[#1a1a1a] text-white px-4 py-2 rounded hover:bg-gray-800"
+              className="text-sm font-medium bg-[#1a1a1a] text-white px-3 md:px-4 py-2 rounded hover:bg-gray-800"
             >
               Request Access
             </button>
@@ -53,11 +53,11 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
-        <h1 className="text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900">
+      <section className="max-w-5xl mx-auto px-4 md:px-6 pt-12 md:pt-20 pb-12 md:pb-16 text-center">
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900">
           The operating system for<br />trucking companies.
         </h1>
-        <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
+        <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
           HaulProof replaces the paper tickets, text messages, and spreadsheets your dispatchers and drivers use every day — with a single mobile-first platform that captures every load, every hour, and every gallon.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -77,6 +77,29 @@ export default function LandingPage() {
         </div>
         {demoError && <p className="mt-4 text-sm text-red-600">{demoError}</p>}
         <p className="mt-4 text-xs text-gray-500">No signup needed for the demo — logs you in as a sample dispatch account.</p>
+      </section>
+
+      {/* Trusted by */}
+      <section className="border-y border-gray-200 bg-white py-10">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
+          <p className="text-center text-xs font-medium text-gray-500 uppercase tracking-[0.15em] mb-6">
+            Trusted by local trucking companies
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 items-center justify-items-center opacity-70">
+            {[
+              'Mesa Rock Hauling',
+              'Desert Freight Co.',
+              'Valley Aggregate',
+              'Saguaro Transport',
+            ].map(name => (
+              <div key={name} className="text-center">
+                <div className="text-sm md:text-base font-semibold text-gray-600 tracking-tight whitespace-nowrap">
+                  {name}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Product Preview */}
