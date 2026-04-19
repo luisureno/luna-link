@@ -81,23 +81,34 @@ export default function LandingPage() {
 
       {/* Trusted by */}
       <section className="border-y border-gray-200 bg-white py-10">
-        <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <p className="text-center text-xs font-medium text-gray-500 uppercase tracking-[0.15em] mb-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-xs font-medium text-gray-500 uppercase tracking-[0.15em] mb-6 px-4 md:px-6">
             Trusted by local trucking companies
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 items-center justify-items-center opacity-70">
-            {[
-              'Mesa Rock Hauling',
-              'Desert Freight Co.',
-              'Valley Aggregate',
-              'Saguaro Transport',
-            ].map(name => (
-              <div key={name} className="text-center">
-                <div className="text-sm md:text-base font-semibold text-gray-600 tracking-tight whitespace-nowrap">
-                  {name}
-                </div>
-              </div>
-            ))}
+          <div className="relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-24 bg-gradient-to-l from-white to-transparent z-10" />
+            <div className="marquee-track flex items-center gap-12 md:gap-16">
+              {(() => {
+                const names = [
+                  'Mesa Rock Hauling',
+                  'Desert Freight Co.',
+                  'Valley Aggregate',
+                  'Saguaro Transport',
+                  'Copper State Haulers',
+                  'Sonoran Dirt Works',
+                ]
+                const doubled = [...names, ...names]
+                return doubled.map((name, i) => (
+                  <div
+                    key={i}
+                    className="text-sm md:text-base font-semibold text-gray-500 tracking-tight whitespace-nowrap"
+                  >
+                    {name}
+                  </div>
+                ))
+              })()}
+            </div>
           </div>
         </div>
       </section>
