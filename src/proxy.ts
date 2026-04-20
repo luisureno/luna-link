@@ -29,6 +29,7 @@ export async function proxy(request: NextRequest) {
   const isPublic =
     pathname === '/' ||
     pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
     pathname.startsWith('/join') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/_next') ||
@@ -41,27 +42,54 @@ export async function proxy(request: NextRequest) {
 
   // Authenticated: fetch role and guard routes
   if (user) {
-    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/join') || pathname.startsWith('/admin')) {
+    if (pathname === '/login' || pathname === '/' || pathname.startsWith('/signup') || pathname.startsWith('/join') || pathname.startsWith('/admin')) {
       // Let the page handle routing for logged-in users
       return supabaseResponse
     }
 
     const { data: profile } = await supabase
       .from('users')
-      .select('role')
+      .select('role, company_id')
       .eq('id', user.id)
       .single()
 
-    const role = profile?.role
+    const role = (profile as { role?: string } | null)?.role
+    const companyId = (profile as { company_id?: string } | null)?.company_id
 
-    // Drivers hitting /dashboard → redirect to /driver
-    if (role === 'driver' && pathname.startsWith('/dashboard')) {
-      return NextResponse.redirect(new URL('/driver', request.url))
+    let accountType: string = 'fleet'
+    if (companyId) {
+      const { data: co } = await supabase
+        .from('companies')
+        .select('account_type')
+        .eq('id', companyId)
+        .single()
+      accountType = (co as { account_type?: string } | null)?.account_type ?? 'fleet'
     }
 
-    // Non-drivers hitting /driver → redirect to /dashboard
-    if (role && role !== 'driver' && pathname.startsWith('/driver')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Drivers → /driver only
+    if (role === 'driver') {
+      if (pathname.startsWith('/dashboard')) {
+        return NextResponse.redirect(new URL('/driver', request.url))
+      }
+      return supabaseResponse
+    }
+
+    // Solo owners: combined view — may use /driver/* routes, and /dashboard → /dashboard/solo
+    if (role === 'owner' && accountType === 'solo') {
+      if (pathname.startsWith('/dashboard') && !pathname.startsWith('/dashboard/solo')) {
+        return NextResponse.redirect(new URL('/dashboard/solo', request.url))
+      }
+      return supabaseResponse
+    }
+
+    // Fleet/enterprise owners + dispatchers: /dashboard only
+    if (role === 'owner' || role === 'dispatcher') {
+      if (pathname.startsWith('/dashboard/solo')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      if (pathname.startsWith('/driver')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
     }
   }
 

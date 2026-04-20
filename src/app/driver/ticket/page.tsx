@@ -1,99 +1,197 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Camera, FileText, PenLine, X, AlertTriangle } from 'lucide-react'
+import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
-import type { Dispatch, DispatchAssignment, TemplateField } from '@/types'
+import { enqueue, getPendingCount } from '@/lib/offline-queue'
+import type { Dispatch, DispatchAssignment } from '@/types'
 
-type DispatchWithAssignment = Dispatch & { dispatch_assignments: DispatchAssignment[] }
+type EntryPath = 'scan_tag' | 'scan_invoice' | 'manual' | null
+
+interface BillingConfig {
+  id: string
+  billing_type: 'per_load' | 'hourly' | 'per_ton'
+  client_rate_amount: number
+  client_rate_unit: string
+  driver_hours_per_load: number | null
+  driver_pay_type: string
+  job_type_name: string
+}
+
+interface DispatchFull extends Dispatch {
+  dispatch_assignments: DispatchAssignment[]
+  billing_config: BillingConfig | null
+  clients: { id: string; name: string } | null
+  job_sites: { id: string; name: string } | null
+}
+
+interface TicketForm {
+  tag_number: string
+  weight_tons: string
+  material_type: string
+  loads_count: string
+  po_number: string
+  notes: string
+}
+
+const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', notes: '' }
 
 export default function TicketPage() {
   const { profile } = useAuth()
   const supabase = createClient()
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [step, setStep] = useState(1)
-  const [dispatches, setDispatches] = useState<DispatchWithAssignment[]>([])
-  const [selectedDispatch, setSelectedDispatch] = useState<DispatchWithAssignment | null>(null)
-  const [fields, setFields] = useState<TemplateField[]>([])
-  const [formData, setFormData] = useState<Record<string, unknown>>({})
-  const [photoUrls] = useState<string[]>([])
+  const [dispatches, setDispatches] = useState<DispatchFull[]>([])
+  const [selectedDispatch, setSelectedDispatch] = useState<DispatchFull | null>(null)
+  const [driverHourlyRate, setDriverHourlyRate] = useState<number | null>(null)
+  const [driverPerTonRate, setDriverPerTonRate] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [entryPath, setEntryPath] = useState<EntryPath>(null)
   const [scanning, setScanning] = useState(false)
-  const [scanPreview, setScanPreview] = useState<string | null>(null)
+  const [scanWarning, setScanWarning] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [aiExtractedData, setAiExtractedData] = useState<Record<string, unknown> | null>(null)
+  const [form, setForm] = useState<TicketForm>(empty)
+  const [submitting, setSubmitting] = useState(false)
+  const [success, setSuccess] = useState<{ tagNumber: string; time: string } | null>(null)
+  const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
     if (!profile?.id) return
     loadDispatches()
+    setPendingCount(getPendingCount())
   }, [profile?.id])
 
   async function loadDispatches() {
-    const assignments = await supabase
-      .from('dispatch_assignments')
-      .select('*, dispatches(*, ticket_templates(*))')
-      .eq('driver_id', profile!.id)
+    const [assignmentsRes, ratesRes] = await Promise.all([
+      supabase
+        .from('dispatch_assignments')
+        .select('*, dispatches(*, clients(*), job_sites(*), client_billing_configs(*))')
+        .eq('driver_id', profile!.id),
+      supabase
+        .from('driver_pay_rates')
+        .select('hourly_rate, per_ton_rate')
+        .eq('driver_id', profile!.id)
+        .order('effective_date', { ascending: false })
+        .limit(1),
+    ])
 
-    const todayDispatches = (assignments.data ?? [])
-      .filter(a => (a as any).dispatches?.scheduled_date === today && (a as any).dispatches?.status !== 'cancelled')
-      .map(a => ({ ...(a as any).dispatches, dispatch_assignments: [a] }))
+    const todayDispatches = (assignmentsRes.data ?? [])
+      .filter(a => {
+        const d = (a as any).dispatches
+        return d?.scheduled_date === today && d?.status !== 'cancelled'
+      })
+      .map(a => {
+        const d = (a as any).dispatches
+        return {
+          ...d,
+          dispatch_assignments: [a],
+          billing_config: d.client_billing_configs ?? null,
+          clients: d.clients ?? null,
+          job_sites: d.job_sites ?? null,
+        }
+      })
 
     setDispatches(todayDispatches)
-    if (todayDispatches.length === 1) {
-      await selectDispatch(todayDispatches[0])
+
+    const rate = (ratesRes.data ?? [])[0]
+    if (rate) {
+      setDriverHourlyRate(rate.hourly_rate ?? null)
+      setDriverPerTonRate(rate.per_ton_rate ?? null)
     }
+
+    if (todayDispatches.length === 1) selectDispatch(todayDispatches[0])
     setLoading(false)
   }
 
-  async function selectDispatch(dispatch: DispatchWithAssignment) {
-    setSelectedDispatch(dispatch)
-    const templateFields = (dispatch as any).ticket_templates?.fields ?? []
-    setFields(templateFields)
-    setStep(2)
+  function selectDispatch(d: DispatchFull) {
+    setSelectedDispatch(d)
+    if (d.billing_config?.billing_type === 'hourly') {
+      router.replace('/driver/timesheet')
+      return
+    }
+    setEntryPath(null)
   }
 
-  async function handleScanTag(e: React.ChangeEvent<HTMLInputElement>) {
+  function setField(k: keyof TicketForm, v: string) {
+    setForm(f => ({ ...f, [k]: v }))
+  }
+
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setScanPreview(URL.createObjectURL(file))
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
     setScanning(true)
+    setScanWarning(false)
 
     const fd = new FormData()
     fd.append('image', file)
-    fd.append('fields', JSON.stringify(fields))
+    const endpoint = entryPath === 'scan_tag' ? '/api/scan/tag' : '/api/scan/invoice'
 
     try {
-      const res = await fetch('/api/scan-tag', { method: 'POST', body: fd })
+      const res = await fetch(endpoint, { method: 'POST', body: fd })
       const { extracted } = await res.json()
       if (extracted) {
-        setFormData(prev => ({ ...prev, ...extracted }))
+        setAiExtractedData(extracted)
+        const updates: Partial<TicketForm> = {}
+        if (extracted.tag_number) updates.tag_number = String(extracted.tag_number)
+        if (extracted.weight_tons) updates.weight_tons = String(extracted.weight_tons)
+        if (extracted.material_type) updates.material_type = String(extracted.material_type)
+        if (extracted.loads_completed) updates.loads_count = String(extracted.loads_completed)
+        if (extracted.notes) updates.notes = String(extracted.notes)
+        setForm(f => ({ ...f, ...updates }))
+        setScanWarning(true)
       }
     } catch {}
+
     setScanning(false)
   }
 
-  function updateField(fieldId: string, value: unknown) {
-    setFormData(prev => ({ ...prev, [fieldId]: value }))
-    setErrors(prev => { const n = { ...prev }; delete n[fieldId]; return n })
-  }
+  function calcBilling(): {
+    client_charge_total: string | null
+    driver_pay_total: string | null
+    hours_billed_client: string | null
+    hours_paid_driver: string | null
+  } {
+    const cfg = selectedDispatch?.billing_config
+    if (!cfg) return { client_charge_total: null, driver_pay_total: null, hours_billed_client: null, hours_paid_driver: null }
 
-  function validate() {
-    const newErrors: Record<string, string> = {}
-    fields.forEach(field => {
-      if (field.required && !formData[field.id]) {
-        newErrors[field.id] = 'This field is required'
+    try {
+      if (cfg.billing_type === 'per_load') {
+        const loads = new Decimal(form.loads_count || '1')
+        const rate = new Decimal(cfg.client_rate_amount)
+        const clientTotal = loads.times(rate).toFixed(2)
+        const hrsPerLoad = cfg.driver_hours_per_load ? new Decimal(cfg.driver_hours_per_load) : null
+        const hourlyRate = driverHourlyRate ? new Decimal(driverHourlyRate) : null
+        const driverTotal = hrsPerLoad && hourlyRate ? loads.times(hrsPerLoad).times(hourlyRate).toFixed(2) : null
+        const driverHrs = hrsPerLoad ? loads.times(hrsPerLoad).toFixed(2) : null
+        return { client_charge_total: clientTotal, driver_pay_total: driverTotal, hours_billed_client: null, hours_paid_driver: driverHrs }
       }
-    })
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+      if (cfg.billing_type === 'per_ton') {
+        const tons = new Decimal(form.weight_tons || '0')
+        const rate = new Decimal(cfg.client_rate_amount)
+        const clientTotal = tons.times(rate).toFixed(2)
+        let driverTotal: string | null = null
+        if (cfg.driver_pay_type === 'per_ton' && driverPerTonRate) {
+          driverTotal = tons.times(new Decimal(driverPerTonRate)).toFixed(2)
+        } else if (cfg.driver_pay_type === 'hourly' && driverHourlyRate && form.loads_count) {
+          driverTotal = new Decimal(form.loads_count).times(new Decimal(driverHourlyRate)).toFixed(2)
+        }
+        return { client_charge_total: clientTotal, driver_pay_total: driverTotal, hours_billed_client: null, hours_paid_driver: null }
+      }
+    } catch {}
+    return { client_charge_total: null, driver_pay_total: null, hours_billed_client: null, hours_paid_driver: null }
   }
 
   async function handleSubmit() {
-    if (!validate() || !selectedDispatch || !profile) return
+    if (!selectedDispatch || !profile) return
     setSubmitting(true)
 
     let latitude: number | null = null
@@ -106,57 +204,118 @@ export default function TicketPage() {
       longitude = pos.coords.longitude
     } catch {}
 
-    const { data, error } = await supabase.from('load_tickets').insert({
+    const billing = calcBilling()
+    const cfg = selectedDispatch.billing_config
+
+    const payload = {
       company_id: profile.company_id,
       driver_id: profile.id,
       dispatch_id: selectedDispatch.id,
       client_id: selectedDispatch.client_id,
       job_site_id: selectedDispatch.job_site_id,
       ticket_template_id: selectedDispatch.ticket_template_id,
-      form_data: formData,
-      photo_urls: photoUrls,
+      billing_type: cfg?.billing_type ?? null,
+      submission_method: entryPath === 'scan_tag' ? 'tag_scan' : entryPath === 'scan_invoice' ? 'paper_scan' : 'manual',
+      tag_number: form.tag_number || null,
+      weight_tons: form.weight_tons ? parseFloat(form.weight_tons) : null,
+      material_type: form.material_type || null,
+      loads_count: parseInt(form.loads_count || '1'),
+      client_rate_amount: cfg?.client_rate_amount ?? null,
+      client_rate_unit: cfg?.client_rate_unit ?? null,
+      client_charge_total: billing.client_charge_total ? parseFloat(billing.client_charge_total) : null,
+      driver_hourly_rate: driverHourlyRate,
+      driver_hours_per_load: cfg?.driver_hours_per_load ?? null,
+      driver_pay_total: billing.driver_pay_total ? parseFloat(billing.driver_pay_total) : null,
+      hours_paid_driver: billing.hours_paid_driver ? parseFloat(billing.hours_paid_driver) : null,
+      ai_extracted_data: aiExtractedData ?? null,
+      form_data: { po_number: form.po_number, notes: form.notes },
       latitude,
       longitude,
-    }).select().single()
+      status: 'submitted',
+    }
 
-    if (!error && data) {
-      // Upsert daily log (increment total_loads)
-      await supabase.from('daily_logs').upsert({
-        company_id: profile.company_id,
-        driver_id: profile.id,
-        log_date: today,
-        total_loads: 1,
-        first_check_in: new Date().toISOString(),
-        last_check_in: new Date().toISOString(),
-      }, { onConflict: 'driver_id,log_date', ignoreDuplicates: false })
+    const isOnline = typeof navigator !== 'undefined' && navigator.onLine
 
-      setSuccess(data.id.slice(0, 8).toUpperCase())
+    if (!isOnline) {
+      enqueue('ticket', payload)
+      setPendingCount(getPendingCount())
+      setSuccess({ tagNumber: form.tag_number || 'Manual', time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) })
+      setSubmitting(false)
+      return
+    }
+
+    // Upload photo to Supabase Storage if present
+    let tagPhotoUrl: string | null = null
+    if (photoFile) {
+      const path = `tickets/${profile.company_id}/${Date.now()}_${photoFile.name}`
+      const { data: uploadData } = await supabase.storage.from('ticket-photos').upload(path, photoFile)
+      if (uploadData) {
+        const { data: urlData } = supabase.storage.from('ticket-photos').getPublicUrl(path)
+        tagPhotoUrl = urlData.publicUrl
+      }
+    }
+
+    const { error } = await supabase.from('load_tickets').insert({ ...payload, tag_photo_url: tagPhotoUrl })
+
+    if (!error) {
+      setSuccess({
+        tagNumber: form.tag_number || 'Manual',
+        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      })
     }
     setSubmitting(false)
   }
 
+  function resetForAnother() {
+    setForm(empty)
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setAiExtractedData(null)
+    setScanWarning(false)
+    setSuccess(null)
+    setEntryPath(null)
+  }
+
+  // ── Sync offline queue when online ──────────────────────────────────────────
+  useEffect(() => {
+    async function syncQueue() {
+      const { getPending, markSynced } = await import('@/lib/offline-queue')
+      const pending = getPending()
+      for (const item of pending) {
+        if (item.type === 'ticket') {
+          const { error } = await supabase.from('load_tickets').insert(item.payload)
+          if (!error) markSynced(item.localId)
+        }
+      }
+      setPendingCount(getPendingCount())
+    }
+    window.addEventListener('online', syncQueue)
+    return () => window.removeEventListener('online', syncQueue)
+  }, [])
+
+  // ── Success screen ───────────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
-        <div className="text-5xl mb-4">✓</div>
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+          <span className="text-3xl">✓</span>
+        </div>
         <h2 className="text-xl font-semibold text-gray-900">Ticket Submitted</h2>
-        <p className="text-sm text-gray-500 mt-1">Ticket #{success}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+        {form.tag_number && <p className="text-sm text-gray-600 mt-1">Tag #{form.tag_number}</p>}
+        {form.weight_tons && <p className="text-sm text-gray-500">{form.weight_tons} tons{form.material_type ? ` — ${form.material_type}` : ''}</p>}
+        <p className="text-xs text-gray-400 mt-1">Submitted at {success.time} · GPS recorded</p>
+        {pendingCount > 0 && (
+          <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">{pendingCount} ticket{pendingCount > 1 ? 's' : ''} pending sync</p>
+        )}
         <div className="flex gap-3 mt-8 w-full max-w-xs">
-          <button onClick={() => { setSuccess(null); setFormData({}); setStep(dispatches.length === 1 ? 2 : 1) }} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-medium">
-            Submit Another
-          </button>
-          <button onClick={() => router.push('/driver')} className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-lg text-sm font-medium">
-            Back to Today
-          </button>
+          <button onClick={resetForAnother} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-medium">Submit Another</button>
+          <button onClick={() => router.push('/driver')} className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-lg text-sm font-medium">Back to Today</button>
         </div>
       </div>
     )
   }
 
-  if (loading) {
-    return <div className="p-4 animate-pulse space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg" />)}</div>
-  }
+  if (loading) return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
 
   if (dispatches.length === 0) {
     return (
@@ -167,146 +326,243 @@ export default function TicketPage() {
     )
   }
 
-  return (
-    <div className="p-4">
-      {/* Step 1: Select dispatch */}
-      {step === 1 && (
-        <>
-          <h1 className="text-xl font-semibold text-gray-900 mb-4">Select Dispatch</h1>
-          <div className="space-y-2">
-            {dispatches.map(dispatch => (
-              <button
-                key={dispatch.id}
-                onClick={() => selectDispatch(dispatch)}
-                className="w-full text-left bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-400"
-              >
-                <p className="text-sm font-medium text-gray-900">{dispatch.title}</p>
-                {dispatch.notes && <p className="text-xs text-gray-500 mt-0.5">{dispatch.notes}</p>}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Step 2: Fill form */}
-      {step === 2 && selectedDispatch && (
-        <>
-          <div className="flex items-center gap-3 mb-6">
-            {dispatches.length > 1 && (
-              <button onClick={() => setStep(1)} className="text-sm text-gray-500 hover:text-gray-700">← Back</button>
-            )}
-            <h1 className="text-xl font-semibold text-gray-900">Load Ticket</h1>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Dispatch</p>
-            <p className="text-sm font-medium">{selectedDispatch.title}</p>
-          </div>
-
-          {/* Scan Tag */}
-          <div className="mb-4">
-            <label className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed rounded-lg cursor-pointer text-sm font-medium transition-colors ${scanning ? 'border-gray-300 text-gray-400' : 'border-gray-400 text-gray-700 hover:border-gray-600'}`}>
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScanTag} disabled={scanning} />
-              {scanning ? (
-                <><span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />Scanning tag...</>
-              ) : (
-                <>📷 Scan Tag / Invoice</>
+  // ── Step 1: select dispatch ──────────────────────────────────────────────────
+  if (!selectedDispatch) {
+    return (
+      <div className="p-4">
+        <h1 className="text-xl font-semibold text-gray-900 mb-4">Select Dispatch</h1>
+        <div className="space-y-2">
+          {dispatches.map(d => (
+            <button key={d.id} onClick={() => selectDispatch(d)} className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-400 active:bg-gray-50">
+              <p className="text-sm font-medium text-gray-900">{d.title}</p>
+              {d.clients && <p className="text-xs text-gray-500 mt-0.5">{d.clients.name}</p>}
+              {d.billing_config && (
+                <span className={`inline-block mt-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${d.billing_config.billing_type === 'per_load' ? 'bg-blue-50 text-blue-700' : d.billing_config.billing_type === 'per_ton' ? 'bg-purple-50 text-purple-700' : 'bg-green-50 text-green-700'}`}>
+                  {d.billing_config.job_type_name}
+                </span>
               )}
-            </label>
-            {scanPreview && !scanning && (
-              <div className="mt-2 flex items-center gap-2">
-                <img src={scanPreview} alt="Scanned tag" className="h-12 w-12 object-cover rounded border border-gray-200" />
-                <span className="text-xs text-green-700 font-medium">Fields auto-filled — review below</span>
+              {d.notes && <p className="text-xs text-gray-400 mt-1">{d.notes}</p>}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 2: choose entry path ────────────────────────────────────────────────
+  if (!entryPath) {
+    return (
+      <div className="p-4">
+        {dispatches.length > 1 && (
+          <button onClick={() => setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
+        )}
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
+        <p className="text-sm text-gray-500 mb-6">{selectedDispatch.title}</p>
+
+        <p className="text-sm font-medium text-gray-700 mb-3">How do you want to submit this ticket?</p>
+        <div className="space-y-3">
+          {[
+            { path: 'scan_tag' as EntryPath, icon: Camera, label: 'Scan Tag', desc: 'Photograph the quarry tag' },
+            { path: 'scan_invoice' as EntryPath, icon: FileText, label: 'Scan Invoice', desc: 'Photograph a paper invoice' },
+            { path: 'manual' as EntryPath, icon: PenLine, label: 'Fill Manually', desc: 'Type everything in yourself' },
+          ].map(({ path, icon: Icon, label, desc }) => (
+            <button
+              key={path}
+              onClick={() => {
+                setEntryPath(path)
+                if (path !== 'manual') setTimeout(() => fileInputRef.current?.click(), 100)
+              }}
+              className="w-full flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-400 active:bg-gray-50 text-left"
+            >
+              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Icon size={20} className="text-gray-600" />
               </div>
-            )}
-          </div>
-
-          <div className="space-y-4 mb-6">
-            {fields.map(field => (
-              <div key={field.id}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {field.label} {field.required && <span className="text-red-500">*</span>}
-                </label>
-
-                {field.type === 'text' && (
-                  <input
-                    type="text"
-                    placeholder={field.placeholder}
-                    value={(formData[field.id] as string) ?? ''}
-                    onChange={e => updateField(field.id, e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                )}
-
-                {field.type === 'number' && (
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder={field.placeholder}
-                    value={(formData[field.id] as string) ?? ''}
-                    onChange={e => updateField(field.id, e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                )}
-
-                {field.type === 'dropdown' && (
-                  <select
-                    value={(formData[field.id] as string) ?? ''}
-                    onChange={e => updateField(field.id, e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded text-base focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
-                  >
-                    <option value="">Select...</option>
-                    {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                )}
-
-                {field.type === 'checkbox' && (
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!(formData[field.id])}
-                      onChange={e => updateField(field.id, e.target.checked)}
-                      className="w-5 h-5"
-                    />
-                    <span className="text-sm text-gray-700">{field.label}</span>
-                  </label>
-                )}
-
-                {field.type === 'date' && (
-                  <input
-                    type="date"
-                    value={(formData[field.id] as string) ?? ''}
-                    onChange={e => updateField(field.id, e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                )}
-
-                {field.type === 'photo' && (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={e => updateField(field.id, e.target.files?.[0]?.name ?? null)}
-                    className="w-full text-sm text-gray-700"
-                  />
-                )}
-
-                {errors[field.id] && (
-                  <p className="mt-1 text-xs text-red-600">{errors[field.id]}</p>
-                )}
+              <div>
+                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
               </div>
-            ))}
-          </div>
+            </button>
+          ))}
+        </div>
 
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full py-4 bg-[#16a34a] text-white text-base font-medium rounded-lg disabled:opacity-50"
-          >
-            {submitting ? 'Submitting...' : 'Submit Ticket'}
-          </button>
-        </>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={e => { if (entryPath) handlePhoto(e) }}
+        />
+      </div>
+    )
+  }
+
+  // ── Step 3: ticket form ──────────────────────────────────────────────────────
+  const cfg = selectedDispatch.billing_config
+  const billing = calcBilling()
+
+  return (
+    <div className="p-4 pb-24">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => { setEntryPath(null); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }} className="text-sm text-gray-500">← Back</button>
+        <h1 className="text-lg font-semibold text-gray-900">Load Ticket</h1>
+      </div>
+
+      {/* Scan warning */}
+      {scanWarning && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2.5 mb-4">
+          <AlertTriangle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800 font-medium">
+            {entryPath === 'scan_tag' ? 'Tag scanned' : 'Invoice scanned'} — check every field before submitting. Tap any field to edit.
+          </p>
+        </div>
       )}
+
+      {scanning && (
+        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 mb-4">
+          <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <p className="text-xs text-blue-700">Reading {entryPath === 'scan_tag' ? 'tag' : 'invoice'}…</p>
+        </div>
+      )}
+
+      {/* Photo */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+        {photoPreview ? (
+          <div className="flex items-center gap-3">
+            <img src={photoPreview} alt="Scanned" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-900">Photo attached</p>
+              <p className="text-xs text-gray-500 truncate">{photoFile?.name}</p>
+            </div>
+            <label className="text-xs text-gray-500 underline cursor-pointer">
+              Retake
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+            </label>
+          </div>
+        ) : (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Camera size={16} className="text-gray-400" />
+            <span className="text-sm text-gray-500">Add photo</span>
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
+          </label>
+        )}
+      </div>
+
+      {/* Billing context */}
+      {cfg && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4 text-xs text-gray-600 space-y-0.5">
+          <p className="font-medium text-gray-800">{cfg.job_type_name}</p>
+          <p>Client rate: <strong>${Number(cfg.client_rate_amount).toFixed(4)} {cfg.client_rate_unit.replace(/_/g, ' ')}</strong></p>
+          {cfg.driver_hours_per_load && <p>Driver: <strong>{cfg.driver_hours_per_load} hrs/load</strong>{driverHourlyRate ? ` × $${driverHourlyRate}/hr` : ''}</p>}
+        </div>
+      )}
+
+      {/* Form fields */}
+      <div className="space-y-3">
+        {/* Tag number */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Tag Number</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={form.tag_number}
+            onChange={e => setField('tag_number', e.target.value)}
+            placeholder="e.g. 4421"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Weight */}
+        {(cfg?.billing_type === 'per_ton' || !cfg) && (
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Weight (tons)</label>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.001"
+              value={form.weight_tons}
+              onChange={e => setField('weight_tons', e.target.value)}
+              placeholder="e.g. 22.8"
+              className="w-full text-base text-gray-900 outline-none bg-transparent"
+            />
+          </div>
+        )}
+
+        {/* Material */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Material Type</label>
+          <input
+            type="text"
+            value={form.material_type}
+            onChange={e => setField('material_type', e.target.value)}
+            placeholder="e.g. Concrete Sand"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Loads count */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Loads Count</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={form.loads_count}
+            onChange={e => setField('loads_count', e.target.value)}
+            min="1"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* PO */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">PO Number <span className="text-gray-400">(optional)</span></label>
+          <input
+            type="text"
+            value={form.po_number}
+            onChange={e => setField('po_number', e.target.value)}
+            placeholder="Optional"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Notes <span className="text-gray-400">(optional)</span></label>
+          <textarea
+            value={form.notes}
+            onChange={e => setField('notes', e.target.value)}
+            rows={2}
+            placeholder="Optional"
+            className="w-full text-base text-gray-900 outline-none bg-transparent resize-none"
+          />
+        </div>
+
+        {/* Billing preview */}
+        {(billing.client_charge_total || billing.driver_pay_total) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs space-y-1">
+            {billing.client_charge_total && <p className="text-blue-800">Client charge: <strong>${billing.client_charge_total}</strong></p>}
+            {billing.driver_pay_total && <p className="text-blue-700">Driver pay: <strong>${billing.driver_pay_total}</strong></p>}
+          </div>
+        )}
+      </div>
+
+      {/* Actions — fixed bottom */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3">
+        <button
+          onClick={() => { setForm(empty); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }}
+          className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
+        >
+          Clear all
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="flex-1 py-3 bg-[#16a34a] text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+        >
+          {submitting ? 'Submitting…' : 'Submit Ticket ✓'}
+        </button>
+      </div>
     </div>
   )
 }

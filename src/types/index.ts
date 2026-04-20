@@ -1,5 +1,52 @@
 export type Role = 'owner' | 'dispatcher' | 'driver'
 
+export type PlanId = 'solo' | 'starter' | 'fleet' | 'enterprise'
+export type AccountType = 'solo' | 'fleet' | 'enterprise'
+export type BillingStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'none'
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete'
+export type BillingCycle = 'monthly' | 'annual'
+
+export interface Plan {
+  id: PlanId
+  name: string
+  price_monthly: number
+  price_annual: number | null
+  driver_limit: number | null
+  truck_limit: number | null
+  is_custom: boolean
+  features: string[]
+  sort_order: number
+  created_at: string
+}
+
+export interface Subscription {
+  id: string
+  company_id: string
+  plan_id: PlanId
+  status: SubscriptionStatus
+  billing_cycle: BillingCycle
+  trial_started_at: string | null
+  trial_ends_at: string | null
+  current_period_start: string | null
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+  canceled_at: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface OnboardingProgress {
+  id: string
+  company_id: string
+  current_step: number
+  completed: boolean
+  data: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 export type DispatchStatus = 'pending' | 'active' | 'completed' | 'cancelled'
 export type AssignmentStatus = 'assigned' | 'acknowledged' | 'en_route' | 'completed'
 export type LocationType = 'yard' | 'quarry' | 'job_site' | 'other'
@@ -23,6 +70,10 @@ export interface Company {
   address: string | null
   phone: string | null
   logo_url: string | null
+  account_type: AccountType
+  plan_id: PlanId | null
+  trial_ends_at: string | null
+  billing_status: BillingStatus
   created_at: string
 }
 

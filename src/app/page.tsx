@@ -39,15 +39,18 @@ export default function LandingPage() {
             <span className="text-base md:text-lg font-semibold tracking-tight">HaulProof</span>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
+            <a href="#pricing" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
+              Pricing
+            </a>
             <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Log in
             </Link>
-            <button
-              onClick={() => setRequestOpen(true)}
+            <Link
+              href="/signup"
               className="text-sm font-medium bg-[#1a1a1a] text-white px-3 md:px-4 py-2 rounded hover:bg-gray-800"
             >
-              Request Access
-            </button>
+              Start Free Trial
+            </Link>
           </div>
         </div>
       </nav>
@@ -61,29 +64,29 @@ export default function LandingPage() {
           HaulProof replaces the paper tickets, text messages, and spreadsheets your dispatchers and drivers use every day — with a single mobile-first platform that captures every load, every hour, and every gallon.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/signup"
+            className="w-full sm:w-auto px-6 py-3 bg-[#1a1a1a] text-white rounded font-medium hover:bg-gray-800 text-center"
+          >
+            Start Free Trial
+          </Link>
           <button
             onClick={tryDemo}
             disabled={demoLoading}
-            className="w-full sm:w-auto px-6 py-3 bg-[#1a1a1a] text-white rounded font-medium hover:bg-gray-800 disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 border border-gray-300 bg-white rounded font-medium hover:bg-gray-50 disabled:opacity-50"
           >
             {demoLoading ? 'Loading demo…' : 'Try Free Demo'}
           </button>
-          <button
-            onClick={() => setRequestOpen(true)}
-            className="w-full sm:w-auto px-6 py-3 border border-gray-300 bg-white rounded font-medium hover:bg-gray-50"
-          >
-            Request Access
-          </button>
         </div>
         {demoError && <p className="mt-4 text-sm text-red-600">{demoError}</p>}
-        <p className="mt-4 text-xs text-gray-500">No signup needed for the demo — logs you in as a sample dispatch account.</p>
+        <p className="mt-4 text-xs text-gray-500">30-day free trial. No credit card required.</p>
       </section>
 
       {/* Trusted by */}
       <section className="border-y border-gray-200 bg-white py-10">
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-xs font-medium text-gray-500 uppercase tracking-[0.15em] mb-6 px-4 md:px-6">
-            Trusted by local trucking companies
+            Built for local trucking companies
           </p>
           <div className="relative overflow-hidden">
             <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-24 bg-gradient-to-r from-white to-transparent z-10" />
@@ -368,24 +371,135 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="bg-white border-y border-gray-200 py-20">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Pricing</p>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Simple pricing. Per company.</h2>
+            <p className="mt-3 text-sm text-gray-600 max-w-xl mx-auto">30-day free trial on every plan. Cancel anytime. No credit card to start.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {[
+              {
+                id: 'solo',
+                name: 'Solo',
+                price: 29,
+                blurb: 'Owner operators running their own truck.',
+                features: [
+                  '1 driver / 1 truck',
+                  'Combined owner + driver view',
+                  'Unlimited loads',
+                  'Tag scan + client invoicing',
+                  'Fuel + earnings tracking',
+                ],
+                highlight: false,
+              },
+              {
+                id: 'starter',
+                name: 'Starter',
+                price: 79,
+                blurb: 'Small fleets with a dispatcher.',
+                features: [
+                  'Up to 5 drivers / 5 trucks',
+                  'Full dispatcher dashboard',
+                  'Unlimited loads',
+                  'Tag scan + client invoicing',
+                  'Driver payroll',
+                ],
+                highlight: true,
+              },
+              {
+                id: 'fleet',
+                name: 'Fleet',
+                price: 149,
+                blurb: 'Growing fleets that need more hands on deck.',
+                features: [
+                  'Up to 20 drivers / 20 trucks',
+                  'Everything in Starter',
+                  'Advanced reporting',
+                  'Bulk invoicing',
+                  'Priority support',
+                ],
+                highlight: false,
+              },
+            ].map(tier => (
+              <div
+                key={tier.id}
+                className={`relative rounded-xl border p-6 md:p-8 flex flex-col ${
+                  tier.highlight ? 'border-[#1a1a1a] shadow-lg bg-white' : 'border-gray-200 bg-white'
+                }`}
+              >
+                {tier.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#1a1a1a] text-white text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full">
+                    Most popular
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{tier.blurb}</p>
+                <div className="mt-6 flex items-baseline gap-1">
+                  <span className="text-4xl font-semibold text-gray-900">${tier.price}</span>
+                  <span className="text-sm text-gray-500">/ month</span>
+                </div>
+                <ul className="mt-6 space-y-2.5 flex-1">
+                  {tier.features.map((f, i) => (
+                    <li key={i} className="flex gap-2 items-start text-sm text-gray-700">
+                      <Check size={16} className="text-gray-900 mt-0.5 flex-shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={`/signup?plan=${tier.id}`}
+                  className={`mt-6 w-full py-2.5 rounded text-sm font-medium text-center ${
+                    tier.highlight
+                      ? 'bg-[#1a1a1a] text-white hover:bg-gray-800'
+                      : 'border border-gray-300 text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  Start Free Trial
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          {/* Enterprise row */}
+          <div className="mt-6 rounded-xl border border-gray-200 bg-[#F8F7F5] p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">Enterprise</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Unlimited drivers and trucks, dedicated onboarding, SLA, custom integrations, and QuickBooks priority.
+              </p>
+            </div>
+            <button
+              onClick={() => setRequestOpen(true)}
+              className="px-5 py-2.5 border border-gray-900 rounded text-sm font-medium text-gray-900 hover:bg-white"
+            >
+              Contact sales
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="bg-[#1a1a1a] text-white py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Ready to see it in action?</h2>
-          <p className="text-gray-300 mb-8">Take the free demo for a spin, or request a setup call and we'll get your fleet onboarded.</p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Start running loads today.</h2>
+          <p className="text-gray-300 mb-8">30-day free trial. No credit card. Set up in minutes.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto px-6 py-3 bg-white text-gray-900 rounded font-medium hover:bg-gray-100 text-center"
+            >
+              Start Free Trial
+            </Link>
             <button
               onClick={tryDemo}
               disabled={demoLoading}
-              className="w-full sm:w-auto px-6 py-3 bg-white text-gray-900 rounded font-medium hover:bg-gray-100 disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-3 border border-gray-600 rounded font-medium hover:bg-gray-800 disabled:opacity-50"
             >
               {demoLoading ? 'Loading…' : 'Try Free Demo'}
-            </button>
-            <button
-              onClick={() => setRequestOpen(true)}
-              className="w-full sm:w-auto px-6 py-3 border border-gray-600 rounded font-medium hover:bg-gray-800"
-            >
-              Request Access
             </button>
           </div>
         </div>
