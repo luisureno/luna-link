@@ -65,9 +65,14 @@ export default function TicketPage() {
 
   useEffect(() => {
     if (!profile?.id) return
+    if (accountType === 'solo') {
+      setSelectedDispatch({ id: '__no_dispatch__' } as any)
+      setPendingCount(getPendingCount())
+      return
+    }
     loadDispatches()
     setPendingCount(getPendingCount())
-  }, [profile?.id])
+  }, [profile?.id, accountType])
 
   async function loadDispatches() {
     const [assignmentsRes, ratesRes] = await Promise.all([
