@@ -34,10 +34,13 @@ interface TicketForm {
   material_type: string
   loads_count: string
   po_number: string
+  job_site: string
+  client_name: string
+  ticket_date: string
   notes: string
 }
 
-const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', notes: '' }
+const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', job_site: '', client_name: '', ticket_date: '', notes: '' }
 
 export default function TicketPage() {
   const { profile, accountType } = useAuth()
@@ -152,7 +155,12 @@ export default function TicketPage() {
         if (extracted.weight_tons) updates.weight_tons = String(extracted.weight_tons)
         if (extracted.material_type) updates.material_type = String(extracted.material_type)
         if (extracted.loads_completed) updates.loads_count = String(extracted.loads_completed)
-        if (extracted.notes) updates.notes = String(extracted.notes)
+        if (extracted.po_number) updates.po_number = String(extracted.po_number)
+        if (extracted.job_site) updates.job_site = String(extracted.job_site)
+        if (extracted.client_name) updates.client_name = String(extracted.client_name)
+        if (extracted.date) updates.ticket_date = String(extracted.date)
+        const noteParts = [extracted.notes, extracted.additional_text].filter(Boolean)
+        if (noteParts.length) updates.notes = noteParts.join(' | ')
         setForm(f => ({ ...f, ...updates }))
         setScanWarning(true)
       }
@@ -236,7 +244,7 @@ export default function TicketPage() {
       driver_pay_total: billing.driver_pay_total ? parseFloat(billing.driver_pay_total) : null,
       hours_paid_driver: billing.hours_paid_driver ? parseFloat(billing.hours_paid_driver) : null,
       ai_extracted_data: aiExtractedData ?? null,
-      form_data: { po_number: form.po_number, notes: form.notes },
+      form_data: { po_number: form.po_number, job_site: form.job_site, client_name: form.client_name, ticket_date: form.ticket_date, notes: form.notes },
       latitude,
       longitude,
       status: 'submitted',
@@ -473,6 +481,17 @@ export default function TicketPage() {
 
       {/* Form fields */}
       <div className="space-y-3">
+        {/* Date */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
+          <input
+            type="date"
+            value={form.ticket_date || new Date().toISOString().split('T')[0]}
+            onChange={e => setField('ticket_date', e.target.value)}
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
         {/* Tag number */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Tag Number</label>
@@ -523,6 +542,30 @@ export default function TicketPage() {
             value={form.loads_count}
             onChange={e => setField('loads_count', e.target.value)}
             min="1"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Job site */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Job Site <span className="text-gray-400">(optional)</span></label>
+          <input
+            type="text"
+            value={form.job_site}
+            onChange={e => setField('job_site', e.target.value)}
+            placeholder="e.g. North Quarry"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Client */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Client Name <span className="text-gray-400">(optional)</span></label>
+          <input
+            type="text"
+            value={form.client_name}
+            onChange={e => setField('client_name', e.target.value)}
+            placeholder="e.g. ABC Construction"
             className="w-full text-base text-gray-900 outline-none bg-transparent"
           />
         </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/driver/BottomNav'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
+import { Sidebar } from '@/components/dispatcher/Sidebar'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth()
@@ -36,6 +37,18 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       await supabase.from('users').update({ avatar_url: publicUrl } as any).eq('id', profile.id)
     }
     setUploading(false)
+  }
+
+  if (accountType === 'solo') {
+    return (
+      <div className="flex h-full min-h-screen">
+        <Sidebar />
+        <main className="flex-1 md:ml-60 min-h-screen bg-[#F8F7F5] pt-[72px] md:pt-0 pb-20 md:pb-0">
+          {children}
+        </main>
+        <BottomNav />
+      </div>
+    )
   }
 
   return (
