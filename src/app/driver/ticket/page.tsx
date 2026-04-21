@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, FileText, PenLine, CheckCircle } from 'lucide-react'
+import { DocumentScanner } from '@/components/driver/DocumentScanner'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -84,7 +85,7 @@ export default function TicketPage() {
   const router = useRouter()
   const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
   const today = new Date().toISOString().split('T')[0]
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null) // fallback for manual retake in form
 
   const [dispatches, setDispatches] = useState<DispatchFull[]>([])
   const [selectedDispatch, setSelectedDispatch] = useState<DispatchFull | null>(null)
@@ -98,6 +99,7 @@ export default function TicketPage() {
   const [aiExtractedData, setAiExtractedData] = useState<Record<string, unknown> | null>(null)
   // scanReview holds the raw AI extraction as editable strings for user review
   const [scanReview, setScanReview] = useState<Record<string, string> | null>(null)
+  const [showScanner, setShowScanner] = useState(false)
   const [form, setForm] = useState<TicketForm>(empty)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState<{ tagNumber: string; time: string } | null>(null)
@@ -168,9 +170,8 @@ export default function TicketPage() {
     setForm(f => ({ ...f, [k]: v }))
   }
 
-  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function handleFile(file: File) {
+    setShowScanner(false)
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
     setScanning(true)
@@ -185,7 +186,6 @@ export default function TicketPage() {
       const { extracted } = await res.json()
       if (extracted) {
         setAiExtractedData(extracted)
-        // Convert all non-null AI fields to strings for the review screen
         const review: Record<string, string> = {}
         for (const [k, v] of Object.entries(extracted)) {
           if (v !== null && v !== undefined && String(v).trim() !== '') {
@@ -202,6 +202,11 @@ export default function TicketPage() {
     }
 
     setScanning(false)
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
   }
 
   function confirmReview() {
@@ -431,46 +436,46 @@ export default function TicketPage() {
   // ── Step 2: choose entry path ────────────────────────────────────────────────
   if (!entryPath) {
     return (
-      <div className="p-4">
-        <button onClick={() => accountType === 'solo' ? router.push(homePath) : setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
-        {(selectedDispatch as any).id !== '__no_dispatch__' && selectedDispatch.title && (
-          <p className="text-sm text-gray-500 mb-2">{selectedDispatch.title}</p>
+      <>
+        {showScanner && (
+          <DocumentScanner
+            onCapture={file => { handleFile(file) }}
+            onCancel={() => { setShowScanner(false); setEntryPath(null) }}
+          />
         )}
-        <p className="text-sm font-medium text-gray-700 mb-3">How do you want to submit this ticket?</p>
-        <div className="space-y-3">
-          {[
-            { path: 'scan_tag' as EntryPath, icon: Camera, label: 'Scan Tag', desc: 'Photograph the quarry tag' },
-            { path: 'scan_invoice' as EntryPath, icon: FileText, label: 'Scan Invoice', desc: 'Photograph a paper invoice' },
-            { path: 'manual' as EntryPath, icon: PenLine, label: 'Fill Manually', desc: 'Type everything in yourself' },
-          ].map(({ path, icon: Icon, label, desc }) => (
-            <button
-              key={path}
-              onClick={() => {
-                setEntryPath(path)
-                if (path !== 'manual') setTimeout(() => fileInputRef.current?.click(), 100)
-              }}
-              className="w-full flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-400 active:bg-gray-50 text-left"
-            >
-              <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <Icon size={20} className="text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{label}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
-              </div>
-            </button>
-          ))}
+        <div className="p-4">
+          <button onClick={() => accountType === 'solo' ? router.push(homePath) : setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
+          {(selectedDispatch as any).id !== '__no_dispatch__' && selectedDispatch.title && (
+            <p className="text-sm text-gray-500 mb-2">{selectedDispatch.title}</p>
+          )}
+          <p className="text-sm font-medium text-gray-700 mb-3">How do you want to submit this ticket?</p>
+          <div className="space-y-3">
+            {[
+              { path: 'scan_tag' as EntryPath, icon: Camera, label: 'Scan Tag', desc: 'Photograph the quarry tag' },
+              { path: 'scan_invoice' as EntryPath, icon: FileText, label: 'Scan Invoice', desc: 'Photograph a paper invoice' },
+              { path: 'manual' as EntryPath, icon: PenLine, label: 'Fill Manually', desc: 'Type everything in yourself' },
+            ].map(({ path, icon: Icon, label, desc }) => (
+              <button
+                key={path}
+                onClick={() => {
+                  setEntryPath(path)
+                  if (path !== 'manual') setShowScanner(true)
+                }}
+                className="w-full flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-400 active:bg-gray-50 text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Icon size={20} className="text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{label}</p>
+                  <p className="text-xs text-gray-500">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={e => { if (entryPath) handlePhoto(e) }}
-        />
-      </div>
+      </>
     )
   }
 
@@ -489,53 +494,73 @@ export default function TicketPage() {
   if (scanReview !== null) {
     const visibleFields = REVIEW_FIELDS.filter(f => scanReview[f.key] !== undefined && scanReview[f.key] !== '')
     return (
-      <div className="p-4 pb-36 md:pb-24">
-        <div className="flex items-center gap-2 mb-1">
-          <button onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setEntryPath(null) }} className="text-sm text-gray-500">← Retake</button>
-        </div>
-        <h1 className="text-lg font-semibold text-gray-900 mb-0.5">Review Scan</h1>
-        <p className="text-xs text-gray-500 mb-4">Everything found on the invoice. Edit any field, then confirm.</p>
-
-        {photoPreview && (
-          <img src={photoPreview} alt="Scanned invoice" className="w-full max-h-48 object-contain rounded-xl border border-gray-200 mb-4 bg-gray-50" />
+      <>
+        {showScanner && (
+          <DocumentScanner
+            onCapture={file => { handleFile(file) }}
+            onCancel={() => setShowScanner(false)}
+          />
         )}
+        <div className="p-4 pb-36 md:pb-24">
+          <h1 className="text-lg font-semibold text-gray-900 mb-0.5">Review Scan</h1>
+          <p className="text-xs text-gray-500 mb-4">Everything found on the invoice. Edit any field, then confirm.</p>
 
-        {visibleFields.length === 0 ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-4">
-            No fields could be read. Try a clearer photo with better lighting.
-          </div>
-        ) : (
-          <div className="space-y-2 mb-4">
-            {visibleFields.map(({ key, label }) => (
-              <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-                <input
-                  type="text"
-                  value={scanReview[key]}
-                  onChange={e => setScanReview(r => ({ ...r!, [key]: e.target.value }))}
-                  className="w-full text-base text-gray-900 outline-none bg-transparent"
+          {/* Document digital copy */}
+          {photoPreview && (
+            <div className="mb-5 flex justify-center">
+              <div className="relative w-full max-w-sm shadow-2xl rounded-lg overflow-hidden bg-white border border-gray-200">
+                <img
+                  src={photoPreview}
+                  alt="Scanned document"
+                  className="w-full"
+                  style={{ filter: 'contrast(1.08) brightness(1.04)', display: 'block' }}
                 />
+                {/* Page curl effect */}
+                <div className="absolute bottom-0 right-0 w-8 h-8" style={{
+                  background: 'linear-gradient(225deg, #e5e7eb 45%, #d1d5db 50%, #f9fafb 51%)',
+                  borderTopLeftRadius: 4,
+                }} />
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
-          <button
-            onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setEntryPath(null) }}
-            className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
-          >
-            Retake
-          </button>
-          <button
-            onClick={confirmReview}
-            className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-          >
-            <CheckCircle size={16} />
-            Confirm & Fill Form
-          </button>
+          {visibleFields.length === 0 ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-4">
+              No fields could be read. Try a clearer photo with better lighting.
+            </div>
+          ) : (
+            <div className="space-y-2 mb-4">
+              {visibleFields.map(({ key, label }) => (
+                <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                  <input
+                    type="text"
+                    value={scanReview[key]}
+                    onChange={e => setScanReview(r => ({ ...r!, [key]: e.target.value }))}
+                    className="w-full text-base text-gray-900 outline-none bg-transparent"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
+            <button
+              onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setShowScanner(true) }}
+              className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
+            >
+              Retake
+            </button>
+            <button
+              onClick={confirmReview}
+              className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={16} />
+              Confirm & Fill Form
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -563,11 +588,16 @@ export default function TicketPage() {
             <p className="text-xs font-medium text-gray-900">Photo attached</p>
             <p className="text-xs text-gray-500 truncate">{photoFile?.name}</p>
           </div>
-          <label className="text-xs text-gray-500 underline cursor-pointer flex-shrink-0">
+          <button onClick={() => setShowScanner(true)} className="text-xs text-gray-500 underline flex-shrink-0">
             Retake
-            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
-          </label>
+          </button>
         </div>
+      )}
+      {showScanner && (
+        <DocumentScanner
+          onCapture={file => { handleFile(file) }}
+          onCancel={() => setShowScanner(false)}
+        />
       )}
 
       {/* Billing context */}
