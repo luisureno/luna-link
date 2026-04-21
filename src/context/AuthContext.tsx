@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data)
       setAccountType(((data as unknown) as { companies?: { account_type?: AccountType } }).companies?.account_type ?? null)
     }
+    setLoading(false)
   }
 
   async function signOut() {
