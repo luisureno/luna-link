@@ -37,10 +37,11 @@ interface TicketForm {
   job_site: string
   client_name: string
   ticket_date: string
+  truck_number: string
   notes: string
 }
 
-const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', job_site: '', client_name: '', ticket_date: '', notes: '' }
+const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', job_site: '', client_name: '', ticket_date: '', truck_number: '', notes: '' }
 
 export default function TicketPage() {
   const { profile, accountType } = useAuth()
@@ -159,12 +160,19 @@ export default function TicketPage() {
         if (extracted.job_site) updates.job_site = String(extracted.job_site)
         if (extracted.client_name) updates.client_name = String(extracted.client_name)
         if (extracted.date) updates.ticket_date = String(extracted.date)
+        if (extracted.truck_number) updates.truck_number = String(extracted.truck_number)
         const noteParts = [extracted.notes, extracted.additional_text].filter(Boolean)
         if (noteParts.length) updates.notes = noteParts.join(' | ')
         setForm(f => ({ ...f, ...updates }))
         setScanWarning(true)
+      } else {
+        setScanWarning(false)
+        alert('Could not read the image — try better lighting or a clearer photo.')
       }
-    } catch {}
+    } catch (err) {
+      console.error('[scan]', err)
+      alert('Scan failed — check your connection and try again.')
+    }
 
     setScanning(false)
   }
@@ -244,7 +252,7 @@ export default function TicketPage() {
       driver_pay_total: billing.driver_pay_total ? parseFloat(billing.driver_pay_total) : null,
       hours_paid_driver: billing.hours_paid_driver ? parseFloat(billing.hours_paid_driver) : null,
       ai_extracted_data: aiExtractedData ?? null,
-      form_data: { po_number: form.po_number, job_site: form.job_site, client_name: form.client_name, ticket_date: form.ticket_date, notes: form.notes },
+      form_data: { po_number: form.po_number, job_site: form.job_site, client_name: form.client_name, ticket_date: form.ticket_date, truck_number: form.truck_number, notes: form.notes },
       latitude,
       longitude,
       status: 'submitted',
@@ -578,6 +586,18 @@ export default function TicketPage() {
             value={form.po_number}
             onChange={e => setField('po_number', e.target.value)}
             placeholder="Optional"
+            className="w-full text-base text-gray-900 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Truck number */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Truck Number <span className="text-gray-400">(optional)</span></label>
+          <input
+            type="text"
+            value={form.truck_number}
+            onChange={e => setField('truck_number', e.target.value)}
+            placeholder="e.g. T-14"
             className="w-full text-base text-gray-900 outline-none bg-transparent"
           />
         </div>
