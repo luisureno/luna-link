@@ -4,11 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 import { isAdmin } from '@/lib/admin-auth'
 
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 function generateTempPassword() {
   return (
     Math.random().toString(36).slice(2, 8) +
@@ -19,6 +14,11 @@ function generateTempPassword() {
 
 export async function POST(request: NextRequest) {
   if (!(await isAdmin(request))) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   const body = await request.json()
   const {

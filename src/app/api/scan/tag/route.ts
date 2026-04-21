@@ -3,9 +3,8 @@ export const dynamic = 'force-dynamic'
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
 
-const client = new Anthropic()
-
 export async function POST(request: NextRequest) {
+  const client = new Anthropic()
   const formData = await request.formData()
   const imageFile = formData.get('image') as File | null
   if (!imageFile) return Response.json({ error: 'No image provided' }, { status: 400 })

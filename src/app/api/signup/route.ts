@@ -4,11 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 import type { PlanId, BillingCycle, AccountType } from '@/types'
 
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 function accountTypeForPlan(plan: PlanId): AccountType {
   if (plan === 'solo') return 'solo'
   if (plan === 'enterprise') return 'enterprise'
@@ -16,6 +11,10 @@ function accountTypeForPlan(plan: PlanId): AccountType {
 }
 
 export async function POST(request: NextRequest) {
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
   const body = await request.json()
   const {
     plan,

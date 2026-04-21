@@ -4,11 +4,6 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: 'Helvetica', fontSize: 10, color: '#1a1a1a' },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 },
@@ -36,6 +31,10 @@ const styles = StyleSheet.create({
 })
 
 export async function GET(request: NextRequest) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
   const { searchParams } = new URL(request.url)
   const invoiceId = searchParams.get('id')
   if (!invoiceId) return new Response('Missing id', { status: 400 })
