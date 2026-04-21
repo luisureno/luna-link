@@ -423,7 +423,7 @@ export default function TicketPage() {
   const billing = calcBilling()
 
   return (
-    <div className="p-4 pb-24">
+    <div className="p-4 pb-36 md:pb-24">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <button onClick={() => { setEntryPath(null); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }} className="text-sm text-gray-500">← Back</button>
@@ -604,7 +604,7 @@ export default function TicketPage() {
       </div>
 
       {/* Actions — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3">
+      <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
         <button
           onClick={() => { setForm(empty); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }}
           className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
