@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { User, Client } from '@/types'
 
 interface TimesheetRow {
@@ -24,6 +25,9 @@ interface TimesheetRow {
   status: string
   submission_method: string | null
   notes: string | null
+  scanned_invoice_photo_url: string | null
+  client_signature_url: string | null
+  ai_extracted_data: Record<string, unknown> | null
   users: User | null
   clients: Client | null
 }
@@ -173,6 +177,14 @@ export default function TimesheetsPage() {
             Hours adjusted to {sheet.dispatcher_adjusted_hours}h — {sheet.dispatcher_adjustment_reason || 'no reason given'}
           </div>
         )}
+
+        <ScannedArtifacts
+          photos={[
+            { label: 'Scanned timesheet', url: sheet.scanned_invoice_photo_url ?? '' },
+            { label: 'Client signature', url: sheet.client_signature_url ?? '' },
+          ]}
+          extracted={sheet.ai_extracted_data}
+        />
 
         {/* Adjust hours */}
         <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-3">

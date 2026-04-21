@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X, Clock, DollarSign, Home, List,
+  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X, Clock, DollarSign, Home, List, Fuel,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -14,6 +14,7 @@ const fleetNav = [
   { href: '/dashboard/dispatch', label: 'Dispatch', icon: Send },
   { href: '/dashboard/tickets', label: 'Tickets', icon: FileText },
   { href: '/dashboard/timesheets', label: 'Timesheets', icon: Clock },
+  { href: '/dashboard/fuel', label: 'Fuel', icon: Fuel },
   { href: '/dashboard/invoices', label: 'Invoices', icon: Receipt },
   { href: '/dashboard/payroll', label: 'Payroll', icon: DollarSign },
   { href: '/dashboard/clients', label: 'Clients', icon: Building2 },

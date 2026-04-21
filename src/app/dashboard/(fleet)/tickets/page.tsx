@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { LoadTicket, User, Client } from '@/types'
 
 type TicketRow = LoadTicket & {
@@ -19,6 +20,10 @@ type TicketRow = LoadTicket & {
   loads_count?: number | null
   weight_tons?: number | null
   tag_number?: string | null
+  tag_photo_url?: string | null
+  scanned_invoice_photo_url?: string | null
+  ai_extracted_data?: Record<string, unknown> | null
+  submission_method?: string | null
 }
 
 interface AdjustState {
@@ -161,6 +166,15 @@ export default function TicketsPage() {
             </p>
           </div>
         </div>
+
+        <ScannedArtifacts
+          photos={[
+            { label: 'Tag photo', url: ticket.tag_photo_url ?? '' },
+            { label: 'Scanned invoice', url: ticket.scanned_invoice_photo_url ?? '' },
+            ...((ticket.photo_urls ?? []).map((u, i) => ({ label: `Photo ${i + 1}`, url: u }))),
+          ]}
+          extracted={ticket.ai_extracted_data}
+        />
 
         {/* Pay adjustment */}
         <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-3">
