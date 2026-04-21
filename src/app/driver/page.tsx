@@ -6,6 +6,7 @@ import { MapPin, PlusCircle, List, Fuel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection } from '@/types'
 
 export default function DriverTodayPage() {
@@ -70,6 +71,14 @@ export default function DriverTodayPage() {
 
   return (
     <div className="p-4 space-y-4">
+      {profile && inspection !== undefined && (
+        <DayStartModal
+          name={profile.full_name}
+          userId={profile.id}
+          inspectionDone={inspection !== null}
+        />
+      )}
+
       {/* Pre-Trip Inspection Card */}
       {inspection === null && (
         <Link href="/driver/inspection" className="block bg-amber-50 border-2 border-amber-400 rounded-lg p-4">

@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Users, FileText, Clock, Send, Fuel } from 'lucide-react'
+import { Users, FileText, Clock, Send, Fuel, Truck, PlusCircle, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, User, PreTripInspection } from '@/types'
 
 interface DriverActivity {
@@ -60,6 +62,7 @@ export default function DashboardPage() {
   const [failedInspections, setFailedInspections] = useState<(PreTripInspection & { users: User })[]>([])
   const [fuelSpendToday, setFuelSpendToday] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [ownerInspection, setOwnerInspection] = useState<PreTripInspection | null | undefined>(undefined)
 
   useEffect(() => {
     if (!profile?.company_id) return
@@ -72,13 +75,18 @@ export default function DashboardPage() {
     const cid = profile!.company_id
     setLoading(true)
 
-    const [driversRes, ticketsRes, dispatchesRes, checkInsRes, inspectionsRes, fuelRes] = await Promise.all([
+    const isOwnerDriver = (profile!.role === 'owner' || profile!.role === 'dispatcher') && profile!.truck_number
+
+    const [driversRes, ticketsRes, dispatchesRes, checkInsRes, inspectionsRes, fuelRes, ownerInspectionRes] = await Promise.all([
       supabase.from('users').select('*').eq('company_id', cid).eq('role', 'driver').eq('is_active', true),
       supabase.from('load_tickets').select('*, users(*)').eq('company_id', cid).gte('submitted_at', `${today}T00:00:00`).order('submitted_at', { ascending: false }),
       supabase.from('dispatches').select('*').eq('company_id', cid).eq('scheduled_date', today).in('status', ['pending', 'active']),
       supabase.from('check_ins').select('*').eq('company_id', cid).gte('checked_in_at', `${today}T00:00:00`),
       supabase.from('pre_trip_inspections').select('*, users(*)').eq('company_id', cid).gte('inspected_at', `${today}T00:00:00`),
       supabase.from('fuel_logs').select('total_cost').eq('company_id', cid).gte('logged_at', `${today}T00:00:00`),
+      isOwnerDriver
+        ? supabase.from('pre_trip_inspections').select('*').eq('driver_id', profile!.id).gte('inspected_at', `${today}T00:00:00`).limit(1)
+        : Promise.resolve({ data: undefined }),
     ])
 
     const drivers = driversRes.data ?? []
@@ -96,6 +104,9 @@ export default function DashboardPage() {
     setRecentTickets(tickets.slice(0, 10))
     setFailedInspections(inspections.filter(i => i.overall_status === 'failed'))
     setFuelSpendToday(fuelLogs.reduce((s, f) => s + Number(f.total_cost), 0))
+    if (ownerInspectionRes.data !== undefined) {
+      setOwnerInspection((ownerInspectionRes.data as PreTripInspection[])[0] ?? null)
+    }
 
     const inspectionByDriver: Record<string, 'passed' | 'failed'> = {}
     inspections.forEach(i => { inspectionByDriver[i.driver_id] = i.overall_status })
@@ -132,9 +143,44 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {profile?.truck_number && ownerInspection !== undefined && (
+        <DayStartModal
+          name={profile.full_name}
+          userId={profile.id}
+          inspectionDone={ownerInspection !== null}
+          inspectionPath="/driver/inspection"
+        />
+      )}
+
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">
         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       </h1>
+
+      {/* Owner/Dispatcher Driver Mode */}
+      {profile?.truck_number && (profile.role === 'owner' || profile.role === 'dispatcher') && (
+        <div className="bg-[#1a1a1a] text-white rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Truck size={16} className="text-white/60" />
+              <p className="text-sm font-semibold">My Driver Activity — Truck {profile.truck_number}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Link href="/driver/ticket" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
+              <PlusCircle size={18} />
+              <span className="text-xs font-medium">Submit Ticket</span>
+            </Link>
+            <Link href="/driver/fuel" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
+              <Fuel size={18} />
+              <span className="text-xs font-medium">Log Fuel</span>
+            </Link>
+            <Link href="/driver/inspection" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
+              <ShieldCheck size={18} />
+              <span className="text-xs font-medium">Pre-Trip</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Failed Inspection Alert */}
       {failedInspections.length > 0 && (

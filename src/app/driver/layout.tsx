@@ -41,7 +41,14 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
       <header className="bg-[#1a1a1a] text-white px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="font-semibold text-sm hover:opacity-80 transition-opacity">HaulProof</Link>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="font-semibold text-sm hover:opacity-80 transition-opacity">HaulProof</Link>
+          {profile?.role !== 'driver' && (
+            <Link href="/dashboard" className="text-xs text-white/50 hover:text-white transition-colors border border-white/20 rounded px-2 py-1">
+              ← Dashboard
+            </Link>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <div className="text-right">

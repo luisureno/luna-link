@@ -6,6 +6,7 @@ import { PlusCircle, Fuel, ShieldCheck, DollarSign, FileText, Building2 } from '
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, PreTripInspection, FuelLog } from '@/types'
 
 export default function SoloTodayPage() {
@@ -89,6 +90,14 @@ export default function SoloTodayPage() {
 
   return (
     <div className="p-4 space-y-4">
+      {profile && inspection !== undefined && (
+        <DayStartModal
+          name={profile.full_name}
+          userId={profile.id}
+          inspectionDone={inspection !== null}
+        />
+      )}
+
       {/* Pre-trip */}
       {inspection === null && (
         <Link href="/driver/inspection" className="block bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
