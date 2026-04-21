@@ -17,27 +17,29 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    console.log('[login] calling signInWithPassword...')
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    console.log('[login] signInWithPassword result:', { user: data?.user?.id, error: authError?.message })
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (authError || !data.user) {
-      setError(authError?.message ?? 'Login failed')
+      if (authError || !data.user) {
+        setError(authError?.message ?? 'Login failed')
+        setLoading(false)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      // Hard redirect ensures the session cookie is fully committed before the
+      // next page mounts — prevents mobile Safari from seeing a stale auth state.
+      window.location.replace(profile?.role === 'driver' ? '/driver' : '/dashboard')
+    } catch (err) {
+      console.error('[login] unexpected error:', err)
+      setError('Something went wrong. Please try again.')
       setLoading(false)
-      return
     }
-
-    console.log('[login] fetching profile...')
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
-    console.log('[login] profile result:', { role: profile?.role, error: profileError?.message })
-
-    // Hard redirect ensures the session cookie is fully committed before the
-    // next page mounts — prevents mobile Safari from seeing a stale auth state.
-    window.location.replace(profile?.role === 'driver' ? '/driver' : '/dashboard')
   }
 
   return (
