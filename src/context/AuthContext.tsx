@@ -31,15 +31,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
+    let settled = false
+
+    // Bootstrap immediately from existing session — critical for mobile Safari
+    // where onAuthStateChange can fire late after a soft navigation.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (settled) return
+      settled = true
+      setSupabaseUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      settled = true
       setSupabaseUser(session?.user ?? null)
       if (session?.user) {
         await fetchProfile(session.user.id)
       } else {
         setProfile(null)
         setAccountType(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

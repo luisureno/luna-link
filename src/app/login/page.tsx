@@ -35,11 +35,9 @@ export default function LoginPage() {
       .single()
     console.log('[login] profile result:', { role: profile?.role, error: profileError?.message })
 
-    if (profile?.role === 'driver') {
-      router.push('/driver')
-    } else {
-      router.push('/dashboard')
-    }
+    // Hard redirect ensures the session cookie is fully committed before the
+    // next page mounts — prevents mobile Safari from seeing a stale auth state.
+    window.location.replace(profile?.role === 'driver' ? '/driver' : '/dashboard')
   }
 
   return (
