@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    '@react-pdf/renderer',
+    '@anthropic-ai/sdk',
+    'exceljs',
+    'canvas',
+  ],
 };
 
 export default nextConfig;
