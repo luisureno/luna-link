@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo  } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -17,9 +17,10 @@ const CHECKLIST: { id: string; label: string; icon: string }[] = [
 ]
 
 export default function InspectionPage() {
-  const { profile } = useAuth()
-  const supabase = createClient()
+  const { profile, accountType } = useAuth()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
 
   const [items, setItems] = useState<InspectionItem[]>(
     CHECKLIST.map(c => ({ id: c.id, label: c.label, passed: null, note: '', photo_url: null }))
@@ -76,7 +77,7 @@ export default function InspectionPage() {
     }, { onConflict: 'driver_id,log_date' })
 
     setDone(true)
-    setTimeout(() => router.push('/driver'), 2000)
+    setTimeout(() => router.push(homePath), 2000)
   }
 
   if (done) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { MapPin, PlusCircle, List, Fuel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +10,7 @@ import type { LoadTicket, CheckIn, PreTripInspection } from '@/types'
 
 export default function DriverTodayPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
 
   const [tickets, setTickets] = useState<LoadTicket[]>([])

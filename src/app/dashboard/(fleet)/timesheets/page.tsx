@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -36,7 +36,7 @@ interface AdjustState {
 
 export default function TimesheetsPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
 
   const [sheets, setSheets] = useState<TimesheetRow[]>([])

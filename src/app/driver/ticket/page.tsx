@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo , useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, FileText, PenLine, X, AlertTriangle } from 'lucide-react'
 import Decimal from 'decimal.js'
@@ -40,9 +40,10 @@ interface TicketForm {
 const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', notes: '' }
 
 export default function TicketPage() {
-  const { profile } = useAuth()
-  const supabase = createClient()
+  const { profile, accountType } = useAuth()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
   const today = new Date().toISOString().split('T')[0]
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -310,7 +311,7 @@ export default function TicketPage() {
         )}
         <div className="flex gap-3 mt-8 w-full max-w-xs">
           <button onClick={resetForAnother} className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-medium">Submit Another</button>
-          <button onClick={() => router.push('/driver')} className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-lg text-sm font-medium">Back to Today</button>
+          <button onClick={() => router.push(homePath)} className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-lg text-sm font-medium">Back to Today</button>
         </div>
       </div>
     )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo  } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -14,9 +14,10 @@ const locationOptions: { type: LocationType; label: string; emoji: string }[] = 
 ]
 
 export default function CheckInPage() {
-  const { profile } = useAuth()
-  const supabase = createClient()
+  const { profile, accountType } = useAuth()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
 
   const [selected, setSelected] = useState<LocationType | null>(null)
   const [customLabel, setCustomLabel] = useState('')
@@ -56,7 +57,7 @@ export default function CheckInPage() {
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     setSuccessTime(time)
     setSuccess(true)
-    setTimeout(() => router.push('/driver'), 2000)
+    setTimeout(() => router.push(homePath), 2000)
   }
 
   if (success) {

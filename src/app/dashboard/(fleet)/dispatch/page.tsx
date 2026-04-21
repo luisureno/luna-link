@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Plus, Info } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +32,7 @@ interface DispatchForm {
 
 export default function DispatchPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [showModal, setShowModal] = useState(false)
   const [dispatches, setDispatches] = useState<(Dispatch & { clients: Client; job_sites: JobSite })[]>([])
   const [clients, setClients] = useState<Client[]>([])

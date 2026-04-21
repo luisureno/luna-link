@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Plus, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -26,7 +26,7 @@ function generateId() {
 
 export default function SettingsPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [tab, setTab] = useState('Company')
   const [users, setUsers] = useState<User[]>([])
   const [templates, setTemplates] = useState<TicketTemplate[]>([])

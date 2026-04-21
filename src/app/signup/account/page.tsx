@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function AccountStep() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')

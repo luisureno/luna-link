@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -16,7 +16,7 @@ interface DriverDetail {
 
 export default function DriversPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [drivers, setDrivers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const today = new Date().toISOString().split('T')[0]

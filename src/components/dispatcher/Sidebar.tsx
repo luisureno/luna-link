@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X, Clock, DollarSign,
+  LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X, Clock, DollarSign, Home, List,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-const navItems = [
+const fleetNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/drivers', label: 'Drivers', icon: Users },
   { href: '/dashboard/dispatch', label: 'Dispatch', icon: Send },
@@ -20,10 +20,22 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
+const soloNav = [
+  { href: '/dashboard/solo', label: 'Today', icon: Home },
+  { href: '/dashboard/solo/loads', label: 'Loads', icon: List },
+  { href: '/dashboard/solo/tickets', label: 'Tickets', icon: FileText },
+  { href: '/dashboard/solo/invoices', label: 'Invoices', icon: Receipt },
+  { href: '/dashboard/solo/clients', label: 'Clients', icon: Building2 },
+  { href: '/dashboard/solo/settings', label: 'Settings', icon: Settings },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
-  const { profile, signOut } = useAuth()
+  const { profile, accountType, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+
+  const navItems = accountType === 'solo' ? soloNav : fleetNav
+  const homeHref = accountType === 'solo' ? '/dashboard/solo' : '/dashboard'
 
   return (
     <>
@@ -70,7 +82,7 @@ export function Sidebar() {
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
+            const active = href === homeHref ? pathname === href : pathname.startsWith(href)
             return (
               <Link
                 key={href}
@@ -94,7 +106,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{profile?.full_name}</p>
-              <p className="text-xs text-white/40 capitalize">{profile?.role}</p>
+              <p className="text-xs text-white/40 capitalize">{accountType === 'solo' ? 'Owner operator' : profile?.role}</p>
             </div>
           </div>
           <button

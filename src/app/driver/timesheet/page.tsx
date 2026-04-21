@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo , useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, FileText, CheckCircle, AlertTriangle, X } from 'lucide-react'
 import Decimal from 'decimal.js'
@@ -54,8 +54,9 @@ function toLocalDatetimeValue(d: Date): string {
 }
 
 export default function TimesheetPage() {
-  const { profile } = useAuth()
-  const supabase = createClient()
+  const { profile, accountType } = useAuth()
+  const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -308,7 +309,7 @@ export default function TimesheetPage() {
           </div>
         )}
         <button
-          onClick={() => router.push('/driver')}
+          onClick={() => router.push(homePath)}
           className="px-6 py-3 bg-[#1a1a1a] text-white rounded-xl font-medium"
         >
           Back to Home

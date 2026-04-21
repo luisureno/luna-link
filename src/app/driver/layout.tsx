@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/driver/BottomNav'
@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [uploading, setUploading] = useState(false)

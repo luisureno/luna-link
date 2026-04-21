@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Download, FileText, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
@@ -39,7 +39,7 @@ function dateRange() {
 
 export default function PayrollPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const range = dateRange()
 
   const [dateFrom, setDateFrom] = useState(range.from)

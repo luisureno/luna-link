@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo  } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Truck, FileText, Fuel, ShieldCheck, MapPin, BarChart3, Clock, Check, Users, Send, PlusCircle, List } from 'lucide-react'
@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function LandingPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [requestOpen, setRequestOpen] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -18,7 +18,7 @@ interface ClientForm {
 
 export default function ClientsPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)

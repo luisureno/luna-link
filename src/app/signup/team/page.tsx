@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Copy, Check, Users, Share2 } from 'lucide-react'
@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext'
 
 export default function TeamStep() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { profile, loading: authLoading } = useAuth()
 
   const [inviteLink, setInviteLink] = useState('')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Plus, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -40,7 +40,7 @@ function rateUnitForBillingType(bt: BillingType): string {
 
 export function BillingSetupTab() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [subTab, setSubTab] = useState<'client' | 'driver'>('client')
   const [clients, setClients] = useState<Client[]>([])

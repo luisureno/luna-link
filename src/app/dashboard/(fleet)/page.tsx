@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Users, FileText, Clock, Send, Fuel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -48,7 +48,7 @@ function SkeletonRow() {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
 
   const [activeDrivers, setActiveDrivers] = useState(0)

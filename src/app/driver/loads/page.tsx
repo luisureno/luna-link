@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -10,7 +10,7 @@ type GroupedTickets = { date: string; tickets: LoadTicket[] }[]
 
 export default function MyLoadsPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [groups, setGroups] = useState<GroupedTickets>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)

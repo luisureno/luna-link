@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -19,7 +19,7 @@ const tabs: { id: TabId; label: string }[] = [
 
 export default function InvoicesPage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [tab, setTab] = useState<TabId>('client')
   const [invoices, setInvoices] = useState<(Invoice & { clients: Client })[]>([])
   const [loading, setLoading] = useState(true)

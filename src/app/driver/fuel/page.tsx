@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo  } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 
 export default function FuelPage() {
-  const { profile } = useAuth()
-  const supabase = createClient()
+  const { profile, accountType } = useAuth()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
 
   const [gallons, setGallons] = useState('')
   const [pricePerGallon, setPricePerGallon] = useState('')
@@ -97,7 +98,7 @@ export default function FuelPage() {
     }, { onConflict: 'driver_id,log_date' })
 
     setSuccess(true)
-    setTimeout(() => router.push('/driver'), 2000)
+    setTimeout(() => router.push(homePath), 2000)
   }
 
   if (success) {

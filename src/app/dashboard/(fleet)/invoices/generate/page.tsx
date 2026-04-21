@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo , useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, CheckCircle, FileText, Download, X } from 'lucide-react'
 import Decimal from 'decimal.js'
@@ -44,7 +44,7 @@ function dateRange() {
 
 export default function GenerateInvoicePage() {
   const { profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const range = dateRange()
 
