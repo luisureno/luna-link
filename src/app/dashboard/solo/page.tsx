@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, Fuel, ShieldCheck, DollarSign, FileText, Building2 } from 'lucide-react'
+import { PlusCircle, Fuel, ShieldCheck, DollarSign, FileText, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
+import type { LoadTicket, PreTripInspection, FuelLog } from '@/types'
 
 export default function SoloTodayPage() {
   const { profile } = useAuth()
@@ -14,7 +14,6 @@ export default function SoloTodayPage() {
   const today = new Date().toISOString().split('T')[0]
 
   const [tickets, setTickets] = useState<LoadTicket[]>([])
-  const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null)
   const [inspection, setInspection] = useState<PreTripInspection | null | undefined>(undefined)
   const [fuelToday, setFuelToday] = useState<FuelLog[]>([])
   const [clientCount, setClientCount] = useState(0)
@@ -34,20 +33,13 @@ export default function SoloTodayPage() {
     weekStart.setDate(weekStart.getDate() - 6)
     const weekStartStr = weekStart.toISOString().split('T')[0]
 
-    const [ticketsRes, checkInsRes, inspectionRes, fuelRes, clientsRes, weekTicketsRes] = await Promise.all([
+    const [ticketsRes, inspectionRes, fuelRes, clientsRes, weekTicketsRes] = await Promise.all([
       supabase
         .from('load_tickets')
         .select('*')
         .eq('driver_id', id)
         .gte('submitted_at', `${today}T00:00:00`)
         .order('submitted_at', { ascending: false }),
-      supabase
-        .from('check_ins')
-        .select('*')
-        .eq('driver_id', id)
-        .gte('checked_in_at', `${today}T00:00:00`)
-        .order('checked_in_at', { ascending: false })
-        .limit(1),
       supabase
         .from('pre_trip_inspections')
         .select('*')
@@ -73,7 +65,6 @@ export default function SoloTodayPage() {
     ])
 
     setTickets(ticketsRes.data ?? [])
-    setLastCheckIn((checkInsRes.data ?? [])[0] ?? null)
     setInspection((inspectionRes.data ?? [])[0] ?? null)
     setFuelToday(fuelRes.data ?? [])
     setClientCount(clientsRes.count ?? 0)
@@ -87,16 +78,10 @@ export default function SoloTodayPage() {
     setLoading(false)
   }
 
-  const hoursOnClock = lastCheckIn
-    ? ((Date.now() - new Date(lastCheckIn.checked_in_at).getTime()) / 3600000).toFixed(1)
-    : '0.0'
-
   const payType = profile?.pay_type ?? null
   const payRate = profile?.pay_rate ?? null
-  const todayEarnings = payType && payRate != null
-    ? payType === 'per_load'
-      ? Number(payRate) * tickets.length
-      : Number(payRate) * parseFloat(hoursOnClock)
+  const todayEarnings = payType === 'per_load' && payRate != null
+    ? Number(payRate) * tickets.length
     : null
 
   const fuelSpend = fuelToday.reduce((sum, f) => sum + Number(f.total_cost ?? 0), 0)
@@ -153,36 +138,28 @@ export default function SoloTodayPage() {
       </div>
 
       {/* Stat row */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <div className="bg-white border border-gray-200 rounded-lg p-3">
-          <p className="text-xl font-semibold text-gray-900">{hoursOnClock}h</p>
-          <p className="text-[11px] text-gray-500">On clock</p>
+          <p className="text-xl font-semibold text-gray-900">{tickets.length}</p>
+          <p className="text-[11px] text-gray-500">Loads today</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-3">
           <p className="text-xl font-semibold text-gray-900">${fuelSpend.toFixed(0)}</p>
           <p className="text-[11px] text-gray-500">Fuel today</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-3">
-          <p className="text-xl font-semibold text-gray-900">{lastCheckIn ? lastCheckIn.location_type.replace('_', ' ') : '—'}</p>
-          <p className="text-[11px] text-gray-500 capitalize">Current</p>
-        </div>
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[90px] hover:bg-gray-50">
-          <MapPin size={22} className="text-gray-700" />
-          <span className="text-xs font-medium text-gray-700">Check In</span>
-        </Link>
-        <Link href="/driver/ticket" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-lg p-4 min-h-[90px] hover:bg-gray-800">
+      <div className="grid grid-cols-3 gap-3">
+        <Link href="/driver/ticket" className="col-span-3 flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-lg p-4 min-h-[80px] hover:bg-gray-800">
           <PlusCircle size={22} />
           <span className="text-xs font-medium">Submit Ticket</span>
         </Link>
-        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[90px] hover:bg-gray-50">
+        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
           <Fuel size={22} className="text-gray-700" />
           <span className="text-xs font-medium text-gray-700">Log Fuel</span>
         </Link>
-        <Link href="/driver/inspection" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[90px] hover:bg-gray-50">
+        <Link href="/driver/inspection" className="col-span-2 flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
           <ShieldCheck size={22} className="text-gray-700" />
           <span className="text-xs font-medium text-gray-700">Pre-Trip</span>
         </Link>
