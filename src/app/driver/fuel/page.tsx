@@ -32,7 +32,7 @@ export default function FuelPage() {
     const fd = new FormData()
     fd.append('image', file)
     try {
-      const res = await fetch('/api/scan-receipt', { method: 'POST', body: fd })
+      const res = await fetch('/api/scan/receipt', { method: 'POST', body: fd })
       const { extracted } = await res.json()
       if (extracted?.gallons) setGallons(String(extracted.gallons))
       if (extracted?.price_per_gallon) setPricePerGallon(String(extracted.price_per_gallon))
