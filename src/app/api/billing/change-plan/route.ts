@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
