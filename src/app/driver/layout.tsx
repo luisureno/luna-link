@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/driver/BottomNav'
 import { useAuth } from '@/context/AuthContext'
@@ -40,7 +41,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
       <header className="bg-[#1a1a1a] text-white px-4 py-3 flex items-center justify-between">
-        <span className="font-semibold text-sm">HaulProof</span>
+        <Link href="/" className="font-semibold text-sm hover:opacity-80 transition-opacity">HaulProof</Link>
 
         <div className="flex items-center gap-3">
           <div className="text-right">

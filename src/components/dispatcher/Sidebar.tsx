@@ -29,10 +29,10 @@ export function Sidebar() {
     <>
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Truck size={18} className="text-white/70" />
           <span className="font-semibold text-sm">HaulProof</span>
-        </div>
+        </Link>
         <button onClick={() => setOpen(true)} className="p-2 -mr-2" aria-label="Open menu">
           <Menu size={20} />
         </button>
@@ -53,10 +53,10 @@ export function Sidebar() {
       >
         <div className="p-5 border-b border-white/10 flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Truck size={20} className="text-white/70" />
               <span className="font-semibold text-base">HaulProof</span>
-            </div>
+            </Link>
             <p className="text-xs text-white/40 mt-1 truncate">{profile?.full_name ?? ''}</p>
           </div>
           <button

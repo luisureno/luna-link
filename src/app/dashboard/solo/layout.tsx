@@ -73,7 +73,7 @@ export default function SoloLayout({ children }: { children: React.ReactNode }) 
     <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
       <header className="bg-[#1a1a1a] text-white">
         <div className="px-4 py-3 flex items-center justify-between">
-          <Link href="/dashboard/solo" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <Truck size={18} className="text-white" />
             <span className="font-semibold text-sm">HaulProof</span>
           </Link>
