@@ -68,6 +68,7 @@ export default function TicketPage() {
     if (accountType === 'solo') {
       setSelectedDispatch({ id: '__no_dispatch__' } as any)
       setPendingCount(getPendingCount())
+      setLoading(false)
       return
     }
     loadDispatches()
