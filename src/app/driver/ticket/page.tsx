@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo , useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, FileText, PenLine, X, AlertTriangle } from 'lucide-react'
+import { Camera, FileText, PenLine, CheckCircle } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -31,6 +31,8 @@ interface DispatchFull extends Dispatch {
 interface TicketForm {
   tag_number: string
   weight_tons: string
+  gross_weight_lbs: string
+  tare_weight_lbs: string
   material_type: string
   loads_count: string
   po_number: string
@@ -38,10 +40,43 @@ interface TicketForm {
   client_name: string
   ticket_date: string
   truck_number: string
+  trailer_number: string
+  driver_name: string
+  hours_worked: string
+  rate_amount: string
+  total_amount: string
   notes: string
 }
 
-const empty: TicketForm = { tag_number: '', weight_tons: '', material_type: '', loads_count: '1', po_number: '', job_site: '', client_name: '', ticket_date: '', truck_number: '', notes: '' }
+const empty: TicketForm = {
+  tag_number: '', weight_tons: '', gross_weight_lbs: '', tare_weight_lbs: '',
+  material_type: '', loads_count: '1', po_number: '', job_site: '',
+  client_name: '', ticket_date: '', truck_number: '', trailer_number: '',
+  driver_name: '', hours_worked: '', rate_amount: '', total_amount: '', notes: '',
+}
+
+// Fields the AI can return, in the order we want to show them in the review screen
+const REVIEW_FIELDS: { key: string; label: string }[] = [
+  { key: 'date', label: 'Date' },
+  { key: 'tag_number', label: 'Tag / Ticket Number' },
+  { key: 'client_name', label: 'Client Name' },
+  { key: 'job_site', label: 'Job Site / Location' },
+  { key: 'material_type', label: 'Material Type' },
+  { key: 'weight_tons', label: 'Weight (tons)' },
+  { key: 'weight_lbs', label: 'Weight (lbs)' },
+  { key: 'gross_weight_lbs', label: 'Gross Weight (lbs)' },
+  { key: 'tare_weight_lbs', label: 'Tare Weight (lbs)' },
+  { key: 'loads_completed', label: 'Number of Loads' },
+  { key: 'hours_worked', label: 'Hours Worked' },
+  { key: 'truck_number', label: 'Truck Number' },
+  { key: 'trailer_number', label: 'Trailer Number' },
+  { key: 'driver_name', label: 'Driver Name' },
+  { key: 'po_number', label: 'PO / Order Number' },
+  { key: 'rate_amount', label: 'Rate' },
+  { key: 'total_amount', label: 'Total Amount' },
+  { key: 'notes', label: 'Notes' },
+  { key: 'additional_text', label: 'Other Text on Invoice' },
+]
 
 export default function TicketPage() {
   const { profile, accountType } = useAuth()
@@ -58,10 +93,11 @@ export default function TicketPage() {
   const [loading, setLoading] = useState(true)
   const [entryPath, setEntryPath] = useState<EntryPath>(null)
   const [scanning, setScanning] = useState(false)
-  const [scanWarning, setScanWarning] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [aiExtractedData, setAiExtractedData] = useState<Record<string, unknown> | null>(null)
+  // scanReview holds the raw AI extraction as editable strings for user review
+  const [scanReview, setScanReview] = useState<Record<string, string> | null>(null)
   const [form, setForm] = useState<TicketForm>(empty)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState<{ tagNumber: string; time: string } | null>(null)
@@ -110,13 +146,11 @@ export default function TicketPage() {
       })
 
     setDispatches(todayDispatches)
-
     const rate = (ratesRes.data ?? [])[0]
     if (rate) {
       setDriverHourlyRate(rate.hourly_rate ?? null)
       setDriverPerTonRate(rate.per_ton_rate ?? null)
     }
-
     if (todayDispatches.length === 1) selectDispatch(todayDispatches[0])
     setLoading(false)
   }
@@ -140,7 +174,7 @@ export default function TicketPage() {
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
     setScanning(true)
-    setScanWarning(false)
+    setScanReview(null)
 
     const fd = new FormData()
     fd.append('image', file)
@@ -151,22 +185,15 @@ export default function TicketPage() {
       const { extracted } = await res.json()
       if (extracted) {
         setAiExtractedData(extracted)
-        const updates: Partial<TicketForm> = {}
-        if (extracted.tag_number) updates.tag_number = String(extracted.tag_number)
-        if (extracted.weight_tons) updates.weight_tons = String(extracted.weight_tons)
-        if (extracted.material_type) updates.material_type = String(extracted.material_type)
-        if (extracted.loads_completed) updates.loads_count = String(extracted.loads_completed)
-        if (extracted.po_number) updates.po_number = String(extracted.po_number)
-        if (extracted.job_site) updates.job_site = String(extracted.job_site)
-        if (extracted.client_name) updates.client_name = String(extracted.client_name)
-        if (extracted.date) updates.ticket_date = String(extracted.date)
-        if (extracted.truck_number) updates.truck_number = String(extracted.truck_number)
-        const noteParts = [extracted.notes, extracted.additional_text].filter(Boolean)
-        if (noteParts.length) updates.notes = noteParts.join(' | ')
-        setForm(f => ({ ...f, ...updates }))
-        setScanWarning(true)
+        // Convert all non-null AI fields to strings for the review screen
+        const review: Record<string, string> = {}
+        for (const [k, v] of Object.entries(extracted)) {
+          if (v !== null && v !== undefined && String(v).trim() !== '') {
+            review[k] = String(v)
+          }
+        }
+        setScanReview(review)
       } else {
-        setScanWarning(false)
         alert('Could not read the image — try better lighting or a clearer photo.')
       }
     } catch (err) {
@@ -177,15 +204,34 @@ export default function TicketPage() {
     setScanning(false)
   }
 
-  function calcBilling(): {
-    client_charge_total: string | null
-    driver_pay_total: string | null
-    hours_billed_client: string | null
-    hours_paid_driver: string | null
-  } {
+  function confirmReview() {
+    if (!scanReview) return
+    const updates: Partial<TicketForm> = {}
+    if (scanReview.date) updates.ticket_date = scanReview.date
+    if (scanReview.tag_number) updates.tag_number = scanReview.tag_number
+    if (scanReview.client_name) updates.client_name = scanReview.client_name
+    if (scanReview.job_site) updates.job_site = scanReview.job_site
+    if (scanReview.material_type) updates.material_type = scanReview.material_type
+    if (scanReview.weight_tons) updates.weight_tons = scanReview.weight_tons
+    if (scanReview.gross_weight_lbs) updates.gross_weight_lbs = scanReview.gross_weight_lbs
+    if (scanReview.tare_weight_lbs) updates.tare_weight_lbs = scanReview.tare_weight_lbs
+    if (scanReview.loads_completed) updates.loads_count = scanReview.loads_completed
+    if (scanReview.truck_number) updates.truck_number = scanReview.truck_number
+    if (scanReview.trailer_number) updates.trailer_number = scanReview.trailer_number
+    if (scanReview.driver_name) updates.driver_name = scanReview.driver_name
+    if (scanReview.hours_worked) updates.hours_worked = scanReview.hours_worked
+    if (scanReview.po_number) updates.po_number = scanReview.po_number
+    if (scanReview.rate_amount) updates.rate_amount = scanReview.rate_amount
+    if (scanReview.total_amount) updates.total_amount = scanReview.total_amount
+    const noteParts = [scanReview.notes, scanReview.additional_text].filter(Boolean)
+    if (noteParts.length) updates.notes = noteParts.join(' | ')
+    setForm(f => ({ ...f, ...updates }))
+    setScanReview(null)
+  }
+
+  function calcBilling() {
     const cfg = selectedDispatch?.billing_config
     if (!cfg) return { client_charge_total: null, driver_pay_total: null, hours_billed_client: null, hours_paid_driver: null }
-
     try {
       if (cfg.billing_type === 'per_load') {
         const loads = new Decimal(form.loads_count || '1')
@@ -252,7 +298,21 @@ export default function TicketPage() {
       driver_pay_total: billing.driver_pay_total ? parseFloat(billing.driver_pay_total) : null,
       hours_paid_driver: billing.hours_paid_driver ? parseFloat(billing.hours_paid_driver) : null,
       ai_extracted_data: aiExtractedData ?? null,
-      form_data: { po_number: form.po_number, job_site: form.job_site, client_name: form.client_name, ticket_date: form.ticket_date, truck_number: form.truck_number, notes: form.notes },
+      form_data: {
+        ticket_date: form.ticket_date,
+        job_site: form.job_site,
+        client_name: form.client_name,
+        po_number: form.po_number,
+        truck_number: form.truck_number,
+        trailer_number: form.trailer_number,
+        driver_name: form.driver_name,
+        hours_worked: form.hours_worked,
+        gross_weight_lbs: form.gross_weight_lbs,
+        tare_weight_lbs: form.tare_weight_lbs,
+        rate_amount: form.rate_amount,
+        total_amount: form.total_amount,
+        notes: form.notes,
+      },
       latitude,
       longitude,
       status: 'submitted',
@@ -268,7 +328,6 @@ export default function TicketPage() {
       return
     }
 
-    // Upload photo to Supabase Storage if present
     let tagPhotoUrl: string | null = null
     if (photoFile) {
       const path = `tickets/${profile.company_id}/${Date.now()}_${photoFile.name}`
@@ -280,12 +339,8 @@ export default function TicketPage() {
     }
 
     const { error } = await supabase.from('load_tickets').insert({ ...payload, tag_photo_url: tagPhotoUrl })
-
     if (!error) {
-      setSuccess({
-        tagNumber: form.tag_number || 'Manual',
-        time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-      })
+      setSuccess({ tagNumber: form.tag_number || 'Manual', time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) })
     }
     setSubmitting(false)
   }
@@ -295,12 +350,11 @@ export default function TicketPage() {
     setPhotoFile(null)
     setPhotoPreview(null)
     setAiExtractedData(null)
-    setScanWarning(false)
+    setScanReview(null)
     setSuccess(null)
     setEntryPath(null)
   }
 
-  // ── Sync offline queue when online ──────────────────────────────────────────
   useEffect(() => {
     async function syncQueue() {
       const { getPending, markSynced } = await import('@/lib/offline-queue')
@@ -317,7 +371,7 @@ export default function TicketPage() {
     return () => window.removeEventListener('online', syncQueue)
   }, [])
 
-  // ── Success screen ───────────────────────────────────────────────────────────
+  // ── Success ──────────────────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
@@ -338,8 +392,6 @@ export default function TicketPage() {
       </div>
     )
   }
-
-  const NO_DISPATCH = '__no_dispatch__'
 
   if (loading) return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
 
@@ -364,10 +416,8 @@ export default function TicketPage() {
               {d.notes && <p className="text-xs text-gray-400 mt-1">{d.notes}</p>}
             </button>
           ))}
-
-          {/* No-dispatch option */}
           <button
-            onClick={() => { setSelectedDispatch({ id: NO_DISPATCH } as any); setEntryPath(null) }}
+            onClick={() => { setSelectedDispatch({ id: '__no_dispatch__' } as any); setEntryPath(null) }}
             className="w-full text-left bg-white border border-dashed border-gray-300 rounded-xl p-4 hover:border-gray-500 active:bg-gray-50"
           >
             <p className="text-sm font-medium text-gray-700">Submit without dispatch</p>
@@ -387,7 +437,6 @@ export default function TicketPage() {
         {(selectedDispatch as any).id !== '__no_dispatch__' && selectedDispatch.title && (
           <p className="text-sm text-gray-500 mb-2">{selectedDispatch.title}</p>
         )}
-
         <p className="text-sm font-medium text-gray-700 mb-3">How do you want to submit this ticket?</p>
         <div className="space-y-3">
           {[
@@ -413,7 +462,6 @@ export default function TicketPage() {
             </button>
           ))}
         </div>
-
         <input
           ref={fileInputRef}
           type="file"
@@ -426,57 +474,101 @@ export default function TicketPage() {
     )
   }
 
+  // ── Scanning loading screen ──────────────────────────────────────────────────
+  if (scanning) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+        <span className="w-12 h-12 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mb-5" />
+        <p className="text-base font-semibold text-gray-900">Reading {entryPath === 'scan_tag' ? 'tag' : 'invoice'}…</p>
+        <p className="text-sm text-gray-500 mt-1">Extracting all fields from your photo</p>
+      </div>
+    )
+  }
+
+  // ── Step 2.5: scan review ────────────────────────────────────────────────────
+  if (scanReview !== null) {
+    const visibleFields = REVIEW_FIELDS.filter(f => scanReview[f.key] !== undefined && scanReview[f.key] !== '')
+    return (
+      <div className="p-4 pb-36 md:pb-24">
+        <div className="flex items-center gap-2 mb-1">
+          <button onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setEntryPath(null) }} className="text-sm text-gray-500">← Retake</button>
+        </div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-0.5">Review Scan</h1>
+        <p className="text-xs text-gray-500 mb-4">Everything found on the invoice. Edit any field, then confirm.</p>
+
+        {photoPreview && (
+          <img src={photoPreview} alt="Scanned invoice" className="w-full max-h-48 object-contain rounded-xl border border-gray-200 mb-4 bg-gray-50" />
+        )}
+
+        {visibleFields.length === 0 ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-4">
+            No fields could be read. Try a clearer photo with better lighting.
+          </div>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {visibleFields.map(({ key, label }) => (
+              <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+                <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                <input
+                  type="text"
+                  value={scanReview[key]}
+                  onChange={e => setScanReview(r => ({ ...r!, [key]: e.target.value }))}
+                  className="w-full text-base text-gray-900 outline-none bg-transparent"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
+          <button
+            onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setEntryPath(null) }}
+            className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
+          >
+            Retake
+          </button>
+          <button
+            onClick={confirmReview}
+            className="flex-1 py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <CheckCircle size={16} />
+            Confirm & Fill Form
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ── Step 3: ticket form ──────────────────────────────────────────────────────
   const cfg = selectedDispatch.billing_config
   const billing = calcBilling()
 
   return (
     <div className="p-4 pb-36 md:pb-24">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => { setEntryPath(null); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }} className="text-sm text-gray-500">← Back</button>
+        <button
+          onClick={() => { setEntryPath(null); setPhotoFile(null); setPhotoPreview(null) }}
+          className="text-sm text-gray-500"
+        >
+          ← Back
+        </button>
         <h1 className="text-lg font-semibold text-gray-900">Load Ticket</h1>
       </div>
 
-      {/* Scan warning */}
-      {scanWarning && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2.5 mb-4">
-          <AlertTriangle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-800 font-medium">
-            {entryPath === 'scan_tag' ? 'Tag scanned' : 'Invoice scanned'} — check every field before submitting. Tap any field to edit.
-          </p>
-        </div>
-      )}
-
-      {scanning && (
-        <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5 mb-4">
-          <span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <p className="text-xs text-blue-700">Reading {entryPath === 'scan_tag' ? 'tag' : 'invoice'}…</p>
-        </div>
-      )}
-
-      {/* Photo */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-        {photoPreview ? (
-          <div className="flex items-center gap-3">
-            <img src={photoPreview} alt="Scanned" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-900">Photo attached</p>
-              <p className="text-xs text-gray-500 truncate">{photoFile?.name}</p>
-            </div>
-            <label className="text-xs text-gray-500 underline cursor-pointer">
-              Retake
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
-            </label>
+      {/* Photo thumbnail */}
+      {photoPreview && (
+        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+          <img src={photoPreview} alt="Scanned" className="w-14 h-14 object-cover rounded-lg border border-gray-200" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-gray-900">Photo attached</p>
+            <p className="text-xs text-gray-500 truncate">{photoFile?.name}</p>
           </div>
-        ) : (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <Camera size={16} className="text-gray-400" />
-            <span className="text-sm text-gray-500">Add photo</span>
+          <label className="text-xs text-gray-500 underline cursor-pointer flex-shrink-0">
+            Retake
             <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
           </label>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Billing context */}
       {cfg && (
@@ -487,131 +579,109 @@ export default function TicketPage() {
         </div>
       )}
 
-      {/* Form fields */}
       <div className="space-y-3">
         {/* Date */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-          <input
-            type="date"
-            value={form.ticket_date || new Date().toISOString().split('T')[0]}
-            onChange={e => setField('ticket_date', e.target.value)}
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <input type="date" value={form.ticket_date || today} onChange={e => setField('ticket_date', e.target.value)} className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
-        {/* Tag number */}
+        {/* Tag */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Tag Number</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={form.tag_number}
-            onChange={e => setField('tag_number', e.target.value)}
-            placeholder="e.g. 4421"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <label className="block text-xs font-medium text-gray-500 mb-1">Tag / Ticket Number</label>
+          <input type="text" inputMode="numeric" value={form.tag_number} onChange={e => setField('tag_number', e.target.value)} placeholder="e.g. 4421" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
-        {/* Weight */}
-        {(cfg?.billing_type === 'per_ton' || !cfg) && (
-          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Weight (tons)</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.001"
-              value={form.weight_tons}
-              onChange={e => setField('weight_tons', e.target.value)}
-              placeholder="e.g. 22.8"
-              className="w-full text-base text-gray-900 outline-none bg-transparent"
-            />
-          </div>
-        )}
+        {/* Client */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Client Name</label>
+          <input type="text" value={form.client_name} onChange={e => setField('client_name', e.target.value)} placeholder="e.g. ABC Construction" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+        </div>
+
+        {/* Job site */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-gray-500 mb-1">Job Site / Location</label>
+          <input type="text" value={form.job_site} onChange={e => setField('job_site', e.target.value)} placeholder="e.g. North Quarry" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+        </div>
 
         {/* Material */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Material Type</label>
-          <input
-            type="text"
-            value={form.material_type}
-            onChange={e => setField('material_type', e.target.value)}
-            placeholder="e.g. Concrete Sand"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <input type="text" value={form.material_type} onChange={e => setField('material_type', e.target.value)} placeholder="e.g. Concrete Sand" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+        </div>
+
+        {/* Weight tons */}
+        {(cfg?.billing_type === 'per_ton' || !cfg) && (
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Weight (tons)</label>
+            <input type="number" inputMode="decimal" step="0.001" value={form.weight_tons} onChange={e => setField('weight_tons', e.target.value)} placeholder="e.g. 22.8" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+        )}
+
+        {/* Gross / Tare weights */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Gross Weight (lbs)</label>
+            <input type="number" inputMode="numeric" value={form.gross_weight_lbs} onChange={e => setField('gross_weight_lbs', e.target.value)} placeholder="Optional" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Tare Weight (lbs)</label>
+            <input type="number" inputMode="numeric" value={form.tare_weight_lbs} onChange={e => setField('tare_weight_lbs', e.target.value)} placeholder="Optional" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
         </div>
 
         {/* Loads count */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Loads Count</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.loads_count}
-            onChange={e => setField('loads_count', e.target.value)}
-            min="1"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <input type="number" inputMode="numeric" value={form.loads_count} onChange={e => setField('loads_count', e.target.value)} min="1" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
-        {/* Job site */}
+        {/* Hours */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Job Site <span className="text-gray-400">(optional)</span></label>
-          <input
-            type="text"
-            value={form.job_site}
-            onChange={e => setField('job_site', e.target.value)}
-            placeholder="e.g. North Quarry"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <label className="block text-xs font-medium text-gray-500 mb-1">Hours Worked <span className="text-gray-400">(optional)</span></label>
+          <input type="number" inputMode="decimal" step="0.25" value={form.hours_worked} onChange={e => setField('hours_worked', e.target.value)} placeholder="e.g. 8.5" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
-        {/* Client */}
+        {/* Truck / Trailer */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Truck #</label>
+            <input type="text" value={form.truck_number} onChange={e => setField('truck_number', e.target.value)} placeholder="e.g. T-14" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Trailer #</label>
+            <input type="text" value={form.trailer_number} onChange={e => setField('trailer_number', e.target.value)} placeholder="Optional" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+        </div>
+
+        {/* Driver name */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Client Name <span className="text-gray-400">(optional)</span></label>
-          <input
-            type="text"
-            value={form.client_name}
-            onChange={e => setField('client_name', e.target.value)}
-            placeholder="e.g. ABC Construction"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <label className="block text-xs font-medium text-gray-500 mb-1">Driver Name <span className="text-gray-400">(optional)</span></label>
+          <input type="text" value={form.driver_name} onChange={e => setField('driver_name', e.target.value)} placeholder="e.g. John Smith" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
         {/* PO */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <label className="block text-xs font-medium text-gray-500 mb-1">PO Number <span className="text-gray-400">(optional)</span></label>
-          <input
-            type="text"
-            value={form.po_number}
-            onChange={e => setField('po_number', e.target.value)}
-            placeholder="Optional"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+          <label className="block text-xs font-medium text-gray-500 mb-1">PO / Order Number <span className="text-gray-400">(optional)</span></label>
+          <input type="text" value={form.po_number} onChange={e => setField('po_number', e.target.value)} placeholder="Optional" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
-        {/* Truck number */}
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <label className="block text-xs font-medium text-gray-500 mb-1">Truck Number <span className="text-gray-400">(optional)</span></label>
-          <input
-            type="text"
-            value={form.truck_number}
-            onChange={e => setField('truck_number', e.target.value)}
-            placeholder="e.g. T-14"
-            className="w-full text-base text-gray-900 outline-none bg-transparent"
-          />
+        {/* Rate / Total */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Rate <span className="text-gray-400">(optional)</span></label>
+            <input type="text" value={form.rate_amount} onChange={e => setField('rate_amount', e.target.value)} placeholder="e.g. $12/ton" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Total Amount <span className="text-gray-400">(optional)</span></label>
+            <input type="text" value={form.total_amount} onChange={e => setField('total_amount', e.target.value)} placeholder="e.g. $320.00" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
         </div>
 
         {/* Notes */}
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Notes <span className="text-gray-400">(optional)</span></label>
-          <textarea
-            value={form.notes}
-            onChange={e => setField('notes', e.target.value)}
-            rows={2}
-            placeholder="Optional"
-            className="w-full text-base text-gray-900 outline-none bg-transparent resize-none"
-          />
+          <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={3} placeholder="Any additional notes" className="w-full text-base text-gray-900 outline-none bg-transparent resize-none" />
         </div>
 
         {/* Billing preview */}
@@ -623,10 +693,9 @@ export default function TicketPage() {
         )}
       </div>
 
-      {/* Actions — fixed bottom */}
       <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
         <button
-          onClick={() => { setForm(empty); setPhotoFile(null); setPhotoPreview(null); setScanWarning(false) }}
+          onClick={() => { setForm(empty); setPhotoFile(null); setPhotoPreview(null) }}
           className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"
         >
           Clear all
