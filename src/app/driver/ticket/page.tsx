@@ -366,7 +366,7 @@ export default function TicketPage() {
   if (!entryPath) {
     return (
       <div className="p-4">
-        <button onClick={() => setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
+        <button onClick={() => accountType === 'solo' ? router.push(homePath) : setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
         {(selectedDispatch as any).id !== '__no_dispatch__' && selectedDispatch.title && (
           <p className="text-sm text-gray-500 mb-2">{selectedDispatch.title}</p>
