@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/dispatcher/Sidebar'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, accountType } = useAuth()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
