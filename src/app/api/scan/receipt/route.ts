@@ -27,12 +27,16 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: `You are reading a fuel/gas station receipt.
+              text: `You are reading a fuel or DEF (Diesel Exhaust Fluid) station receipt.
 Extract the following fields and return ONLY valid JSON with no markdown, no backticks, no explanation:
 {
-  "gallons": "number or null",
-  "price_per_gallon": "number or null"
+  "gallons": "diesel fuel gallons as number or null",
+  "price_per_gallon": "diesel fuel price per gallon as number or null",
+  "def_gallons": "DEF gallons as number or null",
+  "def_price_per_gallon": "DEF price per gallon as number or null"
 }
+If this is a DEF-only receipt, set gallons and price_per_gallon to null.
+If this is a diesel-only receipt, set def_gallons and def_price_per_gallon to null.
 Only extract what is clearly visible. Never guess.`,
             },
           ],

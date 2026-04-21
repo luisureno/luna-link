@@ -85,7 +85,7 @@ export default function SoloTodayPage() {
     ? Number(payRate) * tickets.length
     : null
 
-  const fuelSpend = fuelToday.reduce((sum, f) => sum + Number(f.total_cost ?? 0), 0)
+  const fuelSpend = fuelToday.reduce((sum, f) => sum + Number(f.total_cost ?? 0) + Number((f as any).def_total_cost ?? 0), 0)
   const today_label = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (

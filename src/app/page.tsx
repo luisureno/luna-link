@@ -42,6 +42,9 @@ export default function LandingPage() {
             <a href="#pricing" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Pricing
             </a>
+            <a href="mailto:luisangelmureno@gmail.com?subject=HaulProof Support" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
+              Support
+            </a>
             <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Log in
             </Link>
@@ -506,8 +509,14 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} HaulProof. All rights reserved.
+      <footer className="py-8 text-center text-xs text-gray-500 space-y-2">
+        <p>© {new Date().getFullYear()} HaulProof. All rights reserved.</p>
+        <p>
+          Need help?{' '}
+          <a href="mailto:luisangelmureno@gmail.com?subject=HaulProof Support" className="underline hover:text-gray-700">
+            Contact support
+          </a>
+        </p>
       </footer>
 
       {requestOpen && <RequestAccessModal onClose={() => setRequestOpen(false)} />}

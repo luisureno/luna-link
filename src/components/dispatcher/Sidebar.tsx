@@ -110,6 +110,13 @@ export function Sidebar() {
               <p className="text-xs text-white/40 capitalize">{accountType === 'solo' ? 'Owner operator' : profile?.role}</p>
             </div>
           </div>
+          <a
+            href="mailto:luisangelmureno@gmail.com?subject=HaulProof Support"
+            className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
+          >
+            <span className="text-[14px]">💬</span>
+            Contact Support
+          </a>
           <button
             onClick={signOut}
             className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"

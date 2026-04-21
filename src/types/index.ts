@@ -233,6 +233,10 @@ export interface FuelLog {
   price_per_gallon: number
   total_cost: number
   receipt_url: string | null
+  def_gallons: number | null
+  def_price_per_gallon: number | null
+  def_total_cost: number | null
+  def_receipt_url: string | null
   latitude: number | null
   longitude: number | null
   logged_at: string

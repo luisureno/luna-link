@@ -15,6 +15,10 @@ interface FuelRow {
   price_per_gallon: number | null
   total_cost: number | null
   receipt_url: string | null
+  def_gallons: number | null
+  def_price_per_gallon: number | null
+  def_total_cost: number | null
+  def_receipt_url: string | null
   latitude: number | null
   longitude: number | null
   logged_at: string
@@ -66,7 +70,7 @@ export default function FuelPage() {
     return null
   }
 
-  const totalSpend = logs.reduce((sum, l) => sum + (computeTotal(l) ?? 0), 0)
+  const totalSpend = logs.reduce((sum, l) => sum + (computeTotal(l) ?? 0) + (l.def_total_cost ?? 0), 0)
   const totalGallons = logs.reduce((sum, l) => sum + (l.gallons ?? 0), 0)
 
   function DetailPanel({ log }: { log: FuelRow }) {
@@ -102,7 +106,27 @@ export default function FuelPage() {
           </div>
         </div>
 
-        <ScannedArtifacts photos={[{ label: 'Receipt', url: log.receipt_url ?? '' }]} />
+        {(log.def_gallons != null || log.def_total_cost != null) && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+              <p className="text-xs text-blue-600 mb-1">DEF gallons</p>
+              <p className="text-sm font-semibold text-blue-900">{log.def_gallons ?? '—'}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+              <p className="text-xs text-blue-600 mb-1">DEF price/gal</p>
+              <p className="text-sm font-semibold text-blue-900">{fmtMoney(log.def_price_per_gallon)}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+              <p className="text-xs text-blue-600 mb-1">DEF total</p>
+              <p className="text-sm font-semibold text-blue-900">{fmtMoney(log.def_total_cost)}</p>
+            </div>
+          </div>
+        )}
+
+        <ScannedArtifacts photos={[
+          { label: 'Fuel receipt', url: log.receipt_url ?? '' },
+          { label: 'DEF receipt', url: log.def_receipt_url ?? '' },
+        ]} />
       </div>
     )
   }
