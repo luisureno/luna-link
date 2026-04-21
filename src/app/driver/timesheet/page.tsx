@@ -75,6 +75,7 @@ export default function TimesheetPage() {
   const [isOnline, setIsOnline] = useState(true)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
   const [hasSignature, setHasSignature] = useState(false)
+  const [scannedInvoiceUrl, setScannedInvoiceUrl] = useState<string | null>(null)
 
   useEffect(() => {
     setIsOnline(navigator.onLine)
@@ -183,6 +184,18 @@ export default function TimesheetPage() {
     if (!file) return
     setScanning(true)
     try {
+      // Upload photo to storage so dispatcher can view it
+      if (profile) {
+        const path = `timesheets/${profile.company_id}/${Date.now()}-invoice.jpg`
+        const { data: uploadData } = await supabase.storage
+          .from('ticket-photos')
+          .upload(path, file, { contentType: file.type })
+        if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage.from('ticket-photos').getPublicUrl(uploadData.path)
+          setScannedInvoiceUrl(publicUrl)
+        }
+      }
+
       const fd = new FormData()
       fd.append('image', file)
       const res = await fetch('/api/scan/invoice', { method: 'POST', body: fd })
@@ -254,6 +267,7 @@ export default function TimesheetPage() {
       client_rate_per_hour: config?.client_rate_amount ?? null,
       client_charge_total: clientCharge,
       submission_method: submitPath === 'scan_invoice' ? 'paper_scan' : 'digital',
+      scanned_invoice_photo_url: scannedInvoiceUrl,
       client_signature_url: sigUrl,
       client_signer_name: form.client_signer_name || null,
       notes: form.notes || null,
