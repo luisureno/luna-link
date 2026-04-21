@@ -191,7 +191,7 @@ export default function TicketPage() {
   }
 
   async function handleSubmit() {
-    if (!selectedDispatch || !profile) return
+    if (!profile) return
     setSubmitting(true)
 
     let latitude: number | null = null
@@ -205,15 +205,16 @@ export default function TicketPage() {
     } catch {}
 
     const billing = calcBilling()
-    const cfg = selectedDispatch.billing_config
+    const hasDispatch = selectedDispatch && (selectedDispatch as any).id !== '__no_dispatch__'
+    const cfg = hasDispatch ? selectedDispatch!.billing_config : null
 
     const payload = {
       company_id: profile.company_id,
       driver_id: profile.id,
-      dispatch_id: selectedDispatch.id,
-      client_id: selectedDispatch.client_id,
-      job_site_id: selectedDispatch.job_site_id,
-      ticket_template_id: selectedDispatch.ticket_template_id,
+      dispatch_id: hasDispatch ? selectedDispatch!.id : null,
+      client_id: hasDispatch ? selectedDispatch!.client_id : null,
+      job_site_id: hasDispatch ? selectedDispatch!.job_site_id : null,
+      ticket_template_id: hasDispatch ? selectedDispatch!.ticket_template_id : null,
       billing_type: cfg?.billing_type ?? null,
       submission_method: entryPath === 'scan_tag' ? 'tag_scan' : entryPath === 'scan_invoice' ? 'paper_scan' : 'manual',
       tag_number: form.tag_number || null,
@@ -315,22 +316,18 @@ export default function TicketPage() {
     )
   }
 
-  if (loading) return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
+  const NO_DISPATCH = '__no_dispatch__'
 
-  if (dispatches.length === 0) {
-    return (
-      <div className="p-4 text-center mt-12">
-        <p className="text-gray-500 text-sm">No active dispatches for today.</p>
-        <button onClick={() => router.push('/driver')} className="mt-4 text-sm text-gray-700 underline">Back to Today</button>
-      </div>
-    )
-  }
+  if (loading) return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
 
   // ── Step 1: select dispatch ──────────────────────────────────────────────────
   if (!selectedDispatch) {
     return (
       <div className="p-4">
-        <h1 className="text-xl font-semibold text-gray-900 mb-4">Select Dispatch</h1>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
+        <p className="text-sm text-gray-500 mb-4">
+          {dispatches.length > 0 ? 'Select a dispatch or submit without one.' : 'No dispatches sent for today — you can still submit a ticket.'}
+        </p>
         <div className="space-y-2">
           {dispatches.map(d => (
             <button key={d.id} onClick={() => selectDispatch(d)} className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-400 active:bg-gray-50">
@@ -344,6 +341,15 @@ export default function TicketPage() {
               {d.notes && <p className="text-xs text-gray-400 mt-1">{d.notes}</p>}
             </button>
           ))}
+
+          {/* No-dispatch option */}
+          <button
+            onClick={() => { setSelectedDispatch({ id: NO_DISPATCH } as any); setEntryPath(null) }}
+            className="w-full text-left bg-white border border-dashed border-gray-300 rounded-xl p-4 hover:border-gray-500 active:bg-gray-50"
+          >
+            <p className="text-sm font-medium text-gray-700">Submit without dispatch</p>
+            <p className="text-xs text-gray-400 mt-0.5">No billing config — dispatcher will review</p>
+          </button>
         </div>
       </div>
     )
@@ -353,11 +359,11 @@ export default function TicketPage() {
   if (!entryPath) {
     return (
       <div className="p-4">
-        {dispatches.length > 1 && (
-          <button onClick={() => setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
-        )}
+        <button onClick={() => setSelectedDispatch(null)} className="text-sm text-gray-500 mb-3">← Back</button>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">New Load Ticket</h1>
-        <p className="text-sm text-gray-500 mb-6">{selectedDispatch.title}</p>
+        {(selectedDispatch as any).id !== '__no_dispatch__' && selectedDispatch.title && (
+          <p className="text-sm text-gray-500 mb-2">{selectedDispatch.title}</p>
+        )}
 
         <p className="text-sm font-medium text-gray-700 mb-3">How do you want to submit this ticket?</p>
         <div className="space-y-3">
