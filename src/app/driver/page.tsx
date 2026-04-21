@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { MapPin, PlusCircle, List, Fuel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import type { AccountType } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection } from '@/types'
 
 export default function DriverTodayPage() {
-  const { profile } = useAuth()
+  const { profile, accountType } = useAuth()
+  const isSolo = accountType === 'solo'
   const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
 
@@ -129,11 +131,13 @@ export default function DriverTodayPage() {
             <p className="text-3xl font-semibold text-gray-900">{tickets.length}</p>
             <p className="text-xs text-gray-500">Loads today</p>
           </div>
-          <div>
-            <p className="text-3xl font-semibold text-gray-900">{hoursOnClock}h</p>
-            <p className="text-xs text-gray-500">On the clock</p>
-          </div>
-          {lastCheckIn && (
+          {!isSolo && (
+            <div>
+              <p className="text-3xl font-semibold text-gray-900">{hoursOnClock}h</p>
+              <p className="text-xs text-gray-500">On the clock</p>
+            </div>
+          )}
+          {!isSolo && lastCheckIn && (
             <div>
               <p className="text-sm font-medium text-green-600 capitalize">{lastCheckIn.location_type.replace('_', ' ')}</p>
               <p className="text-xs text-gray-500">Current status</p>
@@ -144,11 +148,13 @@ export default function DriverTodayPage() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
-          <MapPin size={22} className="text-gray-700" />
-          <span className="text-xs font-medium text-gray-700">Check In</span>
-        </Link>
-        <Link href="/driver/ticket" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-lg p-4 min-h-[80px] hover:bg-gray-800">
+        {!isSolo && (
+          <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
+            <MapPin size={22} className="text-gray-700" />
+            <span className="text-xs font-medium text-gray-700">Check In</span>
+          </Link>
+        )}
+        <Link href="/driver/ticket" className={`flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-lg p-4 min-h-[80px] hover:bg-gray-800 ${isSolo ? 'col-span-2' : ''}`}>
           <PlusCircle size={22} />
           <span className="text-xs font-medium">Submit Ticket</span>
         </Link>

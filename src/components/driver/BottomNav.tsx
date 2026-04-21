@@ -3,18 +3,21 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, MapPin, PlusCircle, List, Fuel, Calendar } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
-const tabs = [
-  { href: '/driver', label: 'Today', icon: Home },
-  { href: '/driver/checkin', label: 'Check In', icon: MapPin },
-  { href: '/driver/ticket', label: 'Ticket', icon: PlusCircle },
-  { href: '/driver/fuel', label: 'Fuel', icon: Fuel },
-  { href: '/driver/loads', label: 'Loads', icon: List },
-  { href: '/driver/history', label: 'History', icon: Calendar },
+const allTabs = [
+  { href: '/driver', label: 'Today', icon: Home, soloHidden: false },
+  { href: '/driver/checkin', label: 'Check In', icon: MapPin, soloHidden: true },
+  { href: '/driver/ticket', label: 'Ticket', icon: PlusCircle, soloHidden: false },
+  { href: '/driver/fuel', label: 'Fuel', icon: Fuel, soloHidden: false },
+  { href: '/driver/loads', label: 'Loads', icon: List, soloHidden: false },
+  { href: '/driver/history', label: 'History', icon: Calendar, soloHidden: false },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
+  const { accountType } = useAuth()
+  const tabs = accountType === 'solo' ? allTabs.filter(t => !t.soloHidden) : allTabs
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
