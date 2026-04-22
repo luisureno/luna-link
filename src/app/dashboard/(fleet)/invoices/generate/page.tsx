@@ -251,8 +251,21 @@ export default function GenerateInvoicePage() {
     if (!filter.client_id) return
     setCreating(true)
 
-    const now = new Date()
-    const invNum = `INV-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`
+    // Sequential invoice numbering starting at 1000 per company
+    const { data: lastInv } = await supabase
+      .from('invoices')
+      .select('invoice_number')
+      .eq('company_id', profile!.company_id)
+      .eq('invoice_type', 'client_invoice')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const lastNum = lastInv?.invoice_number
+      ? parseInt(lastInv.invoice_number.replace(/\D/g, ''), 10)
+      : 999
+    const nextNum = isNaN(lastNum) ? 1000 : Math.max(lastNum + 1, 1000)
+    const invNum = `INV-${nextNum}`
 
     const { data: inv, error } = await supabase.from('invoices').insert({
       company_id: profile!.company_id,
