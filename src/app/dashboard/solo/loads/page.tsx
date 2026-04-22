@@ -206,12 +206,19 @@ export default function SoloLoadsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {ticket.client?.name ?? 'No client'}
-                      {ticket.job_site?.name ? ` · ${ticket.job_site.name}` : ''}
+                      {(() => {
+                        const fd = (ticket.form_data ?? {}) as Record<string, unknown>
+                        const tagNum = ticket.tag_number ?? (fd.tag_number ? String(fd.tag_number) : null)
+                        return tagNum ? `Tag #${tagNum}` : 'No tag number'
+                      })()}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {formatDate(date)} ·{' '}
-                      {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · #{ticket.id.slice(0, 8)}
+                      {formatDate(date)} · {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      {(() => {
+                        const fd = (ticket.form_data ?? {}) as Record<string, unknown>
+                        const truckNum = fd.truck_number ? String(fd.truck_number) : null
+                        return truckNum ? ` · Truck #${truckNum}` : ''
+                      })()}
                     </p>
                   </div>
                   <StatusBadge status={ticket.status} />

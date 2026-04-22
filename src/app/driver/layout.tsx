@@ -54,7 +54,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
     return (
       <div className="flex h-full min-h-screen">
         <Sidebar />
-        <main className="flex-1 md:ml-60 min-h-screen bg-[#F8F7F5] pt-[72px] md:pt-0 pb-20 md:pb-0">
+        <main className="flex-1 md:ml-60 min-h-screen bg-[#F8F7F5] pt-[72px] md:pt-0 pb-28 md:pb-6">
           {children}
         </main>
         <BottomNav />
@@ -123,7 +123,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
 
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
-      <main className="flex-1 pb-20">
+      <main className="flex-1 pb-28">
         {children}
       </main>
 

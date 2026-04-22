@@ -10,7 +10,7 @@ const allTabs = [
   { href: '/driver/checkin', label: 'Check In', icon: MapPin, soloHidden: true },
   { href: '/driver/ticket', label: 'Ticket', icon: PlusCircle, soloHidden: false },
   { href: '/driver/fuel', label: 'Fuel', icon: Fuel, soloHidden: false },
-  { href: '/driver/loads', label: 'Loads', icon: List, soloHidden: false },
+  { href: '/driver/loads', label: 'Loads', icon: List, soloHidden: true },
   { href: '/driver/history', label: 'History', icon: Calendar, soloHidden: false },
 ]
 

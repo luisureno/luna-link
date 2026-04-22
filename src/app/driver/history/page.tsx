@@ -5,7 +5,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import type { CheckIn, LoadTicket, FuelLog, PreTripInspection } from '@/types'
+import { formatDate } from '@/lib/format'
+import type { LoadTicket, FuelLog, PreTripInspection } from '@/types'
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -28,7 +29,6 @@ export default function HistoryPage() {
   const [month, setMonth] = useState(now.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [activeDays, setActiveDays] = useState<Set<string>>(new Set())
-  const [dayCheckIns, setDayCheckIns] = useState<CheckIn[]>([])
   const [dayTickets, setDayTickets] = useState<LoadTicket[]>([])
   const [dayFuelLogs, setDayFuelLogs] = useState<FuelLog[]>([])
   const [dayInspection, setDayInspection] = useState<PreTripInspection | null>(null)
@@ -58,14 +58,12 @@ export default function HistoryPage() {
     setSelectedDate(date)
     setLoadingDay(true)
 
-    const [checkInsRes, ticketsRes, fuelRes, inspectionRes] = await Promise.all([
-      supabase.from('check_ins').select('*').eq('driver_id', profile!.id).gte('checked_in_at', `${date}T00:00:00`).lte('checked_in_at', `${date}T23:59:59`).order('checked_in_at'),
+    const [ticketsRes, fuelRes, inspectionRes] = await Promise.all([
       supabase.from('load_tickets').select('*').eq('driver_id', profile!.id).gte('submitted_at', `${date}T00:00:00`).lte('submitted_at', `${date}T23:59:59`).order('submitted_at'),
       supabase.from('fuel_logs').select('*').eq('driver_id', profile!.id).gte('logged_at', `${date}T00:00:00`).lte('logged_at', `${date}T23:59:59`).order('logged_at'),
       supabase.from('pre_trip_inspections').select('*').eq('driver_id', profile!.id).gte('inspected_at', `${date}T00:00:00`).lte('inspected_at', `${date}T23:59:59`).order('inspected_at', { ascending: false }).limit(1),
     ])
 
-    setDayCheckIns(checkInsRes.data ?? [])
     setDayTickets(ticketsRes.data ?? [])
     setDayFuelLogs(fuelRes.data ?? [])
     setDayInspection((inspectionRes.data ?? [])[0] ?? null)
@@ -88,7 +86,7 @@ export default function HistoryPage() {
   const fuelTotal = dayFuelLogs.reduce((s, f) => s + Number(f.total_cost), 0)
 
   return (
-    <div className="p-4">
+    <div className="p-4 pb-28">
       <h1 className="text-xl font-semibold text-gray-900 mb-4">History</h1>
 
       {/* Calendar */}
@@ -145,14 +143,10 @@ export default function HistoryPage() {
             <div className="space-y-3">
 
               {/* Stats */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
                   <p className="text-xl font-semibold text-gray-900">{dayTickets.length}</p>
                   <p className="text-xs text-gray-500">Loads</p>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
-                  <p className="text-xl font-semibold text-gray-900">{dayCheckIns.length}</p>
-                  <p className="text-xs text-gray-500">Check-ins</p>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-lg p-3 text-center">
                   <p className="text-xl font-semibold text-gray-900">{dayFuelLogs.length}</p>
@@ -191,36 +185,29 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* Check-ins */}
-              {dayCheckIns.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Check-ins</h3>
-                  <div className="space-y-2">
-                    {dayCheckIns.map(c => (
-                      <div key={c.id} className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                        <p className="text-sm text-gray-700 capitalize flex-1">{c.location_type.replace('_', ' ')}{c.location_label ? ` — ${c.location_label}` : ''}</p>
-                        <span className="text-xs text-gray-500">{fmt(c.checked_in_at)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Load Tickets */}
               {dayTickets.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Load Tickets</h3>
                   <div className="space-y-2">
-                    {dayTickets.map(t => (
-                      <div key={t.id} className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-700">#{t.id.slice(0, 8).toUpperCase()}</p>
-                          <p className="text-xs text-gray-500">{fmt(t.submitted_at)}</p>
+                    {dayTickets.map(t => {
+                      const fd = (t.form_data ?? {}) as Record<string, unknown>
+                      const tagNum = t.tag_number ?? (fd.tag_number ? String(fd.tag_number) : null)
+                      const truckNum = (fd.truck_number ? String(fd.truck_number) : null) ?? (t as any).truck_number ?? null
+                      return (
+                        <div key={t.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {tagNum ? `Tag #${tagNum}` : 'No tag number'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(t.submitted_at)} · {fmt(t.submitted_at)}{truckNum ? ` · Truck #${truckNum}` : ''}
+                            </p>
+                          </div>
+                          <StatusBadge status={t.status} />
                         </div>
-                        <StatusBadge status={t.status} />
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -253,7 +240,7 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {dayCheckIns.length === 0 && dayTickets.length === 0 && dayFuelLogs.length === 0 && !dayInspection && (
+              {dayTickets.length === 0 && dayFuelLogs.length === 0 && !dayInspection && (
                 <p className="text-sm text-gray-500 text-center py-4">No activity on this day.</p>
               )}
             </div>
