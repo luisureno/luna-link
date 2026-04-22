@@ -76,6 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut()
+    // Hard redirect — prevents protected layouts from briefly rendering with
+    // accountType=null (which would flash the wrong tier's UI) before routing.
+    if (typeof window !== 'undefined') {
+      window.location.replace('/login')
+    }
   }
 
   const value = useMemo<AuthContextValue>(

@@ -9,12 +9,23 @@ import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/dispatcher/Sidebar'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
-  const { profile, signOut, accountType } = useAuth()
+  const { profile, signOut, accountType, loading } = useAuth()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Block render until auth has settled. Otherwise accountType=null briefly
+  // falls into the non-solo branch and shows the wrong tabs (e.g. "Check In"
+  // for a solo user mid sign-out).
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen bg-[#F8F7F5] flex items-center justify-center">
+        <p className="text-sm text-gray-500">Loading…</p>
+      </div>
+    )
+  }
 
   const initials = profile?.full_name?.charAt(0).toUpperCase() ?? '?'
   const avatarUrl = (profile as any)?.avatar_url ?? null
