@@ -41,33 +41,35 @@ export default function SoloSettingsPage() {
     if (!profile) return
 
     async function load() {
-      const [{ data: companyRow }] = await Promise.all([
-        supabase.from('companies').select('*').eq('id', profile!.company_id).single(),
-      ])
-      setCompany((companyRow as Company) ?? null)
-      if (companyRow?.plan_id) {
-        const { data: planRow } = await supabase
-          .from('plans')
-          .select('*')
-          .eq('id', companyRow.plan_id)
-          .single()
-        setPlan((planRow as Plan) ?? null)
+      try {
+        const [{ data: companyRow }] = await Promise.all([
+          supabase.from('companies').select('*').eq('id', profile!.company_id).single(),
+        ])
+        setCompany((companyRow as Company) ?? null)
+        if (companyRow?.plan_id) {
+          const { data: planRow } = await supabase
+            .from('plans')
+            .select('*')
+            .eq('id', companyRow.plan_id)
+            .single()
+          setPlan((planRow as Plan) ?? null)
+        }
+
+        setFullName(profile!.full_name ?? '')
+        setPhone(profile!.phone ?? '')
+        setTruckNumber(profile!.truck_number ?? '')
+        setPayType(profile!.pay_type ?? '')
+        setPayRate(profile!.pay_rate != null ? String(profile!.pay_rate) : '')
+
+        if (companyRow) {
+          setCompanyName(companyRow.name ?? '')
+          setCompanyAddress(companyRow.address ?? '')
+          setCompanyPhone(companyRow.phone ?? '')
+          setLogoUrl(companyRow.logo_url ?? null)
+        }
+      } finally {
+        setLoading(false)
       }
-
-      setFullName(profile!.full_name ?? '')
-      setPhone(profile!.phone ?? '')
-      setTruckNumber(profile!.truck_number ?? '')
-      setPayType(profile!.pay_type ?? '')
-      setPayRate(profile!.pay_rate != null ? String(profile!.pay_rate) : '')
-
-      if (companyRow) {
-        setCompanyName(companyRow.name ?? '')
-        setCompanyAddress(companyRow.address ?? '')
-        setCompanyPhone(companyRow.phone ?? '')
-        setLogoUrl(companyRow.logo_url ?? null)
-      }
-
-      setLoading(false)
     }
 
     load()
