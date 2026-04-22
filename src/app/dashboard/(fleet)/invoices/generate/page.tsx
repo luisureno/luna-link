@@ -125,7 +125,25 @@ export default function GenerateInvoicePage() {
         const desc = r.billing_type === 'per_load'
           ? `${r.loads_count ?? 1} load(s)`
           : 'Load ticket'
-        const hoursVal = fd.hours_worked != null ? String(fd.hours_worked) : ''
+
+        const parseMoney = (v: unknown): number | null => {
+          if (v == null) return null
+          const n = parseFloat(String(v).replace(/[$,\s]/g, ''))
+          return Number.isFinite(n) ? n : null
+        }
+        const scannedTotal = parseMoney(fd.total_amount)
+        const totalVal = r.client_charge_total != null
+          ? Number(r.client_charge_total)
+          : (scannedTotal ?? 0)
+
+        const hoursVal = fd.hours_worked != null && String(fd.hours_worked).trim() !== ''
+          ? String(fd.hours_worked)
+          : ''
+        const loadsVal = r.loads_count != null
+          ? String(r.loads_count)
+          : (fd.loads_count ? String(fd.loads_count) : '')
+        const tagVal = r.tag_number ?? (fd.tag_number ? String(fd.tag_number) : null)
+        console.log('[review-line] ticket row:', { id: r.id, top_tag: r.tag_number, fd_tag: fd.tag_number, top_total: r.client_charge_total, fd_total: fd.total_amount, fd_hours: fd.hours_worked, fd_truck: fd.truck_number, fd_origin: fd.origin, fd_destination: fd.destination })
 
         ticketLines.push({
           id: r.id,
@@ -133,16 +151,16 @@ export default function GenerateInvoicePage() {
           date: r.submitted_at.split('T')[0],
           driver_name: (r.users as any)?.full_name ?? '—',
           description: desc,
-          client_charge: Number(r.client_charge_total ?? 0),
+          client_charge: totalVal,
           driver_pay: Number(r.dispatcher_adjusted_pay ?? r.driver_pay_total ?? 0),
           included: true,
           notes: '',
-          tag_number: r.tag_number ?? (fd.tag_number ? String(fd.tag_number) : null),
+          tag_number: tagVal,
           truck_number: fd.truck_number ? String(fd.truck_number) : null,
           origin: fd.origin ? String(fd.origin) : null,
           destination: fd.destination ? String(fd.destination) : null,
           hours: hoursVal,
-          loads: r.loads_count != null ? String(r.loads_count) : '',
+          loads: loadsVal,
         })
       }
     }
@@ -485,13 +503,6 @@ export default function GenerateInvoicePage() {
                               <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
                             </div>
                           )}
-                          <input
-                            type="text"
-                            value={line.notes}
-                            onChange={e => updateLineNotes(line.id, e.target.value)}
-                            placeholder="Add note to this line…"
-                            className="mt-2 w-full text-xs border border-gray-100 rounded px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300"
-                          />
                         </div>
                       </div>
                     </div>
