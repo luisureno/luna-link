@@ -78,11 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
   }
 
-  return (
-    <AuthContext.Provider value={{ supabaseUser, profile, role: profile?.role ?? null, accountType, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({ supabaseUser, profile, role: profile?.role ?? null, accountType, loading, signOut }),
+    [supabaseUser, profile, accountType, loading]
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

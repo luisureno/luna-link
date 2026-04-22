@@ -14,30 +14,45 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
     setError('')
     setLoading(true)
 
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 15000)
+    )
+
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      console.log('[login] signInWithPassword start')
+      const { data, error: authError } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout,
+      ])
+      console.log('[login] signInWithPassword done', { hasUser: !!data?.user, authError })
 
       if (authError || !data.user) {
-        setError(authError?.message ?? 'Login failed')
+        setError(authError?.message ?? 'Invalid email or password')
         setLoading(false)
         return
       }
 
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+      let role: string | null = null
+      try {
+        const { data: profile } = await Promise.race([
+          supabase.from('users').select('role').eq('id', data.user.id).single(),
+          timeout,
+        ])
+        role = (profile as { role?: string } | null)?.role ?? null
+      } catch (profileErr) {
+        console.warn('[login] profile fetch failed, defaulting to /dashboard', profileErr)
+      }
 
       // Hard redirect ensures the session cookie is fully committed before the
       // next page mounts — prevents mobile Safari from seeing a stale auth state.
-      window.location.replace(profile?.role === 'driver' ? '/driver' : '/dashboard')
+      window.location.replace(role === 'driver' ? '/driver' : '/dashboard')
     } catch (err) {
       console.error('[login] unexpected error:', err)
-      setError('Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setLoading(false)
     }
   }

@@ -22,7 +22,7 @@ const fleetNav = [
 ]
 
 const soloNav = [
-  { href: '/dashboard/solo', label: 'Today', icon: Home },
+  { href: '/driver', label: 'Today', icon: Home },
   { href: '/dashboard/solo/loads', label: 'Loads', icon: List },
   { href: '/dashboard/solo/tickets', label: 'Tickets', icon: FileText },
   { href: '/dashboard/solo/invoices', label: 'Invoices', icon: Receipt },
@@ -36,7 +36,7 @@ export function Sidebar() {
   const [open, setOpen] = useState(false)
 
   const navItems = accountType === 'solo' ? soloNav : fleetNav
-  const homeHref = accountType === 'solo' ? '/dashboard/solo' : '/dashboard'
+  const homeHref = accountType === 'solo' ? '/driver' : '/dashboard'
 
   return (
     <>
