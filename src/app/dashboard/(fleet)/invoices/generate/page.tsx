@@ -29,6 +29,7 @@ interface Line {
   destination: string | null
   hours: string
   loads: string
+  photo_url: string | null
 }
 
 interface CustomItem {
@@ -88,6 +89,7 @@ export default function GenerateInvoicePage() {
   const [creating, setCreating] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [excelLoading, setExcelLoading] = useState(false)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.company_id) return
@@ -112,7 +114,7 @@ export default function GenerateInvoicePage() {
     if (filter.include_tickets) {
       const { data } = await supabase
         .from('load_tickets')
-        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, form_data, invoice_line_confirmed, users!load_tickets_driver_id_fkey(full_name)')
+        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, form_data, invoice_line_confirmed, tag_photo_url, scanned_invoice_photo_url, photo_urls, users!load_tickets_driver_id_fkey(full_name)')
         .eq('company_id', profile!.company_id)
         .in('status', ['submitted', 'confirmed'])
         .or('invoice_line_confirmed.is.null,invoice_line_confirmed.eq.false')
@@ -162,6 +164,7 @@ export default function GenerateInvoicePage() {
           destination: fd.destination ? String(fd.destination) : null,
           hours: hoursVal,
           loads: loadsVal,
+          photo_url: r.tag_photo_url ?? r.scanned_invoice_photo_url ?? (r.photo_urls ?? [])[0] ?? null,
         })
       }
     }
@@ -196,6 +199,7 @@ export default function GenerateInvoicePage() {
           destination: null,
           hours: hrs ? String(hrs) : '',
           loads: '',
+          photo_url: null,
         })
       }
     }
@@ -464,6 +468,15 @@ export default function GenerateInvoicePage() {
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-gray-900 truncate">{headerPrimary}</p>
                               <p className="text-xs text-gray-500">{metaParts.join(' · ')}</p>
+                              {line.photo_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => setLightbox(line.photo_url!)}
+                                  className="text-xs text-blue-600 hover:underline mt-0.5"
+                                >
+                                  Click to view photo
+                                </button>
+                              )}
                             </div>
                             <div className="flex items-end gap-2 shrink-0">
                               <div className="text-right">
@@ -602,6 +615,26 @@ export default function GenerateInvoicePage() {
               </button>
             </div>
           </>
+        )}
+
+        {lightbox && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setLightbox(null)}
+          >
+            <button
+              onClick={() => setLightbox(null)}
+              className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={lightbox}
+              alt="Scanned invoice"
+              className="max-w-full max-h-full object-contain rounded"
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
         )}
       </div>
     )
