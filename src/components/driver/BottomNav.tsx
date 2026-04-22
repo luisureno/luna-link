@@ -20,7 +20,7 @@ export function BottomNav() {
   const tabs = accountType === 'solo' ? allTabs.filter(t => !t.soloHidden) : allTabs
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[1500]">
       <div className="flex">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = href === '/driver' ? pathname === href : pathname.startsWith(href)

@@ -38,6 +38,15 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   return null
 }
 
+function MapResizer() {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 150)
+    return () => clearTimeout(t)
+  }, [map])
+  return null
+}
+
 function priceBadge(price: string, cheapest: boolean) {
   const bg    = cheapest ? '#2563eb' : '#ffffff'
   const color = cheapest ? '#ffffff' : '#111827'
@@ -149,7 +158,7 @@ export default function FuelMap({ logs }: Props) {
 
       {/* Station count */}
       {stationsDisplay.length > 0 && !loading && (
-        <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-600 px-2.5 py-1.5 rounded-full shadow">
+        <div className="absolute top-3 right-3 z-[999] bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-600 px-2.5 py-1.5 rounded-full shadow">
           {stationsDisplay.length} stops nearby
         </div>
       )}
@@ -167,6 +176,7 @@ export default function FuelMap({ logs }: Props) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterMap lat={pos[0]} lng={pos[1]} />
+        <MapResizer />
         <Marker position={pos} icon={youDot()} />
 
         {stationsDisplay.map(s => (
@@ -204,12 +214,12 @@ export default function FuelMap({ logs }: Props) {
       {/* ── Bottom sheet ──────────────────────────────────────────────────── */}
       {cheapest && (
         <div
-          className="absolute left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl"
+          className="fixed left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl"
           style={{
-            bottom: 0,
+            bottom: 56,
             transform: sheetOpen ? 'translateY(0)' : 'translateY(calc(100% - 80px))',
             transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
-            maxHeight: '65%',
+            maxHeight: 'calc(65vh - 56px)',
             display: 'flex',
             flexDirection: 'column',
           }}
