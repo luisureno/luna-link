@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, List, Fuel, DollarSign, Building2 } from 'lucide-react'
+import { MapPin, PlusCircle, List, Fuel, DollarSign, Building2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { AccountType } from '@/types'
@@ -23,6 +23,7 @@ export default function DriverTodayPage() {
   const [clientCount, setClientCount] = useState(0)
   const [weekRevenue, setWeekRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [inspectionDismissed, setInspectionDismissed] = useState(false)
 
   useEffect(() => {
     if (!profile?.id) return
@@ -129,12 +130,15 @@ export default function DriverTodayPage() {
           </div>
         </Link>
       )}
-      {inspection?.overall_status === 'passed' && (
+      {inspection?.overall_status === 'passed' && !inspectionDismissed && (
         <div className="bg-green-50 border border-green-300 rounded-lg p-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-green-800">✅ Pre-Trip Inspection Passed</p>
             <p className="text-xs text-green-600 mt-0.5">{new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
           </div>
+          <button onClick={() => setInspectionDismissed(true)} className="p-1 text-green-600 hover:text-green-800 ml-3 flex-shrink-0">
+            <X size={16} />
+          </button>
         </div>
       )}
       {inspection?.overall_status === 'failed' && (

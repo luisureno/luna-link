@@ -53,7 +53,8 @@ function uid() {
 }
 
 export default function GenerateInvoicePage() {
-  const { profile } = useAuth()
+  const { profile, accountType } = useAuth()
+  const invoicesHref = accountType === 'solo' ? '/dashboard/solo/invoices' : '/dashboard/invoices'
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const range = dateRange()
@@ -692,7 +693,7 @@ export default function GenerateInvoicePage() {
           </div>
 
           <button
-            onClick={() => router.push('/dashboard/invoices')}
+            onClick={() => router.push(invoicesHref)}
             className="w-full py-3 text-sm text-gray-600 hover:text-gray-900"
           >
             Back to Invoices

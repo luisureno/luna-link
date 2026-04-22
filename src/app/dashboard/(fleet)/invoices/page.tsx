@@ -19,7 +19,8 @@ const tabs: { id: TabId; label: string }[] = [
 ]
 
 export default function InvoicesPage() {
-  const { profile } = useAuth()
+  const { profile, accountType } = useAuth()
+  const generateHref = accountType === 'solo' ? '/dashboard/solo/invoices/generate' : '/dashboard/invoices/generate'
   const supabase = useMemo(() => createClient(), [])
   const [tab, setTab] = useState<TabId>('client')
   const [invoices, setInvoices] = useState<(Invoice & { clients: Client })[]>([])
@@ -60,7 +61,7 @@ export default function InvoicesPage() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <QuickBooksWaitlistButton source="invoices_page" />
             <Link
-              href="/dashboard/invoices/generate"
+              href={generateHref}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800 w-full sm:w-auto"
             >
               <Plus size={16} /> Generate Invoice
