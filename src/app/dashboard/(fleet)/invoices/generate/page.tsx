@@ -108,7 +108,7 @@ export default function GenerateInvoicePage() {
         .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, invoice_line_confirmed, users(full_name)')
         .eq('company_id', profile!.company_id)
         .in('status', ['submitted', 'confirmed'])
-        .eq('invoice_line_confirmed', false)
+        .or('invoice_line_confirmed.is.null,invoice_line_confirmed.eq.false')
         .gte('submitted_at', `${filter.date_from}T00:00:00`)
         .lte('submitted_at', `${filter.date_to}T23:59:59`)
         .order('submitted_at')
