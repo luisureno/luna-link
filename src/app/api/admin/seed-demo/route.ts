@@ -219,9 +219,6 @@ export async function POST(request: NextRequest) {
       price_per_gallon: f.ppg,
       total_cost: f.total,
       receipt_url: null,
-      def_gallons: null,
-      def_price_per_gallon: null,
-      def_total_cost: null,
       logged_at: daysAgo(f.daysBack),
     }))
   )
