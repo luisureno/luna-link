@@ -19,11 +19,34 @@ async function searchOne(query: string, lat: string, lng: string): Promise<any[]
   url.searchParams.set('radius', '50000')
   url.searchParams.set('limit', '20')
   url.searchParams.set('language', 'en-US')
+  url.searchParams.set('openingHours', 'nextSevenDays')
 
   const res = await fetch(url.toString(), { next: { revalidate: 3600 } })
   if (!res.ok) return []
-  const data = await res.json()
-  return data.results ?? []
+  return (await res.json()).results ?? []
+}
+
+function parseHours(poi: any): string | null {
+  try {
+    const periods = poi?.openingHours?.timeRanges
+    if (!periods?.length) return null
+    const now = new Date()
+    const todayIdx = now.getDay() // 0=Sun
+    const todayPeriod = periods.find((p: any) => {
+      const d = new Date(p.startTime?.date ?? '')
+      return d.getDay() === todayIdx
+    })
+    if (!todayPeriod) return null
+    const s = todayPeriod.startTime?.time ?? ''
+    const e = todayPeriod.endTime?.time ?? ''
+    if (!s && !e) return '24 hours'
+    const fmt = (t: string) => {
+      const [h, m] = t.split(':').map(Number)
+      const ampm = h >= 12 ? 'PM' : 'AM'
+      return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+    }
+    return `${fmt(s)} – ${fmt(e)}`
+  } catch { return null }
 }
 
 export async function GET(req: NextRequest) {
@@ -36,7 +59,6 @@ export async function GET(req: NextRequest) {
 
   const allResults = await Promise.all(QUERIES.map(q => searchOne(q, lat, lng)))
 
-  // Deduplicate by TomTom id
   const seen = new Set<string>()
   const stations = allResults.flat()
     .filter(r => {
@@ -51,6 +73,8 @@ export async function GET(req: NextRequest) {
       name: r.poi?.name ?? null,
       brand: r.poi?.brands?.[0]?.name ?? null,
       address: r.address?.freeformAddress ?? null,
+      phone: r.poi?.phone ?? null,
+      hours: parseHours(r.poi),
     }))
 
   return NextResponse.json({ stations })

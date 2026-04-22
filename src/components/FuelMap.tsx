@@ -1,31 +1,54 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { FuelLog } from '@/types'
+import { X, Navigation } from 'lucide-react'
 
-const PADD_REGIONS = [
+const PADD = [
   { ppg: 3.41, latMin: 25, latMax: 37,  lngMin: -107, lngMax: -80  },
   { ppg: 3.56, latMin: 36, latMax: 49,  lngMin: -104, lngMax: -80  },
   { ppg: 3.68, latMin: 25, latMax: 47,  lngMin: -80,  lngMax: -67  },
   { ppg: 3.74, latMin: 36, latMax: 49,  lngMin: -116, lngMax: -104 },
   { ppg: 4.31, latMin: 32, latMax: 49,  lngMin: -125, lngMax: -116 },
 ]
-function getRegionPpg(lat: number, lng: number) {
-  return PADD_REGIONS.find(r => lat >= r.latMin && lat <= r.latMax && lng >= r.lngMin && lng <= r.lngMax)?.ppg ?? 3.60
+function regionPpg(lat: number, lng: number) {
+  return PADD.find(r => lat >= r.latMin && lat <= r.latMax && lng >= r.lngMin && lng <= r.lngMax)?.ppg ?? 3.60
 }
-
-function distMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 3958.8, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+function distMiles(la1: number, lo1: number, la2: number, lo2: number) {
+  const R = 3958.8, dLa = (la2 - la1) * Math.PI / 180, dLo = (lo2 - lo1) * Math.PI / 180
+  const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-interface Station { id: string; lat: number; lng: number; name: string | null; brand: string | null; address: string | null }
+interface Station { id: string; lat: number; lng: number; name: string | null; brand: string | null; address: string | null; phone: string | null; hours: string | null }
 interface StationD extends Station { price: number; miles: number }
 interface Props { logs: FuelLog[] }
+
+// 0 = top pick (solid blue), 1 = 2nd (mid blue), 2 = 3rd (light blue), else = white
+function priceBadge(price: string, rank: number) {
+  const styles = [
+    { bg: '#2563eb', fg: '#fff',     bd: '#1d4ed8' },
+    { bg: '#3b82f6', fg: '#fff',     bd: '#2563eb' },
+    { bg: '#bfdbfe', fg: '#1e3a8a',  bd: '#93c5fd' },
+    { bg: '#ffffff', fg: '#111827',  bd: '#d1d5db' },
+  ]
+  const { bg, fg, bd } = styles[Math.min(rank, 3)]
+  return L.divIcon({
+    className: '',
+    html: `<div style="background:${bg};color:${fg};border:2px solid ${bd};border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700;font-family:system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.18);position:relative;line-height:1.2;">${price}<div style="position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid ${bd};"></div></div>`,
+    iconSize: [76, 32], iconAnchor: [38, 40],
+  })
+}
+function youDot() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:16px;height:16px;border-radius:50%;background:#1d4ed8;border:3px solid white;box-shadow:0 0 0 3px rgba(37,99,235,0.3)"></div>`,
+    iconSize: [16, 16], iconAnchor: [8, 8],
+  })
+}
 
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap()
@@ -37,33 +60,20 @@ function MapResizer() {
   useEffect(() => { const t = setTimeout(() => map.invalidateSize(), 200); return () => clearTimeout(t) }, [map])
   return null
 }
-
-function priceBadge(price: string, cheapest: boolean) {
-  const bg = cheapest ? '#2563eb' : '#ffffff'
-  const fg = cheapest ? '#ffffff' : '#111827'
-  const bd = cheapest ? '#2563eb' : '#d1d5db'
-  return L.divIcon({
-    className: '',
-    html: `<div style="background:${bg};color:${fg};border:1.5px solid ${bd};border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700;font-family:system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.18);position:relative;line-height:1.2;">${price}<div style="position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${bd};"></div></div>`,
-    iconSize: [72, 30], iconAnchor: [36, 37],
-  })
-}
-function youDot() {
-  return L.divIcon({
-    className: '',
-    html: `<div style="width:16px;height:16px;border-radius:50%;background:#1d4ed8;border:3px solid white;box-shadow:0 0 0 3px rgba(37,99,235,0.3)"></div>`,
-    iconSize: [16, 16], iconAnchor: [8, 8],
-  })
+function MapClickDismiss({ onDismiss }: { onDismiss: () => void }) {
+  useMapEvents({ click: onDismiss })
+  return null
 }
 
 export default function FuelMap({ logs }: Props) {
-  const [pos, setPos]             = useState<[number, number] | null>(null)
-  const [stations, setStations]   = useState<Station[]>([])
-  const [locErr, setLocErr]       = useState(false)
-  const [loading, setLoading]     = useState(false)
+  const [pos, setPos]           = useState<[number, number] | null>(null)
+  const [stations, setStations] = useState<Station[]>([])
+  const [locErr, setLocErr]     = useState(false)
+  const [loading, setLoading]   = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [sortBy, setSortBy]       = useState<'cheapest' | 'closest'>('cheapest')
-  const dragStart                 = useRef(0)
+  const [sortBy, setSortBy]     = useState<'cheapest' | 'closest'>('cheapest')
+  const [selected, setSelected] = useState<StationD | null>(null)
+  const dragStart               = useRef(0)
 
   const logsWithCoords = logs.filter(l => l.latitude && l.longitude && Number(l.price_per_gallon) > 0)
 
@@ -96,21 +106,30 @@ export default function FuelMap({ logs }: Props) {
     </div>
   )
 
-  const regionAvg = getRegionPpg(pos[0], pos[1])
+  const avg = regionPpg(pos[0], pos[1])
   const stationsD: StationD[] = stations.map((s, i) => {
     const own = logsWithCoords.find(l => Math.abs(Number(l.latitude) - s.lat) < 0.002 && Math.abs(Number(l.longitude) - s.lng) < 0.002)
-    const price = own ? Number(own.price_per_gallon) : parseFloat((regionAvg + (((i * 37) % 21) - 10) * 0.01).toFixed(2))
+    const price = own ? Number(own.price_per_gallon) : parseFloat((avg + (((i * 37) % 21) - 10) * 0.01).toFixed(2))
     return { ...s, price, miles: distMiles(pos[0], pos[1], s.lat, s.lng) }
   })
 
-  const cheapest = [...stationsD].sort((a, b) => a.price - b.price)[0] ?? null
+  // rank by price for badge color
+  const byPrice = [...stationsD].sort((a, b) => a.price - b.price)
+  const rankMap = Object.fromEntries(byPrice.map((s, i) => [s.id, i]))
+
+  const cheapest = byPrice[0] ?? null
   const sorted   = [...stationsD].sort((a, b) => sortBy === 'cheapest' ? a.price - b.price : a.miles - b.miles)
 
+  function mapsUrl(s: StationD, type: 'google' | 'apple') {
+    const label = encodeURIComponent(s.brand ?? s.name ?? 'Truck Stop')
+    if (type === 'google') return `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`
+    return `https://maps.apple.com/?daddr=${s.lat},${s.lng}&dirflg=d`
+  }
+
   return (
-    // Flex column: map fills top, sheet snaps to bottom
     <div style={{ height: 'calc(100dvh - 128px)', minHeight: 400, display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Map (fills remaining space) ───────────────────────── */}
+      {/* ── Map ─────────────────────────────────────────────── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         {loading && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[999] bg-white/90 text-xs font-medium text-gray-600 px-3 py-1.5 rounded-full shadow flex items-center gap-2">
@@ -128,30 +147,60 @@ export default function FuelMap({ logs }: Props) {
           <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <RecenterMap lat={pos[0]} lng={pos[1]} />
           <MapResizer />
+          <MapClickDismiss onDismiss={() => setSelected(null)} />
+
           <Marker position={pos} icon={youDot()} />
+
           {stationsD.map(s => (
-            <Marker key={s.id} position={[s.lat, s.lng]} icon={priceBadge(`$${s.price.toFixed(2)}`, s.id === cheapest?.id)}>
-              <Popup>
-                <div className="min-w-[160px] text-sm">
-                  <p className="font-semibold">{s.brand ?? s.name ?? 'Truck Stop'}</p>
-                  {s.address && <p className="text-xs text-gray-500 mt-0.5">{s.address}</p>}
-                  <p className="font-bold mt-1">${s.price.toFixed(3)}/gal · {s.miles.toFixed(1)} mi</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-          {logsWithCoords.map(log => (
-            <Marker key={log.id} position={[Number(log.latitude), Number(log.longitude)]} icon={priceBadge(`$${Number(log.price_per_gallon).toFixed(2)} ✓`, false)}>
-              <Popup>
-                <p className="font-semibold text-sm">Your stop · {new Date(log.logged_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                <p className="font-bold text-sm">${Number(log.price_per_gallon).toFixed(3)}/gal</p>
-              </Popup>
-            </Marker>
+            <Marker
+              key={s.id}
+              position={[s.lat, s.lng]}
+              icon={priceBadge(`$${s.price.toFixed(2)}`, rankMap[s.id] ?? 99)}
+              eventHandlers={{ click: () => setSelected(s) }}
+            />
           ))}
         </MapContainer>
+
+        {/* ── Station info banner ──────────────────────────── */}
+        {selected && (
+          <div className="absolute bottom-3 left-3 right-3 z-[1000] bg-white rounded-2xl shadow-xl p-4">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 truncate">{selected.brand ?? selected.name ?? 'Truck Stop'}</p>
+                {selected.address && <p className="text-xs text-gray-500 mt-0.5">{selected.address}</p>}
+                {selected.hours && (
+                  <p className="text-xs text-green-700 font-medium mt-1">🕐 Today: {selected.hours}</p>
+                )}
+                <p className="text-lg font-bold text-blue-600 mt-1">
+                  ${selected.price.toFixed(3)}/gal
+                  <span className="text-xs font-normal text-gray-400 ml-1">· {selected.miles.toFixed(1)} mi away</span>
+                </p>
+              </div>
+              <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={mapsUrl(selected, 'apple')}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl"
+              >
+                <Navigation size={14} /> Apple Maps
+              </a>
+              <a
+                href={mapsUrl(selected, 'google')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl"
+              >
+                <Navigation size={14} /> Google Maps
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Bottom sheet (flex child, grows upward) ────────────── */}
+      {/* ── Bottom sheet ─────────────────────────────────────── */}
       {cheapest && (
         <div
           className="bg-white rounded-t-2xl shadow-2xl flex-shrink-0 overflow-hidden"
@@ -162,7 +211,7 @@ export default function FuelMap({ logs }: Props) {
             flexDirection: 'column',
           }}
         >
-          {/* Handle + peek row */}
+          {/* Handle + peek */}
           <div
             className="flex-shrink-0 cursor-pointer select-none"
             onClick={() => setSheetOpen(v => !v)}
@@ -186,7 +235,7 @@ export default function FuelMap({ logs }: Props) {
             </div>
           </div>
 
-          {/* Expanded content */}
+          {/* Expanded list */}
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="flex gap-2 px-4 pb-3 flex-shrink-0">
               {(['cheapest', 'closest'] as const).map(f => (
@@ -198,15 +247,19 @@ export default function FuelMap({ logs }: Props) {
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-gray-50 pb-2">
               {sorted.map((s, i) => (
-                <div key={s.id} className="flex items-center gap-3 px-5 py-3">
-                  <span className="text-xs font-bold text-gray-400 w-5 flex-shrink-0">{i + 1}</span>
+                <button
+                  key={s.id}
+                  onClick={() => { setSelected(s); setSheetOpen(false) }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50"
+                >
+                  <span className={`text-xs font-bold w-5 flex-shrink-0 ${i < 3 ? 'text-blue-600' : 'text-gray-400'}`}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{s.brand ?? s.name ?? 'Truck Stop'}</p>
                     {s.address && <p className="text-xs text-gray-400 truncate">{s.address}</p>}
                     <p className="text-xs text-gray-400">{s.miles.toFixed(1)} mi away</p>
                   </div>
-                  <p className={`text-base font-bold flex-shrink-0 ${s.id === cheapest?.id ? 'text-blue-600' : 'text-gray-900'}`}>${s.price.toFixed(2)}</p>
-                </div>
+                  <p className={`text-base font-bold flex-shrink-0 ${i < 3 ? 'text-blue-600' : 'text-gray-900'}`}>${s.price.toFixed(2)}</p>
+                </button>
               ))}
             </div>
           </div>
