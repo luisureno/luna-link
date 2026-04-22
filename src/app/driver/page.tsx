@@ -129,8 +129,22 @@ export default function DriverTodayPage() {
       : payRate * parseFloat(hoursOnClock)
     : null
 
+  const companyName = (profile as any)?.companies?.name as string | undefined
+  const firstName = profile?.full_name?.split(' ')[0] ?? ''
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
   return (
     <div className="p-4 pb-28 space-y-4">
+      {/* Welcome header */}
+      <div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{greeting}</p>
+        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
+        {isSolo && companyName && (
+          <p className="text-sm text-gray-500 mt-0.5">{companyName}</p>
+        )}
+      </div>
+
       {profile && inspection !== undefined && (
         <DayStartModal
           name={profile.full_name}

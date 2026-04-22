@@ -70,7 +70,9 @@ export function Sidebar() {
               <Truck size={20} className="text-white/70" />
               <span className="font-semibold text-base">fleetwise</span>
             </Link>
-            <p className="text-xs text-white/40 mt-1 truncate">{profile?.full_name ?? ''}</p>
+            <p className="text-xs text-white/40 mt-1 truncate">
+              {accountType === 'solo' ? ((profile as any)?.companies?.name ?? profile?.full_name ?? '') : (profile?.full_name ?? '')}
+            </p>
           </div>
           <button
             onClick={() => setOpen(false)}
@@ -106,8 +108,12 @@ export function Sidebar() {
               {profile?.full_name?.charAt(0) ?? '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{profile?.full_name}</p>
-              <p className="text-xs text-white/40 capitalize">{accountType === 'solo' ? 'Owner operator' : profile?.role}</p>
+              <p className="text-sm font-medium truncate">
+                {accountType === 'solo' ? ((profile as any)?.companies?.name ?? profile?.full_name) : profile?.full_name}
+              </p>
+              <p className="text-xs text-white/40 capitalize">
+                {accountType === 'solo' ? profile?.full_name : profile?.role}
+              </p>
             </div>
           </div>
           <a

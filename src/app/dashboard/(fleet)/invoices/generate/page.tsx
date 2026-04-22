@@ -27,6 +27,8 @@ interface Line {
   truck_number: string | null
   origin: string | null
   destination: string | null
+  company_name: string | null
+  rate: string
   hours: string
   loads: string
   photo_url: string | null
@@ -163,6 +165,8 @@ export default function GenerateInvoicePage() {
           truck_number: fd.truck_number ? String(fd.truck_number) : null,
           origin: fd.origin ? String(fd.origin) : null,
           destination: fd.destination ? String(fd.destination) : null,
+          company_name: fd.client_name ? String(fd.client_name) : null,
+          rate: fd.rate_amount ? String(fd.rate_amount).replace(/[$,\s]/g, '') : '',
           hours: hoursVal,
           loads: loadsVal,
           photo_url: r.tag_photo_url ?? r.scanned_invoice_photo_url ?? (r.photo_urls ?? [])[0] ?? null,
@@ -198,6 +202,8 @@ export default function GenerateInvoicePage() {
           truck_number: null,
           origin: null,
           destination: null,
+          company_name: null,
+          rate: '',
           hours: hrs ? String(hrs) : '',
           loads: '',
           photo_url: null,
@@ -213,17 +219,11 @@ export default function GenerateInvoicePage() {
   function toggleLine(id: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, included: !l.included } : l))
   }
-  function updateLineNotes(id: string, notes: string) {
-    setLines(prev => prev.map(l => l.id === id ? { ...l, notes } : l))
+  function updateLine(id: string, patch: Partial<Line>) {
+    setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l))
   }
   function updateLineCharge(id: string, charge: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, client_charge: parseFloat(charge) || 0 } : l))
-  }
-  function updateLineHours(id: string, hours: string) {
-    setLines(prev => prev.map(l => l.id === id ? { ...l, hours } : l))
-  }
-  function updateLineLoads(id: string, loads: string) {
-    setLines(prev => prev.map(l => l.id === id ? { ...l, loads } : l))
   }
 
   function addCustomItem() {
@@ -242,6 +242,20 @@ export default function GenerateInvoicePage() {
 
   const includedLines = lines.filter(l => l.included)
   const customTotal = customItems.reduce((s, i) => new Decimal(s).plus(i.amount).toNumber(), 0)
+
+  function missingFields(l: Line): string[] {
+    if (l.type !== 'ticket') return []
+    const missing: string[] = []
+    if (!l.tag_number?.trim()) missing.push('tag_number')
+    if (!l.origin?.trim()) missing.push('origin')
+    if (!l.destination?.trim()) missing.push('destination')
+    if (!l.company_name?.trim()) missing.push('company_name')
+    if (!l.loads?.trim()) missing.push('loads')
+    if (!l.rate?.trim()) missing.push('rate')
+    if (!l.client_charge) missing.push('client_charge')
+    return missing
+  }
+  const hasIncomplete = includedLines.some(l => missingFields(l).length > 0)
   const totalCharge = new Decimal(
     includedLines.reduce((s, l) => new Decimal(s).plus(l.client_charge).toNumber(), 0)
   ).plus(customTotal).toNumber()
@@ -470,90 +484,149 @@ export default function GenerateInvoicePage() {
           <>
             {/* Ticket / timesheet lines */}
             {lines.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {lines.map(line => {
                   const isTicket = line.type === 'ticket'
-                  const headerPrimary = isTicket
-                    ? (line.tag_number ? `Tag #${line.tag_number}` : 'No tag number')
-                    : line.driver_name
-                  const hasRoute = isTicket && (line.origin || line.destination)
-                  const routeStr = hasRoute
-                    ? `${line.origin ?? '—'} → ${line.destination ?? '—'}`
-                    : null
-                  const metaParts = [
-                    formatDate(line.date),
-                    isTicket && line.truck_number ? `Truck #${line.truck_number}` : null,
-                  ].filter(Boolean)
+                  const missing = missingFields(line)
+                  const req = (field: string) => missing.includes(field)
+
+                  const fieldCls = (field: string) =>
+                    `w-full border rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+                      req(field) ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                    }`
 
                   return (
-                    <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
+                    <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? (missing.length > 0 ? 'border-red-200' : 'border-gray-200') : 'border-gray-100 opacity-50'}`}>
                       <div className="flex items-start gap-3">
                         <input
                           type="checkbox"
                           checked={line.included}
                           onChange={() => toggleLine(line.id)}
-                          className="mt-0.5 w-4 h-4"
+                          className="mt-1 w-4 h-4 shrink-0"
                         />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3 flex-wrap">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{headerPrimary}</p>
-                              <p className="text-xs text-gray-500">{metaParts.join(' · ')}</p>
-                              {line.photo_url && (
-                                <button
-                                  type="button"
-                                  onClick={() => setLightbox(line.photo_url!)}
-                                  className="text-xs text-blue-600 hover:underline mt-0.5"
-                                >
-                                  Click to view photo
-                                </button>
-                              )}
+                        <div className="flex-1 min-w-0 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                {isTicket ? 'Load Ticket' : 'Timesheet'} · {formatDate(line.date)}
+                              </p>
+                              {!isTicket && <p className="text-sm font-medium text-gray-900">{line.driver_name}</p>}
                             </div>
-                            <div className="flex items-end gap-2 shrink-0">
-                              <div className="text-right">
-                                <p className="text-[10px] text-gray-500 mb-0.5">Hours</p>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.25"
-                                  value={line.hours}
-                                  onChange={e => updateLineHours(line.id, e.target.value)}
-                                  className="w-14 text-right border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                                />
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[10px] text-gray-500 mb-0.5">Loads</p>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="1"
-                                  value={line.loads}
-                                  onChange={e => updateLineLoads(line.id, e.target.value)}
-                                  className="w-14 text-right border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                                />
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[10px] text-gray-500 mb-0.5">Total</p>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={line.client_charge}
-                                  onChange={e => updateLineCharge(line.id, e.target.value)}
-                                  className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                                />
-                              </div>
-                            </div>
+                            {line.photo_url && (
+                              <button
+                                type="button"
+                                onClick={() => setLightbox(line.photo_url!)}
+                                className="text-xs text-blue-600 hover:underline shrink-0"
+                              >
+                                View photo
+                              </button>
+                            )}
                           </div>
-                          {routeStr && (
-                            <p className="mt-1.5 text-xs font-medium text-gray-700 break-words">
-                              <span className="text-gray-400">Route:</span> {routeStr}
-                            </p>
-                          )}
-                          {accountType !== 'solo' && (
-                            <div className="mt-2">
-                              <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
+
+                          {isTicket ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Tag # {req('tag_number') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  value={line.tag_number ?? ''}
+                                  onChange={e => updateLine(line.id, { tag_number: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('tag_number')}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Loads {req('loads') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={line.loads}
+                                  onChange={e => updateLine(line.id, { loads: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('loads')}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Origin {req('origin') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  value={line.origin ?? ''}
+                                  onChange={e => updateLine(line.id, { origin: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('origin')}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Destination {req('destination') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  value={line.destination ?? ''}
+                                  onChange={e => updateLine(line.id, { destination: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('destination')}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Company {req('company_name') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  value={line.company_name ?? ''}
+                                  onChange={e => updateLine(line.id, { company_name: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('company_name')}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Rate {req('rate') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={line.rate}
+                                  onChange={e => updateLine(line.id, { rate: e.target.value })}
+                                  placeholder="Required"
+                                  className={fieldCls('rate')}
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Amount {req('client_charge') && <span className="text-red-500">*</span>}</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={line.client_charge || ''}
+                                  onChange={e => updateLineCharge(line.id, e.target.value)}
+                                  placeholder="Required"
+                                  className={`${fieldCls('client_charge')} font-semibold text-blue-700`}
+                                />
+                              </div>
                             </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Hours</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={line.hours}
+                                  onChange={e => updateLine(line.id, { hours: e.target.value })}
+                                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-medium text-gray-500 uppercase">Amount</label>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={line.client_charge || ''}
+                                  onChange={e => updateLineCharge(line.id, e.target.value)}
+                                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {accountType !== 'solo' && (
+                            <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
                           )}
                         </div>
                       </div>
@@ -637,9 +710,12 @@ export default function GenerateInvoicePage() {
                   <span className="font-medium text-green-700">${totalDriverPay.toFixed(2)}</span>
                 </div>
               )}
+              {hasIncomplete && (
+                <p className="text-xs text-red-600 text-center">Fill in all required fields (marked in red) before continuing.</p>
+              )}
               <button
                 onClick={() => setStep('summary')}
-                disabled={includedLines.length === 0 && customItems.length === 0}
+                disabled={(includedLines.length === 0 && customItems.length === 0) || hasIncomplete}
                 className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl font-medium disabled:opacity-40"
               >
                 Review Summary →
