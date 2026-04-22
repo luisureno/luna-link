@@ -1,16 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const TOMTOM_KEY = process.env.TOM_TOM_API_KEY
+const TOMTOM_KEY = process.env.TOMTOM_API_KEY
 
-// TomTom POI category 9910 = Truck Stop, 7311 = Petrol Station
-const CATEGORY_SET = '9910,7311'
+const QUERIES = [
+  'Pilot Flying J',
+  "Love's Travel Stop",
+  'TA Travel Center',
+  'Petro Stopping Center',
+  'Sapp Bros',
+  'truck stop',
+]
 
-const TRUCK_BRANDS = ['pilot', 'flying j', "love's", 'loves', 'ta ', 'travelcenters', 'travel centers', 'petro', 'sapp bros', 'speedco', 'ambest', 'kwik trip', 'casey']
+async function searchOne(query: string, lat: string, lng: string): Promise<any[]> {
+  const url = new URL(`https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`)
+  url.searchParams.set('key', TOMTOM_KEY!)
+  url.searchParams.set('lat', lat)
+  url.searchParams.set('lon', lng)
+  url.searchParams.set('radius', '50000')
+  url.searchParams.set('limit', '20')
+  url.searchParams.set('language', 'en-US')
 
-function isTruckFriendly(name: string | null, categories: string[]): boolean {
-  if (!name) return false
-  const lower = name.toLowerCase()
-  return TRUCK_BRANDS.some(b => lower.includes(b))
+  const res = await fetch(url.toString(), { next: { revalidate: 3600 } })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.results ?? []
 }
 
 export async function GET(req: NextRequest) {
@@ -19,35 +32,19 @@ export async function GET(req: NextRequest) {
   const lng = searchParams.get('lng')
 
   if (!lat || !lng) return NextResponse.json({ error: 'lat/lng required' }, { status: 400 })
+  if (!TOMTOM_KEY) return NextResponse.json({ error: 'TOMTOM_API_KEY not set' }, { status: 500 })
 
-  if (!TOMTOM_KEY) {
-    return NextResponse.json({ error: 'TOM_TOM_API_KEY not set' }, { status: 500 })
-  }
+  const allResults = await Promise.all(QUERIES.map(q => searchOne(q, lat, lng)))
 
-  const url = new URL('https://api.tomtom.com/search/2/nearbySearch/.json')
-  url.searchParams.set('key', TOMTOM_KEY)
-  url.searchParams.set('lat', lat)
-  url.searchParams.set('lon', lng)
-  url.searchParams.set('radius', '80000') // 50 miles
-  url.searchParams.set('categorySet', CATEGORY_SET)
-  url.searchParams.set('limit', '50')
-  url.searchParams.set('language', 'en-US')
-
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } })
-  if (!res.ok) {
-    return NextResponse.json({ error: 'TomTom error', status: res.status }, { status: 502 })
-  }
-
-  const data = await res.json()
-
-  const results = (data.results ?? [])
-    .filter((r: any) => {
-      const cats: string[] = r.poi?.categorySet?.map((c: any) => String(c.id)) ?? []
-      const name: string = r.poi?.name ?? ''
-      // Keep if it's category 9910 (truck stop) or a known truck brand
-      return cats.includes('9910') || isTruckFriendly(name, cats)
+  // Deduplicate by TomTom id
+  const seen = new Set<string>()
+  const stations = allResults.flat()
+    .filter(r => {
+      if (!r.id || seen.has(r.id)) return false
+      seen.add(r.id)
+      return true
     })
-    .map((r: any) => ({
+    .map(r => ({
       id: r.id,
       lat: r.position.lat,
       lng: r.position.lon,
@@ -56,5 +53,5 @@ export async function GET(req: NextRequest) {
       address: r.address?.freeformAddress ?? null,
     }))
 
-  return NextResponse.json({ stations: results })
+  return NextResponse.json({ stations })
 }
