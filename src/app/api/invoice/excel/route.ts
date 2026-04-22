@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
         const logoBuffer = await logoRes.arrayBuffer()
         const ext = company.logo_url.split('?')[0].split('.').pop()?.toLowerCase()
         const imgType = ext === 'png' ? 'png' : ext === 'svg' ? 'png' : 'jpeg'
-        logoImageId = wb.addImage({ buffer: Buffer.from(logoBuffer), extension: imgType as 'png' | 'jpeg' })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logoImageId = (wb as any).addImage({ buffer: Buffer.from(logoBuffer), extension: imgType })
       }
     } catch {
       // logo fetch failed — proceed without it
@@ -83,7 +84,8 @@ export async function GET(request: NextRequest) {
 
   // Logo or company name header
   if (logoImageId !== null) {
-    s1.addImage(logoImageId, { tl: { col: 1, row: 1 }, br: { col: 3, row: 3 }, editAs: 'oneCell' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(s1 as any).addImage(logoImageId, { tl: { col: 1, row: 1 }, br: { col: 3, row: 3 }, editAs: 'oneCell' })
     s1.getRow(2).height = 40
   }
 
