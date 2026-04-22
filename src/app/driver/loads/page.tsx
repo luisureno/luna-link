@@ -145,20 +145,22 @@ export default function MyLoadsPage() {
                           <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
                         </button>
                       )}
-                      {Object.entries(fields).map(([key, value]) => (
-                        <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                          <p className="text-xs text-gray-500 mb-1">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
-                          <input
-                            value={value}
-                            onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
-                            className="w-full text-base text-gray-900 outline-none bg-transparent"
-                          />
-                        </div>
-                      ))}
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(fields).map(([key, value]) => (
+                          <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
+                            <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
+                            <input
+                              value={value}
+                              onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
+                              className="w-full text-sm text-gray-900 outline-none bg-transparent"
+                            />
+                          </div>
+                        ))}
+                      </div>
                       <button
                         onClick={() => saveTicket(ticket.id)}
                         disabled={saving[ticket.id]}
-                        className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                        className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
                       >
                         {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
                       </button>

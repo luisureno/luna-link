@@ -34,7 +34,11 @@ export default function DriverTodayPage() {
   const [clientCount, setClientCount] = useState(0)
   const [weekRevenue, setWeekRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [inspectionDismissed, setInspectionDismissed] = useState(false)
+  const today = new Date().toISOString().split('T')[0]
+  const [inspectionDismissed, setInspectionDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('inspection_dismissed') === today
+  })
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [editData, setEditData] = useState<Record<string, Record<string, string>>>({})
@@ -179,7 +183,7 @@ export default function DriverTodayPage() {
             <p className="text-sm font-semibold text-green-800">✅ Pre-Trip Inspection Passed</p>
             <p className="text-xs text-green-600 mt-0.5">{new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
           </div>
-          <button onClick={() => setInspectionDismissed(true)} className="p-1 text-green-600 hover:text-green-800 ml-3 flex-shrink-0">
+          <button onClick={() => { localStorage.setItem('inspection_dismissed', today); setInspectionDismissed(true) }} className="p-1 text-green-600 hover:text-green-800 ml-3 flex-shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -338,20 +342,22 @@ export default function DriverTodayPage() {
                           <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
                         </button>
                       )}
-                      {Object.entries(fields).map(([key, value]) => (
-                        <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                          <p className="text-xs text-gray-500 mb-1">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
-                          <input
-                            value={value}
-                            onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
-                            className="w-full text-base text-gray-900 outline-none bg-transparent"
-                          />
-                        </div>
-                      ))}
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(fields).map(([key, value]) => (
+                          <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
+                            <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
+                            <input
+                              value={value}
+                              onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
+                              className="w-full text-sm text-gray-900 outline-none bg-transparent"
+                            />
+                          </div>
+                        ))}
+                      </div>
                       <button
                         onClick={() => saveTicket(ticket.id)}
                         disabled={saving[ticket.id]}
-                        className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                        className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
                       >
                         {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
                       </button>
