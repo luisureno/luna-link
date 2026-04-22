@@ -62,10 +62,10 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-4 md:px-6 pt-12 md:pt-20 pb-12 md:pb-16 text-center">
         <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900">
-          The operating system for<br />trucking companies.
+          From paper ticket<br />to paid invoice.
         </h1>
-        <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-          fleetwise replaces the paper tickets, text messages, and spreadsheets your dispatchers and drivers use every day — with a single mobile-first platform that captures every load, every hour, and every gallon.
+        <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-xl mx-auto">
+          Scan the tag. Confirm the load. Send the invoice. No spreadsheets.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
@@ -131,8 +131,8 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-4 md:px-6 py-8">
         <div className="text-center mb-10">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">See it in action</p>
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Built for drivers and dispatchers.</h2>
-          <p className="mt-3 text-sm text-gray-600 max-w-xl mx-auto">The driver app lives in your pocket. The dispatcher dashboard runs the back office.</p>
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">One app. Two views.</h2>
+          <p className="mt-3 text-sm text-gray-600 max-w-xl mx-auto">Drivers work from their phone. Owners and dispatchers run the back office from any screen.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 items-start">
@@ -142,64 +142,76 @@ export default function LandingPage() {
             <div className="relative w-full h-full bg-[#1a1a1a] rounded-[40px] p-3 shadow-2xl">
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#1a1a1a] rounded-full z-10" />
               <div className="w-full h-full bg-[#F8F7F5] rounded-[30px] overflow-hidden relative">
-                {/* Phone content — mirrors real driver home */}
-                <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 pt-6">
-                  <div className="flex items-center gap-2">
-                    <Truck size={14} className="text-gray-900" />
-                    <span className="text-xs font-semibold text-gray-900">fleetwise</span>
+                {/* Mirrors real solo driver home */}
+                <div className="p-3 space-y-2 overflow-y-auto h-full pt-4">
+                  {/* Welcome header */}
+                  <div className="px-1 mb-1">
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wide font-medium">Good morning</p>
+                    <p className="text-[13px] font-bold text-gray-900 leading-tight">Welcome back, Carlos</p>
+                    <p className="text-[10px] text-gray-500">Desert Run Hauling</p>
                   </div>
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-600">C</div>
-                </div>
-                <div className="p-3 space-y-2.5 overflow-y-auto h-[calc(100%-3.5rem)]">
-                  <div className="bg-green-50 border border-green-300 rounded-lg p-2.5">
-                    <p className="text-[11px] font-semibold text-green-800">✅ Pre-Trip Passed</p>
-                    <p className="text-[10px] text-green-600 mt-0.5">6:24 AM</p>
-                  </div>
+                  {/* Earnings card */}
                   <div className="bg-[#1a1a1a] rounded-lg p-3">
-                    <p className="text-[10px] text-gray-400">Today's Earnings</p>
-                    <p className="text-2xl font-bold text-white mt-0.5">$287.50</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">$57.50/load × 5 loads</p>
+                    <p className="text-[9px] text-gray-400">Today's Earnings</p>
+                    <p className="text-xl font-bold text-white mt-0.5">$287.50</p>
+                    <p className="text-[9px] text-gray-400 mt-0.5">$57.50/load × 5 loads</p>
                   </div>
-                  <div className="bg-white border border-gray-200 rounded-lg p-3">
-                    <p className="text-[10px] text-gray-500">Thursday, April 19</p>
-                    <div className="flex items-center gap-4 mt-1.5">
-                      <div>
-                        <p className="text-xl font-semibold text-gray-900">5</p>
-                        <p className="text-[10px] text-gray-500">Loads</p>
-                      </div>
-                      <div>
-                        <p className="text-xl font-semibold text-gray-900">6.2h</p>
-                        <p className="text-[10px] text-gray-500">On clock</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-green-600">Quarry</p>
-                        <p className="text-[10px] text-gray-500">Current</p>
-                      </div>
+                  {/* Summary card */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-2.5">
+                    <p className="text-[9px] text-gray-400 mb-1.5">Today</p>
+                    <div className="flex items-center gap-3">
+                      <div><p className="text-base font-semibold text-gray-900">5</p><p className="text-[9px] text-gray-500">Loads</p></div>
+                      <div><p className="text-base font-semibold text-gray-900">$461</p><p className="text-[9px] text-gray-500">Fuel</p></div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2.5">
-                      <MapPin size={16} className="text-gray-700" />
-                      <span className="text-[10px] font-medium text-gray-700">Check In</span>
+                  {/* Quick actions */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="col-span-2 flex flex-col items-center justify-center gap-1 bg-[#1a1a1a] text-white rounded-lg p-2.5">
+                      <PlusCircle size={14} />
+                      <span className="text-[9px] font-medium">Submit Ticket</span>
                     </div>
-                    <div className="flex flex-col items-center justify-center gap-1 bg-[#1a1a1a] text-white rounded-lg p-2.5">
-                      <PlusCircle size={16} />
-                      <span className="text-[10px] font-medium">Submit Ticket</span>
+                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2">
+                      <Fuel size={13} className="text-gray-700" />
+                      <span className="text-[9px] font-medium text-gray-700">Log Fuel</span>
                     </div>
-                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2.5">
-                      <Fuel size={16} className="text-gray-700" />
-                      <span className="text-[10px] font-medium text-gray-700">Log Fuel</span>
+                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2">
+                      <MapPin size={13} className="text-gray-700" />
+                      <span className="text-[9px] font-medium text-gray-700">Fuel Map</span>
                     </div>
-                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2.5">
-                      <List size={16} className="text-gray-700" />
-                      <span className="text-[10px] font-medium text-gray-700">My Loads</span>
+                  </div>
+                  {/* Today's Logs */}
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-wide px-2.5 py-1.5 border-b border-gray-100">Today's Logs</p>
+                    {/* Pre-trip row */}
+                    <div className="flex items-center justify-between px-2.5 py-2 border-b border-gray-50">
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-900">Pre-Trip Inspection</p>
+                        <p className="text-[9px] text-gray-500">6:24 AM</p>
+                      </div>
+                      <span className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Passed</span>
+                    </div>
+                    {/* Load row */}
+                    <div className="flex items-center justify-between px-2.5 py-2 border-b border-gray-50">
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-900">Tag #TK-4835</p>
+                        <p className="text-[9px] text-gray-500">11:02 AM</p>
+                      </div>
+                      <span className="text-[8px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full font-medium">submitted</span>
+                    </div>
+                    {/* Fuel row */}
+                    <div className="flex items-center justify-between px-2.5 py-2">
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-900">118.2 gal · $3.90/gal</p>
+                        <p className="text-[9px] text-gray-500">7:48 AM</p>
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-900">$461.27</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
             </div>
-            <p className="text-center text-xs text-gray-500 mt-3 font-medium">Driver — mobile</p>
+            <p className="text-center text-xs text-gray-500 mt-3 font-medium">Solo owner-op — mobile</p>
           </div>
 
           {/* Laptop mockup — dispatcher */}
@@ -225,6 +237,8 @@ export default function LandingPage() {
                       { icon: Users, label: 'Drivers' },
                       { icon: Send, label: 'Dispatch' },
                       { icon: FileText, label: 'Tickets' },
+                      { icon: Clock, label: 'Timesheets' },
+                      { icon: Fuel, label: 'Fuel' },
                       { icon: ShieldCheck, label: 'Invoices' },
                     ].map((item, i) => (
                       <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded text-[10px] font-medium ${item.active ? 'bg-white/15 text-white' : 'text-white/60'}`}>
@@ -236,7 +250,7 @@ export default function LandingPage() {
                 </div>
                 {/* Dashboard content */}
                 <div className="flex-1 p-4 overflow-hidden">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Thursday, April 19</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Tuesday, April 22</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
                     {[
                       { label: 'Active Drivers', value: '3', icon: Users },
@@ -301,7 +315,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="h-3 bg-gray-300 mx-[-20px] rounded-b-xl shadow-inner" />
-            <p className="text-center text-xs text-gray-500 mt-3 font-medium">Dispatcher — desktop</p>
+            <p className="text-center text-xs text-gray-500 mt-3 font-medium">Fleet owner / dispatcher — desktop</p>
           </div>
         </div>
       </section>
