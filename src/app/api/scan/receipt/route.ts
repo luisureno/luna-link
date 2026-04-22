@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
+      model: 'claude-sonnet-4-6',
+      max_tokens: 512,
       messages: [
         {
           role: 'user',
@@ -27,17 +27,23 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: `You are reading a fuel or DEF (Diesel Exhaust Fluid) station receipt.
-Extract the following fields and return ONLY valid JSON with no markdown, no backticks, no explanation:
+              text: `You are reading a fuel station or DEF (Diesel Exhaust Fluid) receipt from a truck driver.
+Extract ALL visible fields and return ONLY valid JSON with no markdown, no backticks, no explanation:
 {
   "gallons": "diesel fuel gallons as number or null",
-  "price_per_gallon": "diesel fuel price per gallon as number or null",
+  "price_per_gallon": "diesel price per gallon as number or null",
+  "total_cost": "diesel total dollar amount as number or null",
   "def_gallons": "DEF gallons as number or null",
-  "def_price_per_gallon": "DEF price per gallon as number or null"
+  "def_price_per_gallon": "DEF price per gallon as number or null",
+  "def_total_cost": "DEF total dollar amount as number or null"
 }
-If this is a DEF-only receipt, set gallons and price_per_gallon to null.
-If this is a diesel-only receipt, set def_gallons and def_price_per_gallon to null.
-Only extract what is clearly visible. Never guess.`,
+
+Rules:
+- If this is a diesel-only receipt, set all def_* fields to null.
+- If this is a DEF-only receipt, set gallons, price_per_gallon, and total_cost to null.
+- total_cost should be the final dollar amount paid for diesel fuel specifically.
+- If total is shown but gallons are missing, still capture the total.
+- Only extract what is clearly visible. Never guess.`,
             },
           ],
         },
