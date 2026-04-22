@@ -355,10 +355,10 @@ export default function LandingPage() {
 
           <div className="space-y-4">
             {[
-              { n: '01', title: 'Request access', body: 'Tell us about your fleet. We review the request and reach out to get you set up.' },
-              { n: '02', title: 'We configure your company', body: 'We create your company account, your ticket template, and your dispatcher login — no IT required.' },
-              { n: '03', title: 'Invite your drivers', body: 'Share one link with your drivers. They register on their phone and they\'re ready to run loads.' },
-              { n: '04', title: 'Run your day', body: 'Drivers inspect, check in, submit tickets, log fuel. Dispatchers see it live.' },
+              { n: '01', title: 'Sign up in two minutes', body: 'Create your company account, pick your plan, and you\'re in. No sales call, no setup fee, no IT required.' },
+              { n: '02', title: 'Invite your drivers', body: 'Share one link. Drivers register on their phone and are ready to run loads the same day.' },
+              { n: '03', title: 'Run your day', body: 'Drivers complete inspections, scan tags, log fuel. Owners and dispatchers see everything live on the dashboard.' },
+              { n: '04', title: 'Generate invoices automatically', body: 'When the week ends, every confirmed ticket is already waiting. Select the period, review the lines, and send the invoice.' },
             ].map(s => (
               <div key={s.n} className="flex gap-6 items-start bg-[#F8F7F5] border border-gray-200 rounded-lg p-6">
                 <div className="text-3xl font-semibold text-gray-300 w-16 flex-shrink-0">{s.n}</div>
@@ -382,11 +382,13 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2 gap-4">
           {[
             'No more lost tickets. Every load is captured, timestamped, and photographed.',
-            'No more end-of-day billing delays. Tickets are confirmed the moment they\'re submitted.',
-            'No more missed fuel receipts. Drivers snap it, the cost is logged, the spend is tracked.',
-            'No more surprise breakdowns. Failed pre-trip items alert the dispatcher in real time.',
+            'No more building invoices by hand. Scanned data auto-fills tag, origin, destination, loads, rate, and amount.',
+            'No more missed fuel receipts. Snap the receipt — gallons and price parse automatically.',
+            'No more surprise breakdowns. Failed pre-trip items alert the dispatcher the moment they\'re flagged.',
             'No more payroll disputes. Live earnings by load or by hour, visible to driver and owner.',
-            'No more "where is everyone?" Every check-in is live on the dashboard.',
+            'No more hunting for cheap diesel. The fuel map shows real-time prices at truck stops near you.',
+            'No more chasing payments. Track every invoice from draft to paid with overdue alerts.',
+            'No more guessing where drivers are. Every check-in and location is live on the dashboard.',
           ].map((item, i) => (
             <div key={i} className="flex gap-3 items-start">
               <div className="w-5 h-5 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -412,41 +414,43 @@ export default function LandingPage() {
               {
                 id: 'solo',
                 name: 'Solo',
-                price: 29,
-                blurb: 'Owner operators running their own truck.',
+                price: 19,
+                blurb: 'For owner-operators running their own truck.',
                 features: [
                   '1 driver / 1 truck',
-                  'Combined owner + driver view',
-                  'Unlimited loads',
-                  'Tag scan + client invoicing',
-                  'Fuel + earnings tracking',
+                  'AI tag scan + receipt scan',
+                  'Client invoicing with auto-filled lines',
+                  'Fuel map — find cheap diesel near you',
+                  'Earnings tracking per load',
+                  'Pre-trip inspections',
                 ],
                 highlight: false,
               },
               {
                 id: 'starter',
                 name: 'Starter',
-                price: 79,
-                blurb: 'Small fleets with a dispatcher.',
+                price: 39,
+                blurb: 'For small fleets with a dispatcher.',
                 features: [
                   'Up to 5 drivers / 5 trucks',
                   'Full dispatcher dashboard',
-                  'Unlimited loads',
-                  'Tag scan + client invoicing',
-                  'Driver payroll',
+                  'AI tag scan + receipt scan',
+                  'Client invoicing + driver payroll',
+                  'Timesheets + fuel tracking',
+                  'Pre-trip inspections',
                 ],
                 highlight: true,
               },
               {
                 id: 'fleet',
                 name: 'Fleet',
-                price: 149,
-                blurb: 'Growing fleets that need more hands on deck.',
+                price: 79,
+                blurb: 'For growing fleets that need more.',
                 features: [
                   'Up to 20 drivers / 20 trucks',
                   'Everything in Starter',
-                  'Advanced reporting',
                   'Bulk invoicing',
+                  'Advanced reporting',
                   'Priority support',
                 ],
                 highlight: false,
