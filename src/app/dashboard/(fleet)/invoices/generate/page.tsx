@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle, FileText, Download, X, ArrowLeftRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Download, X, Plus, Trash2 } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -71,8 +71,6 @@ export default function GenerateInvoicePage() {
 
   // Invoice metadata fields
   const [clientAddress, setClientAddress] = useState('')
-  const [origin, setOrigin] = useState('')
-  const [destination, setDestination] = useState('')
 
   const [lines, setLines] = useState<Line[]>([])
   const [customItems, setCustomItems] = useState<CustomItem[]>([])
@@ -224,8 +222,6 @@ export default function GenerateInvoicePage() {
       date_from: filter.date_from,
       date_to: filter.date_to,
       client_address: clientAddress || null,
-      origin: origin || null,
-      destination: destination || null,
       custom_items: customItems.length > 0
         ? customItems.map(({ label, amount }) => ({ label, amount }))
         : [],
@@ -293,7 +289,7 @@ export default function GenerateInvoicePage() {
     const selectedClient = clients.find(c => c.id === filter.client_id)
 
     return (
-      <div className="max-w-lg mx-auto p-4 space-y-5">
+      <div className="max-w-lg mx-auto p-4 pb-24 md:pb-6 space-y-5">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
@@ -328,51 +324,6 @@ export default function GenerateInvoicePage() {
               onChange={e => setClientAddress(e.target.value)}
               placeholder="123 Main St, Phoenix, AZ 85001"
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Origin → Destination */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Haul Route</p>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-600">Point of origin</label>
-            <input
-              type="text"
-              value={origin}
-              onChange={e => setOrigin(e.target.value)}
-              placeholder="e.g. Mesa Rock Quarry, Mesa AZ"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-px bg-gray-200" />
-            <button
-              type="button"
-              onClick={() => {
-                const tmp = origin
-                setOrigin(destination)
-                setDestination(tmp)
-              }}
-              title="Swap origin and destination"
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 shrink-0"
-            >
-              <ArrowLeftRight size={13} />
-              Swap
-            </button>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-gray-600">Destination</label>
-            <input
-              type="text"
-              value={destination}
-              onChange={e => setDestination(e.target.value)}
-              placeholder="e.g. Scottsdale Job Site, Scottsdale AZ"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
           </div>
         </div>
@@ -423,7 +374,7 @@ export default function GenerateInvoicePage() {
   // ── STEP 2: REVIEW LINES ─────────────────────────────────────────────────────
   if (step === 'review') {
     return (
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <div className="max-w-2xl mx-auto p-4 pb-24 md:pb-6 space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => setStep('filter')} className="text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
@@ -579,7 +530,7 @@ export default function GenerateInvoicePage() {
 
   // ── STEP 3: SUMMARY + CREATE ─────────────────────────────────────────────────
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4">
+    <div className="max-w-lg mx-auto p-4 pb-24 md:pb-6 space-y-4">
       {!invoiceId ? (
         <>
           <div className="flex items-center gap-3">
@@ -601,14 +552,6 @@ export default function GenerateInvoicePage() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Billing address</span>
                 <span className="font-medium text-right max-w-[60%]">{clientAddress}</span>
-              </div>
-            )}
-            {(origin || destination) && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Route</span>
-                <span className="font-medium text-right max-w-[60%]">
-                  {[origin, destination].filter(Boolean).join(' → ')}
-                </span>
               </div>
             )}
             <div className="flex justify-between text-sm">

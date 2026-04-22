@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, FileText, PenLine, CheckCircle } from 'lucide-react'
+import { Camera, FileText, PenLine, CheckCircle, ArrowLeftRight } from 'lucide-react'
 import { DocumentScanner } from '@/components/driver/DocumentScanner'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
@@ -46,6 +46,8 @@ interface TicketForm {
   hours_worked: string
   rate_amount: string
   total_amount: string
+  origin: string
+  destination: string
   notes: string
 }
 
@@ -53,7 +55,8 @@ const empty: TicketForm = {
   tag_number: '', weight_tons: '', gross_weight_lbs: '', tare_weight_lbs: '',
   material_type: '', loads_count: '1', po_number: '', job_site: '',
   client_name: '', ticket_date: '', truck_number: '', trailer_number: '',
-  driver_name: '', hours_worked: '', rate_amount: '', total_amount: '', notes: '',
+  driver_name: '', hours_worked: '', rate_amount: '', total_amount: '',
+  origin: '', destination: '', notes: '',
 }
 
 // Fields the AI can return, in the order we want to show them in the review screen
@@ -72,6 +75,8 @@ const REVIEW_FIELDS: { key: string; label: string }[] = [
   { key: 'truck_number', label: 'Truck Number' },
   { key: 'trailer_number', label: 'Trailer Number' },
   { key: 'driver_name', label: 'Driver Name' },
+  { key: 'origin', label: 'Origin / Pickup' },
+  { key: 'destination', label: 'Destination' },
   { key: 'po_number', label: 'PO / Order Number' },
   { key: 'rate_amount', label: 'Rate' },
   { key: 'total_amount', label: 'Total Amount' },
@@ -225,6 +230,8 @@ export default function TicketPage() {
     if (scanReview.trailer_number) updates.trailer_number = scanReview.trailer_number
     if (scanReview.driver_name) updates.driver_name = scanReview.driver_name
     if (scanReview.hours_worked) updates.hours_worked = scanReview.hours_worked
+    if (scanReview.origin) updates.origin = scanReview.origin
+    if (scanReview.destination) updates.destination = scanReview.destination
     if (scanReview.po_number) updates.po_number = scanReview.po_number
     if (scanReview.rate_amount) updates.rate_amount = scanReview.rate_amount
     if (scanReview.total_amount) updates.total_amount = scanReview.total_amount
@@ -307,6 +314,8 @@ export default function TicketPage() {
         ticket_date: form.ticket_date,
         job_site: form.job_site,
         client_name: form.client_name,
+        origin: form.origin,
+        destination: form.destination,
         po_number: form.po_number,
         truck_number: form.truck_number,
         trailer_number: form.trailer_number,
@@ -534,17 +543,61 @@ export default function TicketPage() {
             </div>
           ) : (
             <div className="space-y-2 mb-4">
-              {visibleFields.map(({ key, label }) => (
-                <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-                  <input
-                    type="text"
-                    value={scanReview[key]}
-                    onChange={e => setScanReview(r => ({ ...r!, [key]: e.target.value }))}
-                    className="w-full text-base text-gray-900 outline-none bg-transparent"
-                  />
-                </div>
-              ))}
+              {visibleFields
+                .filter(f => f.key !== 'destination')
+                .map(({ key, label }) => {
+                  if (key === 'origin') {
+                    const hasDestination = scanReview['destination'] !== undefined && scanReview['destination'] !== ''
+                    return (
+                      <div key="haul-route" className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Origin / Pickup</label>
+                          <input
+                            type="text"
+                            value={scanReview['origin']}
+                            onChange={e => setScanReview(r => ({ ...r!, origin: e.target.value }))}
+                            className="w-full text-base text-gray-900 outline-none bg-transparent"
+                          />
+                        </div>
+                        {hasDestination && (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-px bg-gray-200" />
+                              <button
+                                type="button"
+                                onClick={() => setScanReview(r => ({ ...r!, origin: r!['destination'], destination: r!['origin'] }))}
+                                className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
+                              >
+                                <ArrowLeftRight size={12} /> Swap
+                              </button>
+                              <div className="flex-1 h-px bg-gray-200" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Destination</label>
+                              <input
+                                type="text"
+                                value={scanReview['destination']}
+                                onChange={e => setScanReview(r => ({ ...r!, destination: e.target.value }))}
+                                className="w-full text-base text-gray-900 outline-none bg-transparent"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                      <input
+                        type="text"
+                        value={scanReview[key]}
+                        onChange={e => setScanReview(r => ({ ...r!, [key]: e.target.value }))}
+                        className="w-full text-base text-gray-900 outline-none bg-transparent"
+                      />
+                    </div>
+                  )
+                })}
             </div>
           )}
 
@@ -636,6 +689,29 @@ export default function TicketPage() {
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Job Site / Location</label>
           <input type="text" value={form.job_site} onChange={e => setField('job_site', e.target.value)} placeholder="e.g. North Quarry" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+        </div>
+
+        {/* Haul Route */}
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Origin / Pickup</label>
+            <input type="text" value={form.origin} onChange={e => setField('origin', e.target.value)} placeholder="e.g. Mesa Rock Quarry" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-gray-200" />
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, origin: f.destination, destination: f.origin }))}
+              className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
+            >
+              <ArrowLeftRight size={12} /> Swap
+            </button>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Destination</label>
+            <input type="text" value={form.destination} onChange={e => setField('destination', e.target.value)} placeholder="e.g. Scottsdale Job Site" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+          </div>
         </div>
 
         {/* Material */}

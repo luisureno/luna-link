@@ -47,6 +47,8 @@ Extract ALL visible fields and return ONLY valid JSON with no markdown, no backt
   "po_number": "purchase order or PO number as string or null",
   "rate_amount": "rate shown (e.g. $12.50/ton) as string or null",
   "total_amount": "total dollar amount as string or null",
+  "origin": "point of origin, pickup location, or pit/quarry name as string or null",
+  "destination": "delivery destination or job site as string or null",
   "notes": "notes or comments as string or null",
   "additional_text": "any remaining readable text not captured above as string or null"
 }

@@ -34,6 +34,8 @@ Extract the following fields and return ONLY valid JSON with no markdown, no bac
   "weight_tons": "number or null",
   "weight_lbs": "number or null",
   "material_type": "string or null",
+  "origin": "point of origin, pickup location, or pit/quarry name as string or null",
+  "destination": "delivery destination or job site as string or null",
   "date": "string in YYYY-MM-DD or null",
   "additional_text": "string or null"
 }
