@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { FuelLog } from '@/types'
 import { MapPin, BarChart3, TrendingDown, Fuel, Download } from 'lucide-react'
+import { PullToRefresh } from '@/components/PullToRefresh'
 
 const FuelMap = dynamic(() => import('@/components/FuelMap'), { ssr: false, loading: () => <div className="h-72 bg-gray-100 rounded-xl animate-pulse" /> })
 
@@ -118,6 +119,7 @@ export default function SoloFuelPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={load}>
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
@@ -272,5 +274,6 @@ export default function SoloFuelPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   )
 }

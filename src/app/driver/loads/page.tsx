@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { X } from 'lucide-react'
 import type { LoadTicket } from '@/types'
 import { formatDate } from '@/lib/format'
+import { PullToRefresh } from '@/components/PullToRefresh'
 
 type GroupedTickets = { date: string; tickets: LoadTicket[] }[]
 
@@ -95,6 +96,7 @@ export default function MyLoadsPage() {
   }
 
   return (
+    <PullToRefresh onRefresh={loadTickets}>
     <div className="p-4 pb-28 space-y-4">
       <h1 className="text-xl font-semibold text-gray-900">My Loads</h1>
       {groups.map(({ date, tickets }) => (
@@ -185,5 +187,6 @@ export default function MyLoadsPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   )
 }

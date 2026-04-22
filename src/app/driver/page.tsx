@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
 import { formatDate } from '@/lib/format'
+import { PullToRefresh } from '@/components/PullToRefresh'
 
 const FIELD_LABELS: Record<string, string> = {
   ticket_date: 'Date', tag_number: 'Tag #', client_name: 'Client',
@@ -130,6 +131,7 @@ export default function DriverTodayPage() {
     : null
 
   return (
+    <PullToRefresh onRefresh={loadData}>
     <div className="p-4 pb-28 space-y-4">
       {profile && inspection !== undefined && (
         <DayStartModal
@@ -332,5 +334,6 @@ export default function DriverTodayPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   )
 }
