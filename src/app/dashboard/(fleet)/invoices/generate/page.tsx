@@ -113,14 +113,9 @@ export default function GenerateInvoicePage() {
         .lte('submitted_at', `${filter.date_to}T23:59:59`)
         .order('submitted_at')
 
-      console.log('[generate-invoice] ticket query:', {
-        company_id: profile!.company_id,
-        date_from: filter.date_from,
-        date_to: filter.date_to,
-        count: data?.length ?? 0,
-        error,
-        sample: data?.[0],
-      })
+      console.log('[generate-invoice] ticket query count:', data?.length ?? 0)
+      console.log('[generate-invoice] error message:', error?.message, 'code:', error?.code, 'details:', error?.details, 'hint:', error?.hint)
+      console.log('[generate-invoice] filter:', JSON.stringify({ company_id: profile!.company_id, from: `${filter.date_from}T00:00:00`, to: `${filter.date_to}T23:59:59` }))
 
       if ((data?.length ?? 0) === 0) {
         const { data: allForCo } = await supabase
@@ -129,7 +124,7 @@ export default function GenerateInvoicePage() {
           .eq('company_id', profile!.company_id)
           .order('submitted_at', { ascending: false })
           .limit(10)
-        console.log('[generate-invoice] recent tickets (no filters):', allForCo)
+        console.log('[generate-invoice] recent tickets:', JSON.stringify(allForCo, null, 2))
       }
 
       for (const t of data ?? []) {
