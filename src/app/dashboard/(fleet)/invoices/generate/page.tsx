@@ -103,15 +103,34 @@ export default function GenerateInvoicePage() {
     const timesheetLines: Line[] = []
 
     if (filter.include_tickets) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('load_tickets')
-        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, invoice_line_confirmed, users(full_name)')
+        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, invoice_line_confirmed, status, users(full_name)')
         .eq('company_id', profile!.company_id)
         .in('status', ['submitted', 'confirmed'])
         .or('invoice_line_confirmed.is.null,invoice_line_confirmed.eq.false')
         .gte('submitted_at', `${filter.date_from}T00:00:00`)
         .lte('submitted_at', `${filter.date_to}T23:59:59`)
         .order('submitted_at')
+
+      console.log('[generate-invoice] ticket query:', {
+        company_id: profile!.company_id,
+        date_from: filter.date_from,
+        date_to: filter.date_to,
+        count: data?.length ?? 0,
+        error,
+        sample: data?.[0],
+      })
+
+      if ((data?.length ?? 0) === 0) {
+        const { data: allForCo } = await supabase
+          .from('load_tickets')
+          .select('id, submitted_at, status, invoice_line_confirmed, tag_number, client_id')
+          .eq('company_id', profile!.company_id)
+          .order('submitted_at', { ascending: false })
+          .limit(10)
+        console.log('[generate-invoice] recent tickets (no filters):', allForCo)
+      }
 
       for (const t of data ?? []) {
         const r = t as any
