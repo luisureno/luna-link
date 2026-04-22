@@ -22,6 +22,12 @@ interface Line {
   driver_pay: number
   included: boolean
   notes: string
+  tag_number: string | null
+  truck_number: string | null
+  origin: string | null
+  destination: string | null
+  hours: string
+  loads: string
 }
 
 interface CustomItem {
@@ -105,7 +111,7 @@ export default function GenerateInvoicePage() {
     if (filter.include_tickets) {
       const { data } = await supabase
         .from('load_tickets')
-        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, invoice_line_confirmed, users!load_tickets_driver_id_fkey(full_name)')
+        .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, form_data, invoice_line_confirmed, users!load_tickets_driver_id_fkey(full_name)')
         .eq('company_id', profile!.company_id)
         .in('status', ['submitted', 'confirmed'])
         .or('invoice_line_confirmed.is.null,invoice_line_confirmed.eq.false')
@@ -115,9 +121,11 @@ export default function GenerateInvoicePage() {
 
       for (const t of data ?? []) {
         const r = t as any
+        const fd = (r.form_data ?? {}) as Record<string, unknown>
         const desc = r.billing_type === 'per_load'
           ? `${r.loads_count ?? 1} load(s)`
           : 'Load ticket'
+        const hoursVal = fd.hours_worked != null ? String(fd.hours_worked) : ''
 
         ticketLines.push({
           id: r.id,
@@ -129,6 +137,12 @@ export default function GenerateInvoicePage() {
           driver_pay: Number(r.dispatcher_adjusted_pay ?? r.driver_pay_total ?? 0),
           included: true,
           notes: '',
+          tag_number: r.tag_number ?? (fd.tag_number ? String(fd.tag_number) : null),
+          truck_number: fd.truck_number ? String(fd.truck_number) : null,
+          origin: fd.origin ? String(fd.origin) : null,
+          destination: fd.destination ? String(fd.destination) : null,
+          hours: hoursVal,
+          loads: r.loads_count != null ? String(r.loads_count) : '',
         })
       }
     }
@@ -145,18 +159,24 @@ export default function GenerateInvoicePage() {
 
       for (const t of data ?? []) {
         const r = t as any
-        const hrs = r.dispatcher_adjusted_hours ?? r.hours_billed_client ?? '?'
+        const hrs = r.dispatcher_adjusted_hours ?? r.hours_billed_client ?? ''
 
         timesheetLines.push({
           id: r.id,
           type: 'timesheet',
           date: r.work_date,
           driver_name: (r.users as any)?.full_name ?? '—',
-          description: `${hrs}h on site`,
+          description: `${hrs || '?'}h on site`,
           client_charge: Number(r.client_charge_total ?? 0),
           driver_pay: Number(r.driver_pay_total ?? 0),
           included: true,
           notes: '',
+          tag_number: null,
+          truck_number: null,
+          origin: null,
+          destination: null,
+          hours: hrs ? String(hrs) : '',
+          loads: '',
         })
       }
     }
@@ -174,6 +194,12 @@ export default function GenerateInvoicePage() {
   }
   function updateLineCharge(id: string, charge: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, client_charge: parseFloat(charge) || 0 } : l))
+  }
+  function updateLineHours(id: string, hours: string) {
+    setLines(prev => prev.map(l => l.id === id ? { ...l, hours } : l))
+  }
+  function updateLineLoads(id: string, loads: string) {
+    setLines(prev => prev.map(l => l.id === id ? { ...l, loads } : l))
   }
 
   function addCustomItem() {
@@ -391,52 +417,86 @@ export default function GenerateInvoicePage() {
             {/* Ticket / timesheet lines */}
             {lines.length > 0 && (
               <div className="space-y-2">
-                {lines.map(line => (
-                  <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={line.included}
-                        onChange={() => toggleLine(line.id)}
-                        className="mt-0.5 w-4 h-4"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{line.driver_name}</p>
-                            <p className="text-xs text-gray-500">{line.date} · {line.description}</p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xs text-gray-500">Client charge</p>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={line.client_charge}
-                              onChange={e => updateLineCharge(line.id, e.target.value)}
-                              className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-                          {accountType === 'solo'
-                            ? <span />
-                            : <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>}
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full border ${line.type === 'ticket' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
-                            {line.type === 'ticket' ? 'Load' : 'Hourly'}
-                          </span>
-                        </div>
+                {lines.map(line => {
+                  const isTicket = line.type === 'ticket'
+                  const headerPrimary = isTicket
+                    ? (line.tag_number ? `Tag #${line.tag_number}` : 'No tag number')
+                    : line.driver_name
+                  const routeStr = [line.origin, line.destination].filter(Boolean).join(' → ')
+                  const metaParts = [
+                    line.date,
+                    isTicket && line.truck_number ? `Truck #${line.truck_number}` : null,
+                    routeStr || null,
+                  ].filter(Boolean)
+
+                  return (
+                    <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
+                      <div className="flex items-start gap-3">
                         <input
-                          type="text"
-                          value={line.notes}
-                          onChange={e => updateLineNotes(line.id, e.target.value)}
-                          placeholder="Add note to this line…"
-                          className="mt-2 w-full text-xs border border-gray-100 rounded px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                          type="checkbox"
+                          checked={line.included}
+                          onChange={() => toggleLine(line.id)}
+                          className="mt-0.5 w-4 h-4"
                         />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 flex-wrap">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{headerPrimary}</p>
+                              <p className="text-xs text-gray-500">{metaParts.join(' · ')}</p>
+                            </div>
+                            <div className="flex items-end gap-2 shrink-0">
+                              <div className="text-right">
+                                <p className="text-[10px] text-gray-500 mb-0.5">Hours</p>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.25"
+                                  value={line.hours}
+                                  onChange={e => updateLineHours(line.id, e.target.value)}
+                                  className="w-14 text-right border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                />
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] text-gray-500 mb-0.5">Loads</p>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={line.loads}
+                                  onChange={e => updateLineLoads(line.id, e.target.value)}
+                                  className="w-14 text-right border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                />
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] text-gray-500 mb-0.5">Total</p>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={line.client_charge}
+                                  onChange={e => updateLineCharge(line.id, e.target.value)}
+                                  className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          {accountType !== 'solo' && (
+                            <div className="mt-2">
+                              <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={line.notes}
+                            onChange={e => updateLineNotes(line.id, e.target.value)}
+                            placeholder="Add note to this line…"
+                            className="mt-2 w-full text-xs border border-gray-100 rounded px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
