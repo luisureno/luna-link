@@ -150,15 +150,11 @@ export async function GET(request: NextRequest) {
     const amount = Number(t.client_charge_total ?? 0)
     subtotal += amount
     const qty =
-      t.billing_type === 'per_ton'
-        ? `${t.weight_tons ?? '?'} tons`
-        : t.billing_type === 'hourly'
+      t.billing_type === 'hourly'
         ? `${t.hours_billed_client ?? t.hours_worked ?? '?'} hrs`
         : `${t.loads_count ?? 1} load${(t.loads_count ?? 1) === 1 ? '' : 's'}`
     const desc = [
-      t.billing_type === 'per_ton'
-        ? `${t.material_type ?? 'Material'} haul`
-        : t.billing_type === 'hourly'
+      t.billing_type === 'hourly'
         ? 'Hourly service'
         : 'Load ticket',
       t.tag_number ? `Tag #${t.tag_number}` : null,

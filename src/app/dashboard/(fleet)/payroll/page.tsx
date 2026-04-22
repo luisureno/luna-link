@@ -86,7 +86,7 @@ export default function PayrollPage() {
         id: r.id,
         type: 'ticket',
         date: r.submitted_at?.split('T')[0] ?? '',
-        description: r.billing_type === 'per_ton' ? `${r.weight_tons ?? '?'} tons${r.tag_number ? ` · Tag #${r.tag_number}` : ''}` : `${r.loads_count ?? 1} load(s)`,
+        description: `${r.loads_count ?? 1} load(s)`,
         pay: Number(r.driver_pay_total ?? 0),
         adjusted_pay: r.dispatcher_adjusted_pay != null ? Number(r.dispatcher_adjusted_pay) : null,
         adjustment_reason: r.dispatcher_adjustment_reason ?? null,

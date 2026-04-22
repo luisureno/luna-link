@@ -116,9 +116,7 @@ export default function GenerateInvoicePage() {
 
       for (const t of data ?? []) {
         const r = t as any
-        const desc = r.billing_type === 'per_ton'
-          ? `${r.weight_tons ?? '?'} tons${r.tag_number ? ` · Tag #${r.tag_number}` : ''}`
-          : r.billing_type === 'per_load'
+        const desc = r.billing_type === 'per_load'
           ? `${r.loads_count ?? 1} load(s)`
           : 'Load ticket'
 

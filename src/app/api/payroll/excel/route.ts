@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     allSheet.addRow({
       date: r.submitted_at?.split('T')[0] ?? '',
       driver: r.users?.full_name ?? '—',
-      desc: r.billing_type === 'per_ton' ? `${r.weight_tons ?? '?'} tons${r.tag_number ? ` · Tag #${r.tag_number}` : ''}` : `${r.loads_count ?? 1} loads`,
+      desc: `${r.loads_count ?? 1} loads`,
       type: 'Load',
       pay,
       adjusted: adj,

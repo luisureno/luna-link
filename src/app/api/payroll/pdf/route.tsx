@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const uid = r.users?.id ?? 'unknown'
     if (!map.has(uid)) map.set(uid, { name: r.users?.full_name ?? '—', lines: [], total: 0 })
     const pay = Number(r.dispatcher_adjusted_pay ?? r.driver_pay_total ?? 0)
-    map.get(uid)!.lines.push({ date: r.submitted_at?.split('T')[0] ?? '', desc: r.billing_type === 'per_ton' ? `${r.weight_tons} tons` : `${r.loads_count} loads`, type: 'Load', pay })
+    map.get(uid)!.lines.push({ date: r.submitted_at?.split('T')[0] ?? '', desc: `${r.loads_count} loads`, type: 'Load', pay })
     map.get(uid)!.total += pay
   }
   for (const t of timesheets ?? []) {

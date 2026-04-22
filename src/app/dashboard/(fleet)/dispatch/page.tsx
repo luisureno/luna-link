@@ -13,7 +13,7 @@ interface BillingConfig {
   id: string
   client_id: string
   job_type_name: string
-  billing_type: 'per_load' | 'hourly' | 'per_ton'
+  billing_type: 'per_load' | 'hourly'
   client_rate_amount: number
   client_rate_unit: string
   driver_hours_per_load: number | null
@@ -135,9 +135,6 @@ export default function DispatchPage() {
     }
     if (selectedConfig.billing_type === 'hourly') {
       return { clientLine: rate, driverLine: 'Paid by actual hours at driver hourly rate', driverPay: null }
-    }
-    if (selectedConfig.billing_type === 'per_ton') {
-      return { clientLine: rate, driverLine: `Driver paid ${selectedConfig.driver_pay_type.replace('_', ' ')}`, driverPay: null }
     }
     return null
   }

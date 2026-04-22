@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { Client, User } from '@/types'
 
-type BillingType = 'per_load' | 'hourly' | 'per_ton'
-type DriverPayType = 'per_load' | 'per_ton' | 'hourly'
+type BillingType = 'per_load' | 'hourly'
+type DriverPayType = 'per_load' | 'hourly'
 
 interface BillingConfig {
   id: string
@@ -34,7 +34,6 @@ interface DriverPayRate {
 
 function rateUnitForBillingType(bt: BillingType): string {
   if (bt === 'per_load') return 'per_load'
-  if (bt === 'per_ton') return 'per_ton'
   return 'per_hour'
 }
 
@@ -67,7 +66,6 @@ export function BillingSetupTab() {
   const [payForm, setPayForm] = useState({
     hourly_rate: '',
     per_load_rate: '',
-    per_ton_rate: '',
     effective_date: new Date().toISOString().split('T')[0],
     notes: '',
   })
@@ -130,7 +128,6 @@ export function BillingSetupTab() {
     setPayForm({
       hourly_rate: latest?.hourly_rate != null ? String(latest.hourly_rate) : '',
       per_load_rate: latest?.per_load_rate != null ? String(latest.per_load_rate) : '',
-      per_ton_rate: latest?.per_ton_rate != null ? String(latest.per_ton_rate) : '',
       effective_date: new Date().toISOString().split('T')[0],
       notes: '',
     })
@@ -143,7 +140,6 @@ export function BillingSetupTab() {
       driver_id: driverId,
       hourly_rate: payForm.hourly_rate ? parseFloat(payForm.hourly_rate) : null,
       per_load_rate: payForm.per_load_rate ? parseFloat(payForm.per_load_rate) : null,
-      per_ton_rate: payForm.per_ton_rate ? parseFloat(payForm.per_ton_rate) : null,
       effective_date: payForm.effective_date,
       notes: payForm.notes.trim() || null,
     })
@@ -223,7 +219,7 @@ export function BillingSetupTab() {
                                 <> · Driver: <strong>{cfg.driver_hours_per_load} hrs/load</strong></>
                               )}
                             </p>
-                            <span className={`inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${cfg.billing_type === 'per_load' ? 'bg-blue-50 text-blue-700' : cfg.billing_type === 'hourly' ? 'bg-green-50 text-green-700' : 'bg-purple-50 text-purple-700'}`}>
+                            <span className={`inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${cfg.billing_type === 'per_load' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
                               {cfg.billing_type.replace('_', ' ')}
                             </span>
                             {cfg.notes && <p className="text-xs text-gray-400 mt-1">{cfg.notes}</p>}
@@ -262,9 +258,9 @@ export function BillingSetupTab() {
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Billing Type <span className="text-red-500">*</span></label>
                         <div className="flex gap-2 flex-wrap">
-                          {(['per_load', 'hourly', 'per_ton'] as BillingType[]).map(bt => (
+                          {(['per_load', 'hourly'] as BillingType[]).map(bt => (
                             <label key={bt} className="flex items-center gap-1.5 cursor-pointer">
-                              <input type="radio" name="billing_type" checked={form.billing_type === bt} onChange={() => setForm(f => ({ ...f, billing_type: bt, driver_pay_type: bt === 'per_load' ? 'per_load' : bt === 'per_ton' ? 'per_ton' : 'hourly' }))} />
+                              <input type="radio" name="billing_type" checked={form.billing_type === bt} onChange={() => setForm(f => ({ ...f, billing_type: bt, driver_pay_type: bt === 'per_load' ? 'per_load' : 'hourly' }))} />
                               <span className="text-sm text-gray-700 capitalize">{bt.replace('_', ' ')}</span>
                             </label>
                           ))}
@@ -308,19 +304,6 @@ export function BillingSetupTab() {
                         </div>
                       )}
 
-                      {form.billing_type === 'per_ton' && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Driver pay type</label>
-                          <div className="flex gap-3">
-                            {(['per_ton', 'hourly'] as DriverPayType[]).map(pt => (
-                              <label key={pt} className="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" name="driver_pay_type" checked={form.driver_pay_type === pt} onChange={() => setForm(f => ({ ...f, driver_pay_type: pt }))} />
-                                <span className="text-sm text-gray-700 capitalize">{pt.replace('_', ' ')}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optional)</label>
@@ -371,7 +354,6 @@ export function BillingSetupTab() {
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                         {latest.hourly_rate != null && <p className="text-xs text-gray-600">${Number(latest.hourly_rate).toFixed(2)}/hr</p>}
                         {latest.per_load_rate != null && <p className="text-xs text-gray-600">${Number(latest.per_load_rate).toFixed(2)}/load</p>}
-                        {latest.per_ton_rate != null && <p className="text-xs text-gray-600">${Number(latest.per_ton_rate).toFixed(2)}/ton</p>}
                         <p className="text-xs text-gray-400">effective {latest.effective_date}</p>
                       </div>
                     ) : (
@@ -389,7 +371,7 @@ export function BillingSetupTab() {
                 {isEditing && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-3">
                     <p className="text-xs font-medium text-gray-700">Enter any rates that apply to this driver:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">Hourly rate</label>
                         <div className="flex items-center gap-1">
@@ -404,14 +386,6 @@ export function BillingSetupTab() {
                           <span className="text-sm text-gray-500">$</span>
                           <input type="number" step="0.01" min="0" value={payForm.per_load_rate} onChange={e => setPayForm(f => ({ ...f, per_load_rate: e.target.value }))} placeholder="0.00" className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
                           <span className="text-xs text-gray-400">/load</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Per ton rate</label>
-                        <div className="flex items-center gap-1">
-                          <span className="text-sm text-gray-500">$</span>
-                          <input type="number" step="0.01" min="0" value={payForm.per_ton_rate} onChange={e => setPayForm(f => ({ ...f, per_ton_rate: e.target.value }))} placeholder="0.00" className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
-                          <span className="text-xs text-gray-400">/ton</span>
                         </div>
                       </div>
                     </div>

@@ -14,7 +14,7 @@ type EntryPath = 'scan_tag' | 'scan_invoice' | 'manual' | null
 
 interface BillingConfig {
   id: string
-  billing_type: 'per_load' | 'hourly' | 'per_ton'
+  billing_type: 'per_load' | 'hourly'
   client_rate_amount: number
   client_rate_unit: string
   driver_hours_per_load: number | null
@@ -95,7 +95,6 @@ export default function TicketPage() {
   const [dispatches, setDispatches] = useState<DispatchFull[]>([])
   const [selectedDispatch, setSelectedDispatch] = useState<DispatchFull | null>(null)
   const [driverHourlyRate, setDriverHourlyRate] = useState<number | null>(null)
-  const [driverPerTonRate, setDriverPerTonRate] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [entryPath, setEntryPath] = useState<EntryPath>(null)
   const [scanning, setScanning] = useState(false)
@@ -130,7 +129,7 @@ export default function TicketPage() {
         .eq('driver_id', profile!.id),
       supabase
         .from('driver_pay_rates')
-        .select('hourly_rate, per_ton_rate')
+        .select('hourly_rate')
         .eq('driver_id', profile!.id)
         .order('effective_date', { ascending: false })
         .limit(1),
@@ -156,7 +155,6 @@ export default function TicketPage() {
     const rate = (ratesRes.data ?? [])[0]
     if (rate) {
       setDriverHourlyRate(rate.hourly_rate ?? null)
-      setDriverPerTonRate(rate.per_ton_rate ?? null)
     }
     if (todayDispatches.length === 1) selectDispatch(todayDispatches[0])
     setLoading(false)
@@ -254,18 +252,6 @@ export default function TicketPage() {
         const driverTotal = hrsPerLoad && hourlyRate ? loads.times(hrsPerLoad).times(hourlyRate).toFixed(2) : null
         const driverHrs = hrsPerLoad ? loads.times(hrsPerLoad).toFixed(2) : null
         return { client_charge_total: clientTotal, driver_pay_total: driverTotal, hours_billed_client: null, hours_paid_driver: driverHrs }
-      }
-      if (cfg.billing_type === 'per_ton') {
-        const tons = new Decimal(form.weight_tons || '0')
-        const rate = new Decimal(cfg.client_rate_amount)
-        const clientTotal = tons.times(rate).toFixed(2)
-        let driverTotal: string | null = null
-        if (cfg.driver_pay_type === 'per_ton' && driverPerTonRate) {
-          driverTotal = tons.times(new Decimal(driverPerTonRate)).toFixed(2)
-        } else if (cfg.driver_pay_type === 'hourly' && driverHourlyRate && form.loads_count) {
-          driverTotal = new Decimal(form.loads_count).times(new Decimal(driverHourlyRate)).toFixed(2)
-        }
-        return { client_charge_total: clientTotal, driver_pay_total: driverTotal, hours_billed_client: null, hours_paid_driver: null }
       }
     } catch {}
     return { client_charge_total: null, driver_pay_total: null, hours_billed_client: null, hours_paid_driver: null }
@@ -427,7 +413,7 @@ export default function TicketPage() {
               <p className="text-sm font-medium text-gray-900">{d.title}</p>
               {d.clients && <p className="text-xs text-gray-500 mt-0.5">{d.clients.name}</p>}
               {d.billing_config && (
-                <span className={`inline-block mt-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${d.billing_config.billing_type === 'per_load' ? 'bg-blue-50 text-blue-700' : d.billing_config.billing_type === 'per_ton' ? 'bg-purple-50 text-purple-700' : 'bg-green-50 text-green-700'}`}>
+                <span className={`inline-block mt-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${d.billing_config.billing_type === 'per_load' ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'}`}>
                   {d.billing_config.job_type_name}
                 </span>
               )}
@@ -721,7 +707,7 @@ export default function TicketPage() {
         </div>
 
         {/* Weight tons */}
-        {(cfg?.billing_type === 'per_ton' || !cfg) && (
+        {!cfg && (
           <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
             <label className="block text-xs font-medium text-gray-500 mb-1">Weight (tons)</label>
             <input type="number" inputMode="decimal" step="0.001" value={form.weight_tons} onChange={e => setField('weight_tons', e.target.value)} placeholder="e.g. 22.8" className="w-full text-base text-gray-900 outline-none bg-transparent" />

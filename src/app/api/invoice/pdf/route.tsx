@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     ...(tickets ?? []).map((t: any) => ({
       date: t.submitted_at?.split('T')[0] ?? '',
       driver: t.users?.full_name ?? '—',
-      desc: t.billing_type === 'per_ton' ? `${t.weight_tons ?? '?'} tons${t.tag_number ? ` · Tag #${t.tag_number}` : ''}` : `${t.loads_count ?? 1} load(s)`,
+      desc: `${t.loads_count ?? 1} load(s)${t.tag_number ? ` · Tag #${t.tag_number}` : ''}`,
       type: 'Load',
       amount: Number(t.client_charge_total ?? 0),
     })),
