@@ -440,11 +440,13 @@ export default function GenerateInvoicePage() {
                   const headerPrimary = isTicket
                     ? (line.tag_number ? `Tag #${line.tag_number}` : 'No tag number')
                     : line.driver_name
-                  const routeStr = [line.origin, line.destination].filter(Boolean).join(' → ')
+                  const hasRoute = isTicket && (line.origin || line.destination)
+                  const routeStr = hasRoute
+                    ? `${line.origin ?? '—'} → ${line.destination ?? '—'}`
+                    : null
                   const metaParts = [
                     line.date,
                     isTicket && line.truck_number ? `Truck #${line.truck_number}` : null,
-                    routeStr || null,
                   ].filter(Boolean)
 
                   return (
@@ -498,6 +500,11 @@ export default function GenerateInvoicePage() {
                               </div>
                             </div>
                           </div>
+                          {routeStr && (
+                            <p className="mt-1.5 text-xs font-medium text-gray-700 break-words">
+                              <span className="text-gray-400">Route:</span> {routeStr}
+                            </p>
+                          )}
                           {accountType !== 'solo' && (
                             <div className="mt-2">
                               <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
