@@ -34,7 +34,6 @@ export default function DriverTodayPage() {
   const [clientCount, setClientCount] = useState(0)
   const [weekRevenue, setWeekRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
-  const today = new Date().toISOString().split('T')[0]
   const [inspectionDismissed, setInspectionDismissed] = useState(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('inspection_dismissed') === today
