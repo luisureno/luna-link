@@ -41,7 +41,7 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[1500] bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
         <Link href={homeHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Truck size={18} className="text-white/70" />
           <span className="font-semibold text-sm">fleetwise</span>
@@ -54,13 +54,13 @@ export function Sidebar() {
       {/* Backdrop */}
       {open && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          className="md:hidden fixed inset-0 bg-black/50 z-[1900]"
           onClick={() => setOpen(false)}
         />
       )}
 
       <aside
-        className={`w-60 flex-shrink-0 bg-[#1a1a1a] text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-transform md:translate-x-0 ${
+        className={`w-60 flex-shrink-0 bg-[#1a1a1a] text-white flex flex-col h-screen fixed left-0 top-0 z-[2000] transition-transform md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
