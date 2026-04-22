@@ -217,7 +217,6 @@ export async function POST(request: NextRequest) {
       driver_id: authUserId,
       gallons: f.gallons,
       price_per_gallon: f.ppg,
-      total_cost: f.total,
       receipt_url: null,
       logged_at: daysAgo(f.daysBack),
     }))
