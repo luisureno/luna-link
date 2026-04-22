@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/driver/BottomNav'
 import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/dispatcher/Sidebar'
+import { DemoBanner } from '@/components/DemoBanner'
 
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   const { profile, signOut, accountType, loading } = useAuth()
@@ -55,6 +56,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       <div className="flex h-full min-h-screen">
         <Sidebar />
         <main className="flex-1 md:ml-60 min-h-screen bg-[#F8F7F5] pt-[72px] md:pt-0 pb-28 md:pb-6">
+          <DemoBanner />
           {children}
         </main>
         <BottomNav />
@@ -64,6 +66,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
+      <DemoBanner />
       <header className="bg-[#1a1a1a] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/driver" className="font-semibold text-sm hover:opacity-80 transition-opacity">fleetwise</Link>

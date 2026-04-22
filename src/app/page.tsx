@@ -5,28 +5,29 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Truck, FileText, Fuel, ShieldCheck, MapPin, BarChart3, Clock, Check, Users, Send, PlusCircle, List } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { SOLO_DEMO_EMAIL, SOLO_DEMO_PASSWORD, FLEET_DEMO_EMAIL, FLEET_DEMO_PASSWORD } from '@/lib/demo'
 
 export default function LandingPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
   const [requestOpen, setRequestOpen] = useState(false)
-  const [demoLoading, setDemoLoading] = useState(false)
+  const [demoLoading, setDemoLoading] = useState<'solo' | 'fleet' | null>(null)
   const [demoError, setDemoError] = useState('')
 
-  async function tryDemo() {
-    setDemoLoading(true)
+  async function tryDemo(type: 'solo' | 'fleet') {
+    setDemoLoading(type)
     setDemoError('')
-    const { error } = await supabase.auth.signInWithPassword({
-      email: 'owner@mesarock.com',
-      password: 'password123',
-    })
+    const email = type === 'solo' ? SOLO_DEMO_EMAIL : FLEET_DEMO_EMAIL
+    const password = type === 'solo' ? SOLO_DEMO_PASSWORD : FLEET_DEMO_PASSWORD
+    const dest = type === 'solo' ? '/driver' : '/dashboard'
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setDemoError('Demo unavailable right now. Try again in a moment.')
-      setDemoLoading(false)
+      setDemoLoading(null)
       return
     }
-    router.push('/dashboard')
+    router.push(dest)
   }
 
   return (
@@ -74,15 +75,22 @@ export default function LandingPage() {
             Start Free Trial
           </Link>
           <button
-            onClick={tryDemo}
-            disabled={demoLoading}
+            onClick={() => tryDemo('solo')}
+            disabled={demoLoading !== null}
             className="w-full sm:w-auto px-6 py-3 border border-gray-300 bg-white rounded font-medium hover:bg-gray-50 disabled:opacity-50"
           >
-            {demoLoading ? 'Loading demo…' : 'Try Free Demo'}
+            {demoLoading === 'solo' ? 'Loading…' : 'Try Solo Demo'}
+          </button>
+          <button
+            onClick={() => tryDemo('fleet')}
+            disabled={demoLoading !== null}
+            className="w-full sm:w-auto px-6 py-3 border border-gray-300 bg-white rounded font-medium hover:bg-gray-50 disabled:opacity-50"
+          >
+            {demoLoading === 'fleet' ? 'Loading…' : 'Try Fleet Demo'}
           </button>
         </div>
         {demoError && <p className="mt-4 text-sm text-red-600">{demoError}</p>}
-        <p className="mt-4 text-xs text-gray-500">30-day free trial. No credit card required.</p>
+        <p className="mt-4 text-xs text-gray-500">30-day free trial · No credit card · Demo pre-loaded with sample data</p>
       </section>
 
       {/* Trusted by */}
@@ -465,6 +473,13 @@ export default function LandingPage() {
                 >
                   Start Free Trial
                 </Link>
+                <button
+                  onClick={() => tryDemo(tier.id === 'solo' ? 'solo' : 'fleet')}
+                  disabled={demoLoading !== null}
+                  className="mt-2 w-full py-2 rounded text-xs font-medium text-gray-500 hover:text-gray-700 disabled:opacity-40"
+                >
+                  {demoLoading === (tier.id === 'solo' ? 'solo' : 'fleet') ? 'Loading…' : `Try ${tier.id === 'solo' ? 'Solo' : 'Fleet'} Demo`}
+                </button>
               </div>
             ))}
           </div>
@@ -500,11 +515,18 @@ export default function LandingPage() {
               Start Free Trial
             </Link>
             <button
-              onClick={tryDemo}
-              disabled={demoLoading}
+              onClick={() => tryDemo('solo')}
+              disabled={demoLoading !== null}
               className="w-full sm:w-auto px-6 py-3 border border-gray-600 rounded font-medium hover:bg-gray-800 disabled:opacity-50"
             >
-              {demoLoading ? 'Loading…' : 'Try Free Demo'}
+              {demoLoading === 'solo' ? 'Loading…' : 'Try Solo Demo'}
+            </button>
+            <button
+              onClick={() => tryDemo('fleet')}
+              disabled={demoLoading !== null}
+              className="w-full sm:w-auto px-6 py-3 border border-gray-600 rounded font-medium hover:bg-gray-800 disabled:opacity-50"
+            >
+              {demoLoading === 'fleet' ? 'Loading…' : 'Try Fleet Demo'}
             </button>
           </div>
         </div>
