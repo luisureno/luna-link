@@ -127,17 +127,27 @@ export default function SoloSettingsPage() {
   }
 
   async function uploadLogo(file: File) {
+    if (file.size > 2 * 1024 * 1024) { flash('Logo must be under 2 MB.'); return }
     setUploadingLogo(true)
-    const ext = file.name.split('.').pop()
-    const path = `${profile!.company_id}/logo.${ext}`
-    const { data } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true, contentType: file.type })
-    if (data) {
-      const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(data.path)
-      await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', profile!.company_id)
-      setLogoUrl(publicUrl)
-      flash('Logo saved')
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `${profile!.company_id}/logo.${ext}`
+      const { data } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true, contentType: file.type })
+      if (data) {
+        const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(data.path)
+        await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', profile!.company_id)
+        setLogoUrl(publicUrl)
+        flash('Logo saved')
+      }
+    } finally {
+      setUploadingLogo(false)
     }
-    setUploadingLogo(false)
+  }
+
+  async function removeLogo() {
+    await supabase.from('companies').update({ logo_url: null }).eq('id', profile!.company_id)
+    setLogoUrl(null)
+    flash('Logo removed')
   }
 
   async function handleSignOut() {
@@ -326,18 +336,29 @@ export default function SoloSettingsPage() {
                 : <span className="text-[10px] text-gray-400 text-center px-1">No logo</span>
               }
             </div>
-            <div>
-              <label className={`inline-block px-3 py-1.5 text-xs font-medium border border-gray-300 rounded cursor-pointer hover:bg-gray-50 ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
-                {uploadingLogo ? 'Uploading…' : logoUrl ? 'Replace' : 'Upload Logo'}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                  className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }}
-                  disabled={uploadingLogo}
-                />
-              </label>
-              <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, SVG — appears on invoices</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <label className={`inline-block px-3 py-1.5 text-xs font-medium border border-gray-300 rounded cursor-pointer hover:bg-gray-50 ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {uploadingLogo ? 'Uploading…' : logoUrl ? 'Replace' : 'Upload Logo'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }}
+                    disabled={uploadingLogo}
+                  />
+                </label>
+                {logoUrl && (
+                  <button
+                    type="button"
+                    onClick={removeLogo}
+                    className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-gray-400">PNG, JPG, SVG · Max 2 MB · appears on invoices</p>
             </div>
           </div>
         </div>
