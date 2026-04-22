@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle, FileText, Download, X, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Download, X, Plus, Trash2, Copy, Check } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -89,6 +89,7 @@ export default function GenerateInvoicePage() {
   const [creating, setCreating] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [excelLoading, setExcelLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
@@ -245,6 +246,23 @@ export default function GenerateInvoicePage() {
     includedLines.reduce((s, l) => new Decimal(s).plus(l.client_charge).toNumber(), 0)
   ).plus(customTotal).toNumber()
   const totalDriverPay = includedLines.reduce((s, l) => new Decimal(s).plus(l.driver_pay).toNumber(), 0)
+
+  function copyLines() {
+    const clientName = clients.find(c => c.id === filter.client_id)?.name ?? '—'
+    const rows = includedLines.map(l => {
+      const tag = l.tag_number ? `#${l.tag_number}` : '—'
+      const desc = l.description
+      const amt = `$${l.client_charge.toFixed(2)}`
+      return `${formatDate(l.date)}\t${tag}\t${desc}\t${amt}`
+    })
+    const customRows = customItems.map(i => `—\t—\t${i.label}\t$${i.amount.toFixed(2)}`)
+    const header = `Invoice ${invoiceNumber ?? ''} — ${clientName}\nPeriod: ${formatDate(filter.date_from)} – ${formatDate(filter.date_to)}\n\nDate\tTag #\tDescription\tAmount\n`
+    const text = header + [...rows, ...customRows].join('\n') + `\n\nTOTAL\t\t\t$${totalCharge.toFixed(2)}`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
 
   async function createInvoice() {
     if (includedLines.length === 0 && customItems.length === 0) return
@@ -761,6 +779,19 @@ export default function GenerateInvoicePage() {
                 <p className="text-xs text-gray-500">3 sheets: formatted invoice, raw load tickets, raw timesheets</p>
               </div>
               {excelLoading && <span className="ml-auto w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
+            </button>
+
+            <button
+              onClick={copyLines}
+              className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50"
+            >
+              <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                {copied ? <Check className="w-5 h-5 text-purple-600" /> : <Copy className="w-5 h-5 text-purple-600" />}
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900">{copied ? 'Copied!' : 'Copy Line Items'}</p>
+                <p className="text-xs text-gray-500">Tab-separated: date, tag, description, amount</p>
+              </div>
             </button>
           </div>
 

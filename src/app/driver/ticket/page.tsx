@@ -31,6 +31,7 @@ interface DispatchFull extends Dispatch {
 
 interface TicketForm {
   tag_number: string
+  quarry_tag_number: string
   weight_tons: string
   gross_weight_lbs: string
   tare_weight_lbs: string
@@ -52,7 +53,7 @@ interface TicketForm {
 }
 
 const empty: TicketForm = {
-  tag_number: '', weight_tons: '', gross_weight_lbs: '', tare_weight_lbs: '',
+  tag_number: '', quarry_tag_number: '', weight_tons: '', gross_weight_lbs: '', tare_weight_lbs: '',
   material_type: '', loads_count: '1', po_number: '', job_site: '',
   client_name: '', ticket_date: '', truck_number: '', trailer_number: '',
   driver_name: '', hours_worked: '', rate_amount: '', total_amount: '',
@@ -217,6 +218,7 @@ export default function TicketPage() {
     const updates: Partial<TicketForm> = {}
     if (scanReview.date) updates.ticket_date = scanReview.date
     if (scanReview.tag_number) updates.tag_number = scanReview.tag_number
+    if (scanReview.quarry_tag_number) updates.quarry_tag_number = scanReview.quarry_tag_number
     if (scanReview.client_name) updates.client_name = scanReview.client_name
     if (scanReview.job_site) updates.job_site = scanReview.job_site
     if (scanReview.material_type) updates.material_type = scanReview.material_type
@@ -304,6 +306,7 @@ export default function TicketPage() {
       ai_extracted_data: aiExtractedData ?? null,
       form_data: {
         ticket_date: form.ticket_date,
+        quarry_tag_number: form.quarry_tag_number || undefined,
         job_site: form.job_site,
         client_name: form.client_name,
         origin: form.origin,
@@ -529,6 +532,19 @@ export default function TicketPage() {
             </div>
           )}
 
+          {/* Quarry tag — always present, separate from invoice tag */}
+          <div className="bg-white border-2 border-blue-200 rounded-xl px-4 py-3 mb-2">
+            <label className="block text-xs font-medium text-blue-600 mb-1">Quarry Tag Number</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={scanReview['quarry_tag_number'] ?? ''}
+              onChange={e => setScanReview(r => ({ ...r!, quarry_tag_number: e.target.value }))}
+              placeholder="Quarry tag # (different from invoice tag)"
+              className="w-full text-base text-gray-900 outline-none bg-transparent"
+            />
+          </div>
+
           {visibleFields.length === 0 ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-4">
               No fields could be read. Try a clearer photo with better lighting.
@@ -669,6 +685,12 @@ export default function TicketPage() {
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <label className="block text-xs font-medium text-gray-500 mb-1">Tag / Ticket Number</label>
           <input type="text" inputMode="numeric" value={form.tag_number} onChange={e => setField('tag_number', e.target.value)} placeholder="e.g. 4421" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+        </div>
+
+        {/* Quarry Tag */}
+        <div className="bg-white border border-blue-200 rounded-xl px-4 py-3">
+          <label className="block text-xs font-medium text-blue-600 mb-1">Quarry Tag Number <span className="text-gray-400 font-normal">(different from invoice tag)</span></label>
+          <input type="text" inputMode="numeric" value={form.quarry_tag_number} onChange={e => setField('quarry_tag_number', e.target.value)} placeholder="e.g. 8843" className="w-full text-base text-gray-900 outline-none bg-transparent" />
         </div>
 
         {/* Client */}

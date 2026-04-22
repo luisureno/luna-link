@@ -12,7 +12,7 @@ import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
 import { formatDate } from '@/lib/format'
 
 const FIELD_LABELS: Record<string, string> = {
-  ticket_date: 'Date', tag_number: 'Tag #', client_name: 'Client',
+  ticket_date: 'Date', tag_number: 'Tag #', quarry_tag_number: 'Quarry Tag #', client_name: 'Client',
   job_site: 'Job Site', origin: 'Origin', destination: 'Destination',
   material_type: 'Material', weight_tons: 'Weight (tons)',
   gross_weight_lbs: 'Gross (lbs)', tare_weight_lbs: 'Tare (lbs)',
@@ -300,7 +300,7 @@ export default function DriverTodayPage() {
                           <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
                             <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
                             <input
-                              value={value}
+                              value={key === 'ticket_date' ? formatDate(value) : value}
                               onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
                               className="w-full text-sm text-gray-900 outline-none bg-transparent"
                             />
