@@ -419,7 +419,9 @@ export default function GenerateInvoicePage() {
                           </div>
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-                          <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
+                          {accountType === 'solo'
+                            ? <span />
+                            : <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>}
                           <span className={`text-xs px-1.5 py-0.5 rounded-full border ${line.type === 'ticket' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
                             {line.type === 'ticket' ? 'Load' : 'Hourly'}
                           </span>
@@ -506,10 +508,12 @@ export default function GenerateInvoicePage() {
                 <span className="text-blue-600">Total client charge</span>
                 <span className="font-bold text-blue-700">${totalCharge.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-green-600">Total driver pay</span>
-                <span className="font-medium text-green-700">${totalDriverPay.toFixed(2)}</span>
-              </div>
+              {accountType !== 'solo' && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600">Total driver pay</span>
+                  <span className="font-medium text-green-700">${totalDriverPay.toFixed(2)}</span>
+                </div>
+              )}
               <button
                 onClick={() => setStep('summary')}
                 disabled={includedLines.length === 0 && customItems.length === 0}
@@ -562,16 +566,20 @@ export default function GenerateInvoicePage() {
               <span className="text-blue-600 font-medium">Client invoice total</span>
               <span className="font-bold text-blue-700 text-base">${totalCharge.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-green-600 font-medium">Total driver pay</span>
-              <span className="font-medium text-green-700">${totalDriverPay.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Gross margin</span>
-              <span className="font-medium text-gray-900">
-                ${new Decimal(totalCharge).minus(totalDriverPay).toFixed(2)}
-              </span>
-            </div>
+            {accountType !== 'solo' && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600 font-medium">Total driver pay</span>
+                  <span className="font-medium text-green-700">${totalDriverPay.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Gross margin</span>
+                  <span className="font-medium text-gray-900">
+                    ${new Decimal(totalCharge).minus(totalDriverPay).toFixed(2)}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">

@@ -79,7 +79,7 @@ const REVIEW_FIELDS: { key: string; label: string }[] = [
   { key: 'destination', label: 'Destination' },
   { key: 'po_number', label: 'PO / Order Number' },
   { key: 'rate_amount', label: 'Rate' },
-  { key: 'total_amount', label: 'Total Amount' },
+  { key: 'total_amount', label: 'Amount Charged' },
   { key: 'notes', label: 'Notes' },
   { key: 'additional_text', label: 'Other Text on Invoice' },
 ]
@@ -275,6 +275,12 @@ export default function TicketPage() {
     const hasDispatch = selectedDispatch && (selectedDispatch as any).id !== '__no_dispatch__'
     const cfg = hasDispatch ? selectedDispatch!.billing_config : null
 
+    const manualCharge = (() => {
+      const raw = (form.total_amount ?? '').toString().replace(/[$,\s]/g, '')
+      const n = parseFloat(raw)
+      return Number.isFinite(n) && n > 0 ? n : null
+    })()
+
     const payload = {
       company_id: profile.company_id,
       driver_id: profile.id,
@@ -290,7 +296,7 @@ export default function TicketPage() {
       loads_count: parseInt(form.loads_count || '1'),
       client_rate_amount: cfg?.client_rate_amount ?? null,
       client_rate_unit: cfg?.client_rate_unit ?? null,
-      client_charge_total: billing.client_charge_total ? parseFloat(billing.client_charge_total) : null,
+      client_charge_total: billing.client_charge_total ? parseFloat(billing.client_charge_total) : manualCharge,
       driver_hourly_rate: driverHourlyRate,
       driver_hours_per_load: cfg?.driver_hours_per_load ?? null,
       driver_pay_total: billing.driver_pay_total ? parseFloat(billing.driver_pay_total) : null,
@@ -769,8 +775,8 @@ export default function TicketPage() {
             <input type="text" value={form.rate_amount} onChange={e => setField('rate_amount', e.target.value)} placeholder="e.g. $12/ton" className="w-full text-base text-gray-900 outline-none bg-transparent" />
           </div>
           <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Total Amount <span className="text-gray-400">(optional)</span></label>
-            <input type="text" value={form.total_amount} onChange={e => setField('total_amount', e.target.value)} placeholder="e.g. $320.00" className="w-full text-base text-gray-900 outline-none bg-transparent" />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Amount Charged <span className="text-gray-400">(appears on invoice)</span></label>
+            <input type="text" inputMode="decimal" value={form.total_amount} onChange={e => setField('total_amount', e.target.value)} placeholder="e.g. 320.00" className="w-full text-base text-gray-900 outline-none bg-transparent" />
           </div>
         </div>
 
