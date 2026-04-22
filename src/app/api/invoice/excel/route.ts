@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   const { data: tickets } = await supabase
     .from('load_tickets')
-    .select('*, users(full_name), clients(name), job_sites(name)')
+    .select('*, users!load_tickets_driver_id_fkey(full_name), clients(name), job_sites(name)')
     .eq('company_id', invAny.company_id)
     .eq('client_id', invAny.client_id)
     .eq('status', 'invoiced')

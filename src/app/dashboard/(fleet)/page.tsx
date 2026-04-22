@@ -79,7 +79,7 @@ export default function DashboardPage() {
 
     const [driversRes, ticketsRes, dispatchesRes, checkInsRes, inspectionsRes, fuelRes, ownerInspectionRes] = await Promise.all([
       supabase.from('users').select('*').eq('company_id', cid).eq('role', 'driver').eq('is_active', true),
-      supabase.from('load_tickets').select('*, users(*)').eq('company_id', cid).gte('submitted_at', `${today}T00:00:00`).order('submitted_at', { ascending: false }),
+      supabase.from('load_tickets').select('*, users!load_tickets_driver_id_fkey(*)').eq('company_id', cid).gte('submitted_at', `${today}T00:00:00`).order('submitted_at', { ascending: false }),
       supabase.from('dispatches').select('*').eq('company_id', cid).eq('scheduled_date', today).in('status', ['pending', 'active']),
       supabase.from('check_ins').select('*').eq('company_id', cid).gte('checked_in_at', `${today}T00:00:00`),
       supabase.from('pre_trip_inspections').select('*, users(*)').eq('company_id', cid).gte('inspected_at', `${today}T00:00:00`),
