@@ -294,7 +294,7 @@ export default function TicketPage() {
       tag_number: form.tag_number || null,
       weight_tons: form.weight_tons ? parseFloat(form.weight_tons) : null,
       material_type: form.material_type || null,
-      // loads_count omitted until migration 007 is applied in Supabase
+      loads_count: parseInt(form.loads_count || '1'),
       client_rate_amount: cfg?.client_rate_amount ?? null,
       client_rate_unit: cfg?.client_rate_unit ?? null,
       client_charge_total: billing.client_charge_total ? parseFloat(billing.client_charge_total) : null,
