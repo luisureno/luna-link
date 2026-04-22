@@ -5,17 +5,18 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { FuelLog } from '@/types'
-import { X, Navigation } from 'lucide-react'
+import { X } from 'lucide-react'
 
+// EIA diesel (not regular gas) regional averages — April 2026
 const PADD = [
-  { ppg: 3.41, latMin: 25, latMax: 37,  lngMin: -107, lngMax: -80  },
-  { ppg: 3.56, latMin: 36, latMax: 49,  lngMin: -104, lngMax: -80  },
-  { ppg: 3.68, latMin: 25, latMax: 47,  lngMin: -80,  lngMax: -67  },
-  { ppg: 3.74, latMin: 36, latMax: 49,  lngMin: -116, lngMax: -104 },
-  { ppg: 4.31, latMin: 32, latMax: 49,  lngMin: -125, lngMax: -116 },
+  { ppg: 3.49, latMin: 25, latMax: 37,  lngMin: -107, lngMax: -80  }, // PADD 1C Southeast
+  { ppg: 3.62, latMin: 36, latMax: 49,  lngMin: -104, lngMax: -80  }, // PADD 2 Midwest
+  { ppg: 3.78, latMin: 25, latMax: 47,  lngMin: -80,  lngMax: -67  }, // PADD 1A/B Northeast
+  { ppg: 3.65, latMin: 36, latMax: 49,  lngMin: -116, lngMax: -104 }, // PADD 4 Rocky Mtn
+  { ppg: 4.55, latMin: 32, latMax: 49,  lngMin: -125, lngMax: -116 }, // PADD 5 West Coast
 ]
 function regionPpg(lat: number, lng: number) {
-  return PADD.find(r => lat >= r.latMin && lat <= r.latMax && lng >= r.lngMin && lng <= r.lngMax)?.ppg ?? 3.60
+  return PADD.find(r => lat >= r.latMin && lat <= r.latMax && lng >= r.lngMin && lng <= r.lngMax)?.ppg ?? 3.58
 }
 function distMiles(la1: number, lo1: number, la2: number, lo2: number) {
   const R = 3958.8, dLa = (la2 - la1) * Math.PI / 180, dLo = (lo2 - lo1) * Math.PI / 180
@@ -120,12 +121,6 @@ export default function FuelMap({ logs }: Props) {
   const cheapest = byPrice[0] ?? null
   const sorted   = [...stationsD].sort((a, b) => sortBy === 'cheapest' ? a.price - b.price : a.miles - b.miles)
 
-  function mapsUrl(s: StationD, type: 'google' | 'apple') {
-    const label = encodeURIComponent(s.brand ?? s.name ?? 'Truck Stop')
-    if (type === 'google') return `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`
-    return `https://maps.apple.com/?daddr=${s.lat},${s.lng}&dirflg=d`
-  }
-
   return (
     <div style={{ height: 'calc(100dvh - 128px)', minHeight: 400, display: 'flex', flexDirection: 'column' }}>
 
@@ -179,22 +174,6 @@ export default function FuelMap({ logs }: Props) {
               <button onClick={() => setSelected(null)} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
                 <X size={16} />
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href={mapsUrl(selected, 'apple')}
-                className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl"
-              >
-                <Navigation size={14} /> Apple Maps
-              </a>
-              <a
-                href={mapsUrl(selected, 'google')}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl"
-              >
-                <Navigation size={14} /> Google Maps
-              </a>
             </div>
           </div>
         )}
