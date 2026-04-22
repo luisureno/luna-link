@@ -10,7 +10,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
 import { formatDate } from '@/lib/format'
-import { PullToRefresh } from '@/components/PullToRefresh'
 
 const FIELD_LABELS: Record<string, string> = {
   ticket_date: 'Date', tag_number: 'Tag #', client_name: 'Client',
@@ -131,7 +130,6 @@ export default function DriverTodayPage() {
     : null
 
   return (
-    <PullToRefresh onRefresh={loadData}>
     <div className="p-4 pb-28 space-y-4">
       {profile && inspection !== undefined && (
         <DayStartModal
@@ -239,6 +237,15 @@ export default function DriverTodayPage() {
           <List size={22} className="text-gray-700" />
           <span className="text-xs font-medium text-gray-700">My Loads</span>
         </Link>
+        {isSolo && (
+          <Link href="/dashboard/solo/fuel" className="col-span-2 flex items-center justify-between gap-3 bg-blue-600 text-white rounded-lg px-5 py-4 hover:bg-blue-700">
+            <div>
+              <p className="text-xs font-medium text-blue-200">Diesel near you</p>
+              <p className="text-sm font-semibold">Find Cheap Fuel</p>
+            </div>
+            <MapPin size={22} className="text-blue-200" />
+          </Link>
+        )}
       </div>
 
       {/* Today's Load History */}
@@ -334,6 +341,5 @@ export default function DriverTodayPage() {
         </div>
       )}
     </div>
-    </PullToRefresh>
   )
 }

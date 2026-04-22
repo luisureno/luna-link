@@ -14,7 +14,7 @@ const PADD_REGIONS = [
   { name: 'West Coast',     ppg: 4.31, latMin: 32, latMax: 49,  lngMin: -125, lngMax: -116 },
 ]
 
-function getRegionPpg(lat: number, lng: number): number {
+function getRegionPpg(lat: number, lng: number) {
   return PADD_REGIONS.find(r =>
     lat >= r.latMin && lat <= r.latMax && lng >= r.lngMin && lng <= r.lngMax
   )?.ppg ?? 3.60
@@ -25,198 +25,171 @@ interface Props { logs: FuelLog[] }
 
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap()
-  useEffect(() => { map.setView([lat, lng], 13) }, [lat, lng])
+  useEffect(() => { map.setView([lat, lng], 12) }, [lat, lng])
   return null
 }
 
-function priceBadgeIcon(price: string, highlight: boolean) {
-  const bg = highlight ? '#2563eb' : '#ffffff'
-  const text = highlight ? '#ffffff' : '#111827'
-  const border = highlight ? '#2563eb' : '#d1d5db'
+function priceBadge(price: string, cheapest: boolean) {
+  const bg    = cheapest ? '#2563eb' : '#ffffff'
+  const color = cheapest ? '#ffffff' : '#111827'
+  const caret = cheapest ? '#2563eb' : '#d1d5db'
   return L.divIcon({
     className: '',
-    html: `
-      <div style="
-        background:${bg};
-        color:${text};
-        border:1.5px solid ${border};
-        border-radius:999px;
-        padding:4px 9px;
-        font-size:13px;
-        font-weight:700;
-        font-family:system-ui,sans-serif;
-        white-space:nowrap;
-        box-shadow:0 2px 6px rgba(0,0,0,0.18);
-        position:relative;
-        line-height:1.2;
-      ">
-        ${price}
-        <div style="
-          position:absolute;
-          left:50%;
-          bottom:-6px;
-          transform:translateX(-50%);
-          width:0;height:0;
-          border-left:5px solid transparent;
-          border-right:5px solid transparent;
-          border-top:6px solid ${highlight ? '#2563eb' : '#d1d5db'};
-        "></div>
-      </div>`,
-    iconSize: [70, 30],
-    iconAnchor: [35, 36],
+    html: `<div style="background:${bg};color:${color};border:1.5px solid ${caret};border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700;font-family:system-ui,sans-serif;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.18);position:relative;line-height:1.2;">${price}<div style="position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${caret};"></div></div>`,
+    iconSize: [72, 30],
+    iconAnchor: [36, 37],
   })
 }
 
-function youIcon() {
+function youDot() {
   return L.divIcon({
     className: '',
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:#1a1a1a;border:3px solid white;box-shadow:0 0 0 2px #1a1a1a"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<div style="width:16px;height:16px;border-radius:50%;background:#1d4ed8;border:3px solid white;box-shadow:0 0 0 3px rgba(37,99,235,0.3)"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   })
 }
 
-async function fetchNearbyStations(lat: number, lng: number): Promise<Station[]> {
+async function fetchStations(lat: number, lng: number): Promise<Station[]> {
   const res = await fetch(`/api/fuel/nearby?lat=${lat}&lng=${lng}`)
   if (!res.ok) return []
-  const json = await res.json()
-  return json.stations ?? []
+  return (await res.json()).stations ?? []
 }
 
 export default function FuelMap({ logs }: Props) {
-  const [userPos, setUserPos] = useState<[number, number] | null>(null)
+  const [pos, setPos]           = useState<[number, number] | null>(null)
   const [stations, setStations] = useState<Station[]>([])
-  const [locError, setLocError] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [locErr, setLocErr]     = useState(false)
+  const [loading, setLoading]   = useState(false)
 
   const logsWithCoords = logs.filter(l => l.latitude && l.longitude && Number(l.price_per_gallon) > 0)
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]
-        setUserPos(coords)
+      p => {
+        const coords: [number, number] = [p.coords.latitude, p.coords.longitude]
+        setPos(coords)
         setLoading(true)
-        fetchNearbyStations(coords[0], coords[1])
-          .then(setStations).catch(() => {}).finally(() => setLoading(false))
+        fetchStations(coords[0], coords[1]).then(setStations).finally(() => setLoading(false))
       },
-      () => setLocError(true),
+      () => setLocErr(true),
       { timeout: 8000 }
     )
   }, [])
 
-  if (locError) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
-        <p className="text-sm font-semibold text-gray-700">Location access needed</p>
-        <p className="text-xs text-gray-400 mt-1">Enable location in your browser to see stations near you.</p>
-      </div>
+  if (locErr) return (
+    <div className="flex flex-col items-center justify-center h-64 text-center gap-2">
+      <p className="text-sm font-semibold text-gray-700">Location access needed</p>
+      <p className="text-xs text-gray-400">Enable location in your browser to see nearby diesel stops.</p>
+    </div>
+  )
+
+  if (!pos) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <span className="w-7 h-7 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
+      <p className="text-sm text-gray-500">Getting your location…</p>
+    </div>
+  )
+
+  const regionAvg = getRegionPpg(pos[0], pos[1])
+
+  // Assign display price per station with slight jitter when using regional avg
+  const stationsDisplay = stations.map((s, i) => {
+    const ownLog = logsWithCoords.find(l =>
+      Math.abs(Number(l.latitude) - s.lat) < 0.002 && Math.abs(Number(l.longitude) - s.lng) < 0.002
     )
-  }
-
-  if (!userPos) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-xl p-10 flex flex-col items-center gap-3">
-        <span className="w-6 h-6 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
-        <p className="text-sm text-gray-500">Getting your location…</p>
-      </div>
-    )
-  }
-
-  const regionAvg = getRegionPpg(userPos[0], userPos[1])
-
-  // Build price map: own logged stops override region avg
-  const ownPriceByCoord: Record<string, number> = {}
-  logsWithCoords.forEach(l => {
-    const key = `${Number(l.latitude).toFixed(3)},${Number(l.longitude).toFixed(3)}`
-    ownPriceByCoord[key] = Number(l.price_per_gallon)
-  })
-
-  // Assign a display price per station (own logged price if nearby, else region avg)
-  const stationsWithPrice = stations.map(s => {
-    const key = `${s.lat.toFixed(3)},${s.lng.toFixed(3)}`
-    const price = ownPriceByCoord[key] ?? regionAvg
+    const price = ownLog
+      ? Number(ownLog.price_per_gallon)
+      : parseFloat((regionAvg + (((i * 37) % 21) - 10) * 0.01).toFixed(2))
     return { ...s, price }
   })
 
-  // Add small jitter to region avg so each pin looks slightly different
-  const stationsDisplay = stationsWithPrice.map((s, i) => ({
-    ...s,
-    // Only vary if using region avg (no real price)
-    displayPrice: ownPriceByCoord[`${s.lat.toFixed(3)},${s.lng.toFixed(3)}`]
-      ? s.price
-      : parseFloat((regionAvg + (((i * 37) % 21) - 10) * 0.01).toFixed(2)),
-  }))
-
-  const allPrices = stationsDisplay.map(s => s.displayPrice)
-  const minPrice = allPrices.length ? Math.min(...allPrices) : regionAvg
-  const cheapest = stationsDisplay.find(s => s.displayPrice === minPrice)
+  const sorted   = [...stationsDisplay].sort((a, b) => a.price - b.price)
+  const cheapest = sorted[0] ?? null
+  const avgPrice = stationsDisplay.length
+    ? stationsDisplay.reduce((s, x) => s + x.price, 0) / stationsDisplay.length
+    : regionAvg
 
   return (
-    <div className="space-y-2">
-      {/* Cheapest nearby banner */}
-      {cheapest && (
-        <div className="flex items-center justify-between bg-blue-600 text-white rounded-xl px-4 py-3">
-          <div>
-            <p className="text-xs font-medium text-blue-200">Cheapest nearby</p>
-            <p className="text-lg font-bold">${cheapest.displayPrice.toFixed(2)}/gal · {cheapest.brand ?? cheapest.name ?? 'Station'}</p>
-          </div>
-          <span className="text-2xl">⛽</span>
+    <div className="relative" style={{ height: 'calc(100dvh - 190px)', minHeight: 420 }}>
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-600 px-3 py-1.5 rounded-full shadow-md flex items-center gap-2">
+          <span className="w-3 h-3 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+          Finding truck stops…
         </div>
       )}
 
-      {/* Full-bleed map */}
-      <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 480 }}>
-        {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-            <span className="bg-white/90 text-xs text-gray-500 px-3 py-1.5 rounded-full shadow">Loading stations…</span>
+      {/* Map */}
+      <MapContainer
+        center={pos}
+        zoom={12}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={false}
+        zoomControl={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <RecenterMap lat={pos[0]} lng={pos[1]} />
+
+        <Marker position={pos} icon={youDot()} />
+
+        {stationsDisplay.map(s => (
+          <Marker
+            key={s.id}
+            position={[s.lat, s.lng]}
+            icon={priceBadge(`$${s.price.toFixed(2)}`, s.id === cheapest?.id)}
+          >
+            <Popup>
+              <div className="min-w-[160px] text-sm">
+                <p className="font-semibold">{s.brand ?? s.name ?? 'Truck Stop'}</p>
+                {s.address && <p className="text-xs text-gray-500 mt-0.5">{s.address}</p>}
+                <p className="text-base font-bold mt-1">${s.price.toFixed(3)}/gal</p>
+                <p className="text-xs text-gray-400">diesel · EIA regional avg</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {logsWithCoords.map(log => (
+          <Marker
+            key={log.id}
+            position={[Number(log.latitude), Number(log.longitude)]}
+            icon={priceBadge(`$${Number(log.price_per_gallon).toFixed(2)} ✓`, false)}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold">Your stop · {new Date(log.logged_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                <p className="font-bold">${Number(log.price_per_gallon).toFixed(3)}/gal</p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+
+      {/* Bottom card overlay */}
+      {cheapest && (
+        <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white rounded-2xl shadow-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">Cheapest nearby</p>
+            <p className="text-base font-bold text-gray-900">{cheapest.brand ?? cheapest.name ?? 'Truck Stop'}</p>
+            {cheapest.address && <p className="text-xs text-gray-500 truncate max-w-[180px]">{cheapest.address}</p>}
           </div>
-        )}
-        <MapContainer center={userPos} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} zoomControl={false}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <RecenterMap lat={userPos[0]} lng={userPos[1]} />
+          <div className="text-right flex-shrink-0 ml-3">
+            <p className="text-2xl font-bold text-blue-600">${cheapest.price.toFixed(2)}</p>
+            <p className="text-xs text-gray-400">per gallon</p>
+          </div>
+        </div>
+      )}
 
-          {/* You dot */}
-          <Marker position={userPos} icon={youIcon()} />
-
-          {/* Station price badges */}
-          {stationsDisplay.map(s => (
-            <Marker
-              key={s.id}
-              position={[s.lat, s.lng]}
-              icon={priceBadgeIcon(
-                `$${s.displayPrice.toFixed(2)}`,
-                s.id === cheapest?.id
-              )}
-            >
-              <Popup>
-                <div className="text-sm min-w-[160px]">
-                  <p className="font-semibold">{s.brand ?? s.name ?? 'Truck Stop'}</p>
-                  {s.address && <p className="text-xs text-gray-500 mt-0.5">{s.address}</p>}
-                  <p className="font-bold mt-1">${s.displayPrice.toFixed(3)}/gal diesel</p>
-                  <p className="text-xs text-gray-400">(EIA regional avg)</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-
-          {/* Own logged stops */}
-          {logsWithCoords.map(log => (
-            <Marker
-              key={log.id}
-              position={[Number(log.latitude), Number(log.longitude)]}
-              icon={priceBadgeIcon(`$${Number(log.price_per_gallon).toFixed(2)} ✓`, false)}
-            />
-          ))}
-        </MapContainer>
-      </div>
-
-      <p className="text-xs text-gray-400 text-center">
-        {stationsDisplay.length} truck stop{stationsDisplay.length !== 1 ? 's' : ''} within 50 mi · diesel prices based on EIA {logsWithCoords.length > 0 ? '+ your logged stops' : 'regional avg'}
-      </p>
+      {/* Top-right station count */}
+      {stationsDisplay.length > 0 && (
+        <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-600 px-2.5 py-1.5 rounded-full shadow">
+          {stationsDisplay.length} stops nearby
+        </div>
+      )}
     </div>
   )
 }
