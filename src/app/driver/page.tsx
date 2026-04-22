@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, List, Fuel, DollarSign, Building2, X } from 'lucide-react'
+import { MapPin, PlusCircle, List, Fuel, DollarSign, Building2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { AccountType } from '@/types'
@@ -24,6 +24,8 @@ export default function DriverTodayPage() {
   const [weekRevenue, setWeekRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
   const [inspectionDismissed, setInspectionDismissed] = useState(false)
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.id) return
@@ -253,17 +255,59 @@ export default function DriverTodayPage() {
         <div>
           <h2 className="text-base font-medium text-gray-900 mb-2">Today's Loads</h2>
           <div className="space-y-2">
-            {tickets.map(ticket => (
-              <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {new Date(ticket.submitted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </p>
-                  <p className="text-xs text-gray-500">Ticket #{ticket.id.slice(0, 8)}</p>
+            {tickets.map(ticket => {
+              const fd = (ticket.form_data ?? {}) as Record<string, unknown>
+              const tagNum = fd.tag_number || ticket.tag_number
+              const dt = new Date(ticket.submitted_at)
+              const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              const photoUrl = ticket.tag_photo_url ?? (ticket as any).scanned_invoice_photo_url ?? null
+              const isOpen = expandedTicket === ticket.id
+
+              return (
+                <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedTicket(isOpen ? null : ticket.id)}
+                    className="w-full flex items-center justify-between p-4 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {tagNum ? `Tag #${tagNum}` : 'No tag number'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">{dateStr} · {timeStr}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={ticket.status} />
+                      {isOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-gray-100 p-4 space-y-3">
+                      {photoUrl && (
+                        <button
+                          onClick={() => setLightbox(photoUrl)}
+                          className="block w-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                        >
+                          <img src={photoUrl} alt="Scanned ticket" className="w-full object-contain max-h-48" />
+                          <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
+                        </button>
+                      )}
+                      <div className="space-y-1.5">
+                        {Object.entries(fd)
+                          .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
+                          .map(([key, value]) => (
+                            <div key={key} className="flex justify-between gap-4 text-sm">
+                              <span className="text-gray-500 flex-shrink-0 capitalize">{key.replace(/_/g, ' ')}</span>
+                              <span className="text-gray-900 font-medium text-right">{String(value)}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <StatusBadge status={ticket.status} />
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -271,6 +315,18 @@ export default function DriverTodayPage() {
       {!loading && tickets.length === 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
           <p className="text-sm text-gray-500">No loads submitted yet today.</p>
+        </div>
+      )}
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 text-white/80 hover:text-white p-2">
+            <X size={24} />
+          </button>
+          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

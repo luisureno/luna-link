@@ -171,6 +171,11 @@ export interface LoadTicket {
   ticket_template_id: string
   form_data: Record<string, unknown>
   photo_urls: string[]
+  tag_photo_url: string | null
+  scanned_invoice_photo_url: string | null
+  tag_number: string | null
+  material_type: string | null
+  weight_tons: number | null
   latitude: number | null
   longitude: number | null
   status: TicketStatus
