@@ -262,86 +262,161 @@ export default function DriverTodayPage() {
         )}
       </div>
 
-      {/* Today's Load History */}
-      {tickets.length > 0 && (
-        <div>
-          <h2 className="text-base font-medium text-gray-900 mb-2">Today's Loads</h2>
-          <div className="space-y-2">
-            {tickets.map(ticket => {
-              const fd = (ticket.form_data ?? {}) as Record<string, unknown>
-              const tagNum = fd.tag_number || ticket.tag_number
-              const dt = new Date(ticket.submitted_at)
-              const dateStr = formatDate(dt)
-              const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-              const photoUrl = ticket.tag_photo_url ?? ticket.scanned_invoice_photo_url ?? (ticket.photo_urls ?? [])[0] ?? null
-              const isOpen = expandedTicket === ticket.id
-              const fields = editData[ticket.id] ?? {}
+      {/* Today's Logs */}
+      <div>
+        <h2 className="text-base font-medium text-gray-900 mb-2">Today's Logs</h2>
+        <div className="space-y-2">
 
-              return (
-                <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => {
-                      if (!isOpen) initEdit(ticket)
-                      setExpandedTicket(isOpen ? null : ticket.id)
-                    }}
-                    className="w-full flex items-center justify-between p-4 text-left"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {tagNum ? `Tag #${tagNum}` : 'No tag number'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">{dateStr} · {timeStr}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={ticket.status} />
-                      {isOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                    </div>
-                  </button>
-
-                  {isOpen && (
-                    <div className="border-t border-gray-100 p-4 space-y-3">
-                      {photoUrl && (
-                        <button
-                          onClick={() => setLightbox(photoUrl)}
-                          className="block w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50"
-                        >
-                          <img src={photoUrl} alt="Scanned ticket" className="w-full object-contain max-h-48" />
-                          <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
-                        </button>
-                      )}
-                      <div className="grid grid-cols-2 gap-2">
-                        {Object.entries(fields).map(([key, value]) => (
-                          <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
-                            <input
-                              value={key === 'ticket_date' ? formatDate(value) : value}
-                              onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
-                              className="w-full text-sm text-gray-900 outline-none bg-transparent"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => saveTicket(ticket.id)}
-                        disabled={saving[ticket.id]}
-                        className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
-                      >
-                        {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
-                      </button>
-                    </div>
-                  )}
+          {/* Pre-Trip Report */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <List size={14} className="text-gray-600" />
                 </div>
-              )
-            })}
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Pre-Trip Inspection</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {inspection === undefined
+                      ? 'Loading…'
+                      : inspection === null
+                      ? 'Not completed'
+                      : inspection.overall_status === 'passed'
+                      ? `Passed · ${new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                      : `${(inspection.items as any[]).filter((i: any) => !i.passed).length} issue(s) flagged`}
+                  </p>
+                </div>
+              </div>
+              {inspection === null ? (
+                <Link href="/driver/inspection" className="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg font-medium shrink-0">
+                  Start
+                </Link>
+              ) : inspection?.overall_status === 'passed' ? (
+                <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-medium shrink-0">Passed</span>
+              ) : inspection?.overall_status === 'failed' ? (
+                <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium shrink-0">Issues</span>
+              ) : null}
+            </div>
           </div>
-        </div>
-      )}
 
-      {!loading && tickets.length === 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
-          <p className="text-sm text-gray-500">No loads submitted yet today.</p>
+          {/* Load Tickets */}
+          {tickets.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+                <PlusCircle size={13} className="text-gray-500" />
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Loads — {tickets.length} submitted</p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {tickets.map(ticket => {
+                  const fd = (ticket.form_data ?? {}) as Record<string, unknown>
+                  const tagNum = fd.tag_number || ticket.tag_number
+                  const dt = new Date(ticket.submitted_at)
+                  const dateStr = formatDate(dt)
+                  const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                  const photoUrl = ticket.tag_photo_url ?? ticket.scanned_invoice_photo_url ?? (ticket.photo_urls ?? [])[0] ?? null
+                  const isOpen = expandedTicket === ticket.id
+                  const fields = editData[ticket.id] ?? {}
+
+                  return (
+                    <div key={ticket.id}>
+                      <button
+                        onClick={() => {
+                          if (!isOpen) initEdit(ticket)
+                          setExpandedTicket(isOpen ? null : ticket.id)
+                        }}
+                        className="w-full flex items-center justify-between p-4 text-left"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {tagNum ? `Tag #${tagNum}` : 'No tag number'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">{dateStr} · {timeStr}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={ticket.status} />
+                          {isOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div className="border-t border-gray-100 p-4 space-y-3">
+                          {photoUrl && (
+                            <button
+                              onClick={() => setLightbox(photoUrl)}
+                              className="block w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50"
+                            >
+                              <img src={photoUrl} alt="Scanned ticket" className="w-full object-contain max-h-48" />
+                              <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
+                            </button>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            {Object.entries(fields).map(([key, value]) => (
+                              <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
+                                <input
+                                  value={key === 'ticket_date' ? formatDate(value) : value}
+                                  onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
+                                  className="w-full text-sm text-gray-900 outline-none bg-transparent"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => saveTicket(ticket.id)}
+                            disabled={saving[ticket.id]}
+                            className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                          >
+                            {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {!loading && tickets.length === 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3">
+              <PlusCircle size={13} className="text-gray-400 shrink-0" />
+              <p className="text-sm text-gray-400">No loads submitted yet today.</p>
+            </div>
+          )}
+
+          {/* Fuel Logs (solo) */}
+          {isSolo && fuelToday.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+                <Fuel size={13} className="text-gray-500" />
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Fuel — {fuelToday.length} log{fuelToday.length !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {fuelToday.map(log => (
+                  <div key={log.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{log.gallons.toFixed(3)} gal · ${Number(log.price_per_gallon).toFixed(3)}/gal</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                        {log.def_gallons ? ` · DEF: ${log.def_gallons.toFixed(3)} gal` : ''}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 shrink-0">${Number(log.total_cost).toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isSolo && !loading && fuelToday.length === 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3">
+              <Fuel size={13} className="text-gray-400 shrink-0" />
+              <p className="text-sm text-gray-400">No fuel logged today.</p>
+            </div>
+          )}
+
         </div>
-      )}
+      </div>
 
       {lightbox && (
         <div
