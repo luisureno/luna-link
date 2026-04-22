@@ -57,7 +57,7 @@ export default function InvoicesPage() {
     <div>
       <PageHeader
         title="Invoices"
-        subtitle="Generate and track client invoices and payroll"
+        subtitle={accountType === 'solo' ? 'Generate and track client invoices' : 'Generate and track client invoices and payroll'}
         action={
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <QuickBooksWaitlistButton source="invoices_page" />
@@ -73,7 +73,7 @@ export default function InvoicesPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 border-b border-gray-200">
-        {tabs.map(t => (
+        {tabs.filter(t => accountType === 'solo' ? t.id !== 'payroll' : true).map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
