@@ -40,7 +40,7 @@ export default function MyLoadsPage() {
     if (ticket.tag_number && !merged.tag_number) merged.tag_number = ticket.tag_number
     if (ticket.weight_tons != null && !merged.weight_tons) merged.weight_tons = String(ticket.weight_tons)
     if (ticket.material_type && !merged.material_type) merged.material_type = ticket.material_type
-    if (ticket.loads_count != null && !merged.loads_count) merged.loads_count = String(ticket.loads_count)
+    if ((ticket as any).loads_count != null && !merged.loads_count) merged.loads_count = String((ticket as any).loads_count)
     setEditData(prev => ({ ...prev, [ticket.id]: merged }))
   }
 

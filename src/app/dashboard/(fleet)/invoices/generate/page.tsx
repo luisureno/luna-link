@@ -292,7 +292,7 @@ export default function GenerateInvoicePage() {
       await supabase.from('load_tickets').update({
         status: 'invoiced',
         invoice_line_confirmed: true,
-        invoice_line_confirmed_at: now.toISOString(),
+        invoice_line_confirmed_at: new Date().toISOString(),
         invoice_line_confirmed_by: profile!.id,
       }).in('id', ticketIds)
     }
