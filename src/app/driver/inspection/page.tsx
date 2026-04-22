@@ -55,29 +55,32 @@ export default function InspectionPage() {
   async function handleSubmit() {
     if (!profile || !allAnswered) return
     setSubmitting(true)
+    try {
+      const overall_status = failedItems.length === 0 ? 'passed' : 'failed'
+      const logDate = new Date().toISOString().split('T')[0]
 
-    const overall_status = failedItems.length === 0 ? 'passed' : 'failed'
-    const logDate = new Date().toISOString().split('T')[0]
+      const { data: inspectionData } = await supabase.from('pre_trip_inspections').insert({
+        company_id: profile.company_id,
+        driver_id: profile.id,
+        truck_number: profile.truck_number,
+        items,
+        overall_status,
+        inspected_at: new Date().toISOString(),
+      }).select().single()
 
-    const { data: inspectionData } = await supabase.from('pre_trip_inspections').insert({
-      company_id: profile.company_id,
-      driver_id: profile.id,
-      truck_number: profile.truck_number,
-      items,
-      overall_status,
-      inspected_at: new Date().toISOString(),
-    }).select().single()
+      await supabase.from('daily_logs').upsert({
+        company_id: profile.company_id,
+        driver_id: profile.id,
+        log_date: logDate,
+        pre_trip_status: overall_status,
+        pre_trip_inspection_id: inspectionData?.id ?? null,
+      }, { onConflict: 'driver_id,log_date' })
 
-    await supabase.from('daily_logs').upsert({
-      company_id: profile.company_id,
-      driver_id: profile.id,
-      log_date: logDate,
-      pre_trip_status: overall_status,
-      pre_trip_inspection_id: inspectionData?.id ?? null,
-    }, { onConflict: 'driver_id,log_date' })
-
-    setDone(true)
-    setTimeout(() => router.push(homePath), 2000)
+      setDone(true)
+      setTimeout(() => router.push(homePath), 2000)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (done) {

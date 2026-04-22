@@ -98,78 +98,81 @@ export default function FuelPage() {
   async function handleSubmit() {
     if (!canSubmit || !profile) return
     setSubmitting(true)
-
-    let latitude: number | null = null
-    let longitude: number | null = null
     try {
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
-      )
-      latitude = pos.coords.latitude
-      longitude = pos.coords.longitude
-    } catch {}
+      let latitude: number | null = null
+      let longitude: number | null = null
+      try {
+        const pos = await new Promise<GeolocationPosition>((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
+        )
+        latitude = pos.coords.latitude
+        longitude = pos.coords.longitude
+      } catch {}
 
-    let receipt_url: string | null = null
-    if (receiptFile) {
-      const path = `${profile.id}/${Date.now()}-${receiptFile.name}`
-      const { data: uploadData } = await supabase.storage
-        .from('fuel-receipts')
-        .upload(path, receiptFile, { contentType: receiptFile.type })
-      if (uploadData) {
-        const { data: { publicUrl } } = supabase.storage.from('fuel-receipts').getPublicUrl(uploadData.path)
-        receipt_url = publicUrl
+      let receipt_url: string | null = null
+      if (receiptFile) {
+        const path = `${profile.id}/${Date.now()}-${receiptFile.name}`
+        const { data: uploadData } = await supabase.storage
+          .from('fuel-receipts')
+          .upload(path, receiptFile, { contentType: receiptFile.type })
+        if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage.from('fuel-receipts').getPublicUrl(uploadData.path)
+          receipt_url = publicUrl
+        }
       }
-    }
 
-    let def_receipt_url: string | null = null
-    if (addDef && defReceiptFile) {
-      const path = `${profile.id}/def-${Date.now()}-${defReceiptFile.name}`
-      const { data: uploadData } = await supabase.storage
-        .from('fuel-receipts')
-        .upload(path, defReceiptFile, { contentType: defReceiptFile.type })
-      if (uploadData) {
-        const { data: { publicUrl } } = supabase.storage.from('fuel-receipts').getPublicUrl(uploadData.path)
-        def_receipt_url = publicUrl
+      let def_receipt_url: string | null = null
+      if (addDef && defReceiptFile) {
+        const path = `${profile.id}/def-${Date.now()}-${defReceiptFile.name}`
+        const { data: uploadData } = await supabase.storage
+          .from('fuel-receipts')
+          .upload(path, defReceiptFile, { contentType: defReceiptFile.type })
+        if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage.from('fuel-receipts').getPublicUrl(uploadData.path)
+          def_receipt_url = publicUrl
+        }
       }
+
+      const totalCost = dieselTotal!
+      const defTotalCost = addDef ? defTotal : null
+      const logDate = new Date().toISOString().split('T')[0]
+
+      await supabase.from('fuel_logs').insert({
+        company_id: profile.company_id,
+        driver_id: profile.id,
+        gallons: gallons ? parseFloat(gallons) : 0,
+        price_per_gallon: pricePerGallon ? parseFloat(pricePerGallon) : 0,
+        total_cost: totalCost,
+        receipt_url,
+        def_gallons: addDef && defGallons ? parseFloat(defGallons) : null,
+        def_price_per_gallon: addDef && defPricePerGallon ? parseFloat(defPricePerGallon) : null,
+        def_total_cost: defTotalCost,
+        def_receipt_url,
+        latitude,
+        longitude,
+        logged_at: new Date().toISOString(),
+      })
+
+      const { data: existing } = await supabase
+        .from('daily_logs')
+        .select('fuel_stops, total_fuel_cost')
+        .eq('driver_id', profile.id)
+        .eq('log_date', logDate)
+        .single()
+
+      await supabase.from('daily_logs').upsert({
+        company_id: profile.company_id,
+        driver_id: profile.id,
+        log_date: logDate,
+        fuel_stops: (existing?.fuel_stops ?? 0) + 1,
+        total_fuel_cost: parseFloat(((existing?.total_fuel_cost ?? 0) + totalCost + (defTotalCost ?? 0)).toFixed(2)),
+      }, { onConflict: 'driver_id,log_date' })
+
+      setSuccess(true)
+      setTimeout(() => router.push(homePath), 2000)
+    } finally {
+      setSubmitting(false)
     }
-
-    const totalCost = dieselTotal!
-    const defTotalCost = addDef ? defTotal : null
-    const logDate = new Date().toISOString().split('T')[0]
-
-    await supabase.from('fuel_logs').insert({
-      company_id: profile.company_id,
-      driver_id: profile.id,
-      gallons: gallons ? parseFloat(gallons) : 0,
-      price_per_gallon: pricePerGallon ? parseFloat(pricePerGallon) : 0,
-      total_cost: totalCost,
-      receipt_url,
-      def_gallons: addDef && defGallons ? parseFloat(defGallons) : null,
-      def_price_per_gallon: addDef && defPricePerGallon ? parseFloat(defPricePerGallon) : null,
-      def_total_cost: defTotalCost,
-      def_receipt_url,
-      latitude,
-      longitude,
-      logged_at: new Date().toISOString(),
-    })
-
-    const { data: existing } = await supabase
-      .from('daily_logs')
-      .select('fuel_stops, total_fuel_cost')
-      .eq('driver_id', profile.id)
-      .eq('log_date', logDate)
-      .single()
-
-    await supabase.from('daily_logs').upsert({
-      company_id: profile.company_id,
-      driver_id: profile.id,
-      log_date: logDate,
-      fuel_stops: (existing?.fuel_stops ?? 0) + 1,
-      total_fuel_cost: parseFloat(((existing?.total_fuel_cost ?? 0) + totalCost + (defTotalCost ?? 0)).toFixed(2)),
-    }, { onConflict: 'driver_id,log_date' })
-
-    setSuccess(true)
-    setTimeout(() => router.push(homePath), 2000)
   }
 
   if (success) {

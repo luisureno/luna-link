@@ -65,26 +65,29 @@ export default function SoloLoadsPage() {
 
   async function loadRows(pageIdx: number, reset: boolean) {
     setLoading(true)
-    const from = pageIdx * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
+    try {
+      const from = pageIdx * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
 
-    let query = supabase
-      .from('load_tickets')
-      .select('*, client:clients(name), job_site:job_sites(name)')
-      .eq('driver_id', profile!.id)
-      .order('submitted_at', { ascending: false })
-      .range(from, to)
+      let query = supabase
+        .from('load_tickets')
+        .select('*, client:clients(name), job_site:job_sites(name)')
+        .eq('driver_id', profile!.id)
+        .order('submitted_at', { ascending: false })
+        .range(from, to)
 
-    if (rangeStart) query = query.gte('submitted_at', rangeStart)
-    if (status !== 'all') query = query.eq('status', status)
-    if (clientId !== 'all') query = query.eq('client_id', clientId)
+      if (rangeStart) query = query.gte('submitted_at', rangeStart)
+      if (status !== 'all') query = query.eq('status', status)
+      if (clientId !== 'all') query = query.eq('client_id', clientId)
 
-    const { data } = await query
-    const fetched = (data ?? []) as TicketWithClient[]
+      const { data } = await query
+      const fetched = (data ?? []) as TicketWithClient[]
 
-    setHasMore(fetched.length === PAGE_SIZE)
-    setRows(reset ? fetched : [...rows, ...fetched])
-    setLoading(false)
+      setHasMore(fetched.length === PAGE_SIZE)
+      setRows(reset ? fetched : [...rows, ...fetched])
+    } finally {
+      setLoading(false)
+    }
   }
 
   function loadMore() {

@@ -244,55 +244,56 @@ export default function TimesheetPage() {
   async function handleSubmit() {
     if (!selectedDispatch || !form.arrived_at || !form.departed_at) return
     setSubmitting(true)
+    try {
+      const hours = calcHours(form.arrived_at, form.departed_at)
+      const config = selectedDispatch.billing_config
+      const clientRate = config ? new Decimal(config.client_rate_amount) : new Decimal(0)
+      const clientCharge = hours !== null ? clientRate.mul(hours).toDecimalPlaces(2).toNumber() : null
 
-    const hours = calcHours(form.arrived_at, form.departed_at)
-    const config = selectedDispatch.billing_config
-    const clientRate = config ? new Decimal(config.client_rate_amount) : new Decimal(0)
-    const clientCharge = hours !== null ? clientRate.mul(hours).toDecimalPlaces(2).toNumber() : null
+      const gps = await captureGps()
+      const sigUrl = isOnline ? await uploadSignature() : null
 
-    const gps = await captureGps()
-    const sigUrl = isOnline ? await uploadSignature() : null
+      const payload = {
+        company_id: profile!.company_id,
+        driver_id: profile!.id,
+        dispatch_id: selectedDispatch.id,
+        client_id: selectedDispatch.client_id,
+        job_site_id: selectedDispatch.job_site_id,
+        work_date: today,
+        arrived_at: new Date(form.arrived_at).toISOString(),
+        departed_at: new Date(form.departed_at).toISOString(),
+        hours_worked: hours,
+        hours_billed_client: hours,
+        client_rate_per_hour: config?.client_rate_amount ?? null,
+        client_charge_total: clientCharge,
+        submission_method: submitPath === 'scan_invoice' ? 'paper_scan' : 'digital',
+        scanned_invoice_photo_url: scannedInvoiceUrl,
+        client_signature_url: sigUrl,
+        client_signer_name: form.client_signer_name || null,
+        notes: form.notes || null,
+        gps_lat: gps?.lat ?? null,
+        gps_lng: gps?.lng ?? null,
+        status: 'submitted',
+      }
 
-    const payload = {
-      company_id: profile!.company_id,
-      driver_id: profile!.id,
-      dispatch_id: selectedDispatch.id,
-      client_id: selectedDispatch.client_id,
-      job_site_id: selectedDispatch.job_site_id,
-      work_date: today,
-      arrived_at: new Date(form.arrived_at).toISOString(),
-      departed_at: new Date(form.departed_at).toISOString(),
-      hours_worked: hours,
-      hours_billed_client: hours,
-      client_rate_per_hour: config?.client_rate_amount ?? null,
-      client_charge_total: clientCharge,
-      submission_method: submitPath === 'scan_invoice' ? 'paper_scan' : 'digital',
-      scanned_invoice_photo_url: scannedInvoiceUrl,
-      client_signature_url: sigUrl,
-      client_signer_name: form.client_signer_name || null,
-      notes: form.notes || null,
-      gps_lat: gps?.lat ?? null,
-      gps_lng: gps?.lng ?? null,
-      status: 'submitted',
-    }
+      if (!isOnline) {
+        enqueue('timesheet', payload)
+        setPendingCount(getPendingCount())
+        setSuccess(true)
+        return
+      }
 
-    if (!isOnline) {
-      enqueue('timesheet', payload)
-      setPendingCount(getPendingCount())
+      const { error } = await supabase.from('daily_timesheets').insert(payload)
+      if (!error) {
+        setSuccess(true)
+      } else {
+        enqueue('timesheet', payload)
+        setPendingCount(getPendingCount())
+        setSuccess(true)
+      }
+    } finally {
       setSubmitting(false)
-      setSuccess(true)
-      return
     }
-
-    const { error } = await supabase.from('daily_timesheets').insert(payload)
-    if (!error) {
-      setSuccess(true)
-    } else {
-      enqueue('timesheet', payload)
-      setPendingCount(getPendingCount())
-      setSuccess(true)
-    }
-    setSubmitting(false)
   }
 
   const hours = calcHours(form.arrived_at, form.departed_at)
