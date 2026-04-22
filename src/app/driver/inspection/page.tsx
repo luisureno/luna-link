@@ -111,18 +111,18 @@ export default function InspectionPage() {
           return (
             <div key={id} className={`bg-white border rounded-lg overflow-hidden transition-colors ${failed ? 'border-red-300' : item.passed ? 'border-green-300' : 'border-gray-200'}`}>
               <div className="flex items-center gap-3 p-4">
-                <span className="text-2xl">{icon}</span>
-                <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
-                <div className="flex gap-2">
+                <span className="text-2xl flex-shrink-0">{icon}</span>
+                <span className="flex-1 text-sm font-medium text-gray-900 min-w-0">{label}</span>
+                <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={() => setPassed(id, true)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${item.passed === true ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-green-50'}`}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.passed === true ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-green-50'}`}
                   >
                     Pass ✓
                   </button>
                   <button
                     onClick={() => setPassed(id, false)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${item.passed === false ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-red-50'}`}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.passed === false ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-red-50'}`}
                   >
                     Fail ✗
                   </button>

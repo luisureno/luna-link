@@ -221,19 +221,19 @@ export default function HistoryPage() {
                   </div>
                   <div className="space-y-2">
                     {dayFuelLogs.map(f => (
-                      <div key={f.id} className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-700">{Number(f.gallons).toFixed(3)} gal @ ${Number(f.price_per_gallon).toFixed(3)}/gal</p>
+                      <div key={f.id} className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-700 truncate">{Number(f.gallons).toFixed(3)} gal · ${Number(f.price_per_gallon).toFixed(3)}/gal</p>
                           {(f as any).def_gallons && (
-                            <p className="text-xs text-blue-600">DEF: {Number((f as any).def_gallons).toFixed(3)} gal — ${Number((f as any).def_total_cost ?? 0).toFixed(2)}</p>
+                            <p className="text-xs text-blue-600 truncate">DEF: {Number((f as any).def_gallons).toFixed(3)} gal · ${Number((f as any).def_total_cost ?? 0).toFixed(2)}</p>
                           )}
-                          <p className="text-xs text-gray-500">{fmt(f.logged_at)}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-gray-500">{fmt(f.logged_at)}</p>
+                            {f.receipt_url && <a href={f.receipt_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Receipt</a>}
+                            {(f as any).def_receipt_url && <a href={(f as any).def_receipt_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">DEF</a>}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-900">${(Number(f.total_cost) + Number((f as any).def_total_cost ?? 0)).toFixed(2)}</span>
-                          {f.receipt_url && <a href={f.receipt_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Receipt</a>}
-                          {(f as any).def_receipt_url && <a href={(f as any).def_receipt_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">DEF</a>}
-                        </div>
+                        <span className="text-sm font-semibold text-gray-900 flex-shrink-0">${(Number(f.total_cost) + Number((f as any).def_total_cost ?? 0)).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>

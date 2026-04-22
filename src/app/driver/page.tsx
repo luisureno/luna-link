@@ -187,7 +187,7 @@ export default function DriverTodayPage() {
       {/* Summary Card */}
       <div className="bg-white border border-gray-200 rounded-lg p-5">
         <p className="text-xs text-gray-500 mb-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        <div className="flex items-center gap-6 mt-2">
+        <div className="flex items-center gap-4 mt-2 flex-wrap">
           <div>
             <p className="text-3xl font-semibold text-gray-900">{tickets.length}</p>
             <p className="text-xs text-gray-500">Loads today</p>

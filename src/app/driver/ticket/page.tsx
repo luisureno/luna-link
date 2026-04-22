@@ -593,7 +593,7 @@ export default function TicketPage() {
             </div>
           )}
 
-          <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 p-4 flex gap-3 md:bottom-0">
+          <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-3 md:bottom-0">
             <button
               onClick={() => { setScanReview(null); setPhotoFile(null); setPhotoPreview(null); setShowScanner(true) }}
               className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700"

@@ -120,7 +120,7 @@ export default function LandingPage() {
       </section>
 
       {/* Product Preview */}
-      <section className="max-w-6xl mx-auto px-6 py-8">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-8">
         <div className="text-center mb-10">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">See it in action</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Built for drivers and dispatchers.</h2>
@@ -130,7 +130,8 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 items-start">
           {/* Phone mockup — driver */}
           <div className="mx-auto lg:mx-0 lg:sticky lg:top-24">
-            <div className="relative w-[300px] h-[620px] bg-[#1a1a1a] rounded-[40px] p-3 shadow-2xl">
+            <div className="relative w-full max-w-[300px] mx-auto lg:mx-0" style={{ aspectRatio: '300/620' }}>
+            <div className="relative w-full h-full bg-[#1a1a1a] rounded-[40px] p-3 shadow-2xl">
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#1a1a1a] rounded-full z-10" />
               <div className="w-full h-full bg-[#F8F7F5] rounded-[30px] overflow-hidden relative">
                 {/* Phone content — mirrors real driver home */}
@@ -188,6 +189,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
             <p className="text-center text-xs text-gray-500 mt-3 font-medium">Driver — mobile</p>
           </div>
@@ -297,7 +299,7 @@ export default function LandingPage() {
       </section>
 
       {/* What it does */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-16">
         <div className="text-center mb-12">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">What it does</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Everything your fleet runs on — in one place.</h2>
@@ -323,7 +325,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="bg-white border-y border-gray-200 py-20">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">How it works</p>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Set up in an afternoon.</h2>
@@ -349,7 +351,7 @@ export default function LandingPage() {
       </section>
 
       {/* Why */}
-      <section className="max-w-5xl mx-auto px-6 py-20">
+      <section className="max-w-5xl mx-auto px-4 md:px-6 py-20">
         <div className="text-center mb-12">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Why fleetwise</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Stop losing money to paper.</h2>
@@ -487,7 +489,7 @@ export default function LandingPage() {
 
       {/* CTA */}
       <section className="bg-[#1a1a1a] text-white py-20">
-        <div className="max-w-3xl mx-auto px-6 text-center">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">Start running loads today.</h2>
           <p className="text-gray-300 mb-8">30-day free trial. No credit card. Set up in minutes.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

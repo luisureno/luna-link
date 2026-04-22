@@ -75,9 +75,9 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-sm font-medium">{profile?.full_name}</p>
-            <p className="text-xs text-white/50">
+          <div className="text-right max-w-[140px] min-w-0">
+            <p className="text-sm font-medium truncate">{profile?.full_name}</p>
+            <p className="text-xs text-white/50 truncate">
               {profile?.truck_number ?? ''} &middot; {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
           </div>
