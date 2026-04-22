@@ -10,6 +10,16 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
 
+const FIELD_LABELS: Record<string, string> = {
+  ticket_date: 'Date', tag_number: 'Tag #', client_name: 'Client',
+  job_site: 'Job Site', origin: 'Origin', destination: 'Destination',
+  material_type: 'Material', weight_tons: 'Weight (tons)',
+  gross_weight_lbs: 'Gross (lbs)', tare_weight_lbs: 'Tare (lbs)',
+  loads_count: 'Loads', hours_worked: 'Hours', truck_number: 'Truck #',
+  trailer_number: 'Trailer #', driver_name: 'Driver', po_number: 'PO #',
+  rate_amount: 'Rate', total_amount: 'Total', notes: 'Notes',
+}
+
 export default function DriverTodayPage() {
   const { profile, accountType } = useAuth()
   const isSolo = accountType === 'solo'
@@ -26,6 +36,36 @@ export default function DriverTodayPage() {
   const [inspectionDismissed, setInspectionDismissed] = useState(false)
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [editData, setEditData] = useState<Record<string, Record<string, string>>>({})
+  const [saving, setSaving] = useState<Record<string, boolean>>({})
+
+  function initEdit(ticket: LoadTicket) {
+    if (editData[ticket.id]) return
+    const fd = (ticket.form_data ?? {}) as Record<string, unknown>
+    const merged: Record<string, string> = {}
+    Object.entries(fd).forEach(([k, v]) => {
+      if (v !== null && v !== undefined && String(v).trim() !== '') merged[k] = String(v)
+    })
+    if (ticket.tag_number && !merged.tag_number) merged.tag_number = ticket.tag_number
+    if (ticket.weight_tons != null && !merged.weight_tons) merged.weight_tons = String(ticket.weight_tons)
+    if (ticket.material_type && !merged.material_type) merged.material_type = ticket.material_type
+    if (ticket.loads_count != null && !merged.loads_count) merged.loads_count = String(ticket.loads_count)
+    setEditData(prev => ({ ...prev, [ticket.id]: merged }))
+  }
+
+  async function saveTicket(ticketId: string) {
+    const data = editData[ticketId]
+    if (!data) return
+    setSaving(prev => ({ ...prev, [ticketId]: true }))
+    const update: Record<string, unknown> = { form_data: data }
+    if (data.tag_number !== undefined) update.tag_number = data.tag_number || null
+    if (data.weight_tons !== undefined) update.weight_tons = data.weight_tons ? parseFloat(data.weight_tons) : null
+    if (data.material_type !== undefined) update.material_type = data.material_type || null
+    if (data.loads_count !== undefined) update.loads_count = data.loads_count ? parseInt(data.loads_count) : null
+    await supabase.from('load_tickets').update(update).eq('id', ticketId)
+    setSaving(prev => ({ ...prev, [ticketId]: false }))
+    loadData()
+  }
 
   useEffect(() => {
     if (!profile?.id) return
@@ -261,13 +301,17 @@ export default function DriverTodayPage() {
               const dt = new Date(ticket.submitted_at)
               const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
               const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-              const photoUrl = ticket.tag_photo_url ?? (ticket as any).scanned_invoice_photo_url ?? null
+              const photoUrl = ticket.tag_photo_url ?? ticket.scanned_invoice_photo_url ?? (ticket.photo_urls ?? [])[0] ?? null
               const isOpen = expandedTicket === ticket.id
+              const fields = editData[ticket.id] ?? {}
 
               return (
                 <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <button
-                    onClick={() => setExpandedTicket(isOpen ? null : ticket.id)}
+                    onClick={() => {
+                      if (!isOpen) initEdit(ticket)
+                      setExpandedTicket(isOpen ? null : ticket.id)
+                    }}
                     className="w-full flex items-center justify-between p-4 text-left"
                   >
                     <div>
@@ -287,46 +331,29 @@ export default function DriverTodayPage() {
                       {photoUrl && (
                         <button
                           onClick={() => setLightbox(photoUrl)}
-                          className="block w-full rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                          className="block w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50"
                         >
                           <img src={photoUrl} alt="Scanned ticket" className="w-full object-contain max-h-48" />
                           <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
                         </button>
                       )}
-                      <div className="space-y-1.5">
-                        {Object.entries(fd)
-                          .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
-                          .map(([key, value]) => (
-                            <div key={key} className="flex justify-between gap-4 text-sm">
-                              <span className="text-gray-500 flex-shrink-0 capitalize">{key.replace(/_/g, ' ')}</span>
-                              <span className="text-gray-900 font-medium text-right">{String(value)}</span>
-                            </div>
-                          ))}
-                        {ticket.loads_count != null && !fd.loads_count && (
-                          <div className="flex justify-between gap-4 text-sm">
-                            <span className="text-gray-500 flex-shrink-0">Loads</span>
-                            <span className="text-gray-900 font-medium text-right">{ticket.loads_count}</span>
-                          </div>
-                        )}
-                        {ticket.weight_tons && !fd.weight_tons && (
-                          <div className="flex justify-between gap-4 text-sm">
-                            <span className="text-gray-500 flex-shrink-0">Weight (tons)</span>
-                            <span className="text-gray-900 font-medium text-right">{ticket.weight_tons}</span>
-                          </div>
-                        )}
-                        {ticket.material_type && !fd.material_type && (
-                          <div className="flex justify-between gap-4 text-sm">
-                            <span className="text-gray-500 flex-shrink-0">Material</span>
-                            <span className="text-gray-900 font-medium text-right">{ticket.material_type}</span>
-                          </div>
-                        )}
-                        {ticket.tag_number && !fd.tag_number && (
-                          <div className="flex justify-between gap-4 text-sm">
-                            <span className="text-gray-500 flex-shrink-0">Tag #</span>
-                            <span className="text-gray-900 font-medium text-right">{ticket.tag_number}</span>
-                          </div>
-                        )}
-                      </div>
+                      {Object.entries(fields).map(([key, value]) => (
+                        <div key={key} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+                          <p className="text-xs text-gray-500 mb-1">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
+                          <input
+                            value={value}
+                            onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
+                            className="w-full text-base text-gray-900 outline-none bg-transparent"
+                          />
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => saveTicket(ticket.id)}
+                        disabled={saving[ticket.id]}
+                        className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                      >
+                        {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
+                      </button>
                     </div>
                   )}
                 </div>
