@@ -207,7 +207,7 @@ export default function FuelMap({ logs }: Props) {
           className="absolute left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl"
           style={{
             bottom: 0,
-            transform: sheetOpen ? 'translateY(0)' : 'translateY(calc(100% - 88px))',
+            transform: sheetOpen ? 'translateY(0)' : 'translateY(calc(100% - 80px))',
             transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1)',
             maxHeight: '65%',
             display: 'flex',
@@ -227,7 +227,7 @@ export default function FuelMap({ logs }: Props) {
             </div>
 
             {/* Collapsed preview — cheapest station */}
-            <div className="flex items-center justify-between px-5 py-3">
+            <div className="flex items-center justify-between px-5 py-2">
               <div>
                 <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Best price nearby</p>
                 <p className="text-base font-bold text-gray-900">{cheapest.brand ?? cheapest.name ?? 'Truck Stop'}</p>
