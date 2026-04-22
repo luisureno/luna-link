@@ -178,7 +178,9 @@ export default function FuelPage() {
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
-        <div className="text-5xl mb-4">⛽</div>
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+          <Camera size={28} className="text-gray-700" />
+        </div>
         <h2 className="text-xl font-semibold text-gray-900">Fuel Stop Logged</h2>
         <p className="text-gray-500 mt-1">
           ${dieselTotal?.toFixed(2)} diesel
@@ -242,13 +244,13 @@ export default function FuelPage() {
 
       {/* ── Diesel fields ───────────────────────────────────────────── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">⛽ Diesel</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Diesel</p>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Gallons</label>
             <input
-              type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
+              type="text" inputMode="decimal" placeholder="0.000"
               value={gallons} onChange={e => { setGallons(e.target.value); setTotalOverride('') }}
               className="w-full px-3 py-3 border border-gray-200 rounded-xl text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
@@ -258,7 +260,7 @@ export default function FuelPage() {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
               <input
-                type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
+                type="text" inputMode="decimal" placeholder="0.000"
                 value={pricePerGallon} onChange={e => { setPricePerGallon(e.target.value); setTotalOverride('') }}
                 className="w-full pl-7 pr-3 py-3 border border-gray-200 rounded-xl text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
@@ -274,7 +276,7 @@ export default function FuelPage() {
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
             <input
-              type="number" inputMode="decimal" step="0.01" min="0" placeholder="0.00"
+              type="text" inputMode="decimal" placeholder="0.00"
               value={totalOverride} onChange={e => { setTotalOverride(e.target.value); setGallons(''); setPricePerGallon('') }}
               className="w-full pl-7 pr-3 py-3 border border-gray-200 rounded-xl text-lg font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
@@ -293,7 +295,7 @@ export default function FuelPage() {
       <div className={`rounded-2xl border-2 p-4 space-y-3 transition-colors ${addDef ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">🔵 DEF</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">DEF</p>
             <p className="text-sm font-medium text-gray-800">Diesel Exhaust Fluid</p>
           </div>
           <button
@@ -333,7 +335,7 @@ export default function FuelPage() {
               <div>
                 <label className="block text-xs font-medium text-blue-800 mb-1">DEF Gallons</label>
                 <input
-                  type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
+                  type="text" inputMode="decimal" placeholder="0.000"
                   value={defGallons} onChange={e => setDefGallons(e.target.value)}
                   className="w-full px-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
@@ -343,7 +345,7 @@ export default function FuelPage() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
                   <input
-                    type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
+                    type="text" inputMode="decimal" placeholder="0.000"
                     value={defPricePerGallon} onChange={e => setDefPricePerGallon(e.target.value)}
                     className="w-full pl-7 pr-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
@@ -358,7 +360,7 @@ export default function FuelPage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
                 <input
-                  type="number" inputMode="decimal" step="0.01" min="0" placeholder="0.00"
+                  type="text" inputMode="decimal" placeholder="0.00"
                   value={defTotalOverride} onChange={e => setDefTotalOverride(e.target.value)}
                   className="w-full pl-7 pr-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />

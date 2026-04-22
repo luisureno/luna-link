@@ -210,7 +210,7 @@ export default function InvoicesPage() {
         ))}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg">
         {loading ? (
           <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
         ) : invoices.length === 0 ? (

@@ -24,7 +24,7 @@ const fleetNav = [
 const soloNav = [
   { href: '/driver', label: 'Today', icon: Home },
   { href: '/dashboard/solo/loads', label: 'Loads', icon: List },
-  { href: '/dashboard/solo/fuel', label: 'Fuel', icon: Fuel },
+  { href: '/dashboard/solo/fuel', label: 'Fuel Map', icon: Fuel },
   { href: '/dashboard/solo/invoices', label: 'Invoices', icon: Receipt },
   { href: '/dashboard/solo/clients', label: 'Clients', icon: Building2 },
   { href: '/dashboard/solo/settings', label: 'Settings', icon: Settings },

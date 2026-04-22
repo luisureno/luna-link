@@ -71,9 +71,9 @@ export default function DriverTodayPage() {
   }
 
   useEffect(() => {
-    if (!profile?.id) return
+    if (!profile?.id || accountType === null) return
     loadData()
-  }, [profile?.id])
+  }, [profile?.id, accountType])
 
   async function loadData() {
     const id = profile!.id
@@ -144,7 +144,7 @@ export default function DriverTodayPage() {
         <Link href="/driver/inspection" className="block bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-amber-800">⚠️ Pre-Trip Inspection Required</p>
+              <p className="text-sm font-semibold text-amber-800">Pre-Trip Inspection Required</p>
               <p className="text-xs text-amber-600 mt-0.5">Complete before starting your day</p>
             </div>
             <span className="text-amber-700 font-medium text-sm">Start →</span>
@@ -154,7 +154,7 @@ export default function DriverTodayPage() {
       {inspection?.overall_status === 'passed' && !inspectionDismissed && (
         <div className="bg-green-50 border border-green-300 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-green-800">✅ Pre-Trip Inspection Passed</p>
+            <p className="text-sm font-semibold text-green-800">Pre-Trip Inspection Passed</p>
             <p className="text-xs text-green-600 mt-0.5">{new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
           </div>
           <button onClick={() => { localStorage.setItem('inspection_dismissed', today); setInspectionDismissed(true) }} className="p-1 text-green-600 hover:text-green-800 ml-3 flex-shrink-0">
@@ -165,7 +165,7 @@ export default function DriverTodayPage() {
       {inspection?.overall_status === 'failed' && (
         <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-red-800">⚠️ Issues Reported — Dispatcher Notified</p>
+            <p className="text-sm font-semibold text-red-800">Issues Reported — Dispatcher Notified</p>
             <p className="text-xs text-red-600 mt-0.5">{(inspection.items as any[]).filter(i => !i.passed).length} item(s) flagged</p>
           </div>
         </div>
