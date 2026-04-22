@@ -64,7 +64,7 @@ export default function MyLoadsPage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-28 space-y-4">
       <h1 className="text-xl font-semibold text-gray-900">My Loads</h1>
       {groups.map(({ date, tickets }) => (
         <div key={date}>
@@ -118,16 +118,28 @@ export default function MyLoadsPage() {
                               <span className="text-gray-900 font-medium text-right">{String(value)}</span>
                             </div>
                           ))}
-                        {ticket.material_type && !fd.material_type && (
+                        {ticket.loads_count != null && !fd.loads_count && (
                           <div className="flex justify-between gap-4 text-sm">
-                            <span className="text-gray-500">Material</span>
-                            <span className="text-gray-900 font-medium text-right">{ticket.material_type}</span>
+                            <span className="text-gray-500">Loads</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.loads_count}</span>
                           </div>
                         )}
                         {ticket.weight_tons && !fd.weight_tons && (
                           <div className="flex justify-between gap-4 text-sm">
                             <span className="text-gray-500">Weight (tons)</span>
                             <span className="text-gray-900 font-medium text-right">{ticket.weight_tons}</span>
+                          </div>
+                        )}
+                        {ticket.material_type && !fd.material_type && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500">Material</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.material_type}</span>
+                          </div>
+                        )}
+                        {ticket.tag_number && !fd.tag_number && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500">Tag #</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.tag_number}</span>
                           </div>
                         )}
                       </div>

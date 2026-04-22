@@ -107,7 +107,6 @@ export default function GenerateInvoicePage() {
         .from('load_tickets')
         .select('id, submitted_at, client_charge_total, driver_pay_total, dispatcher_adjusted_pay, billing_type, loads_count, weight_tons, tag_number, invoice_line_confirmed, users(full_name)')
         .eq('company_id', profile!.company_id)
-        .eq('client_id', filter.client_id)
         .in('status', ['submitted', 'confirmed'])
         .eq('invoice_line_confirmed', false)
         .gte('submitted_at', `${filter.date_from}T00:00:00`)
@@ -139,8 +138,7 @@ export default function GenerateInvoicePage() {
         .from('daily_timesheets')
         .select('id, work_date, client_charge_total, driver_pay_total, hours_billed_client, dispatcher_adjusted_hours, users(full_name)')
         .eq('company_id', profile!.company_id)
-        .eq('client_id', filter.client_id)
-        .in('status', ['confirmed'])
+        .in('status', ['submitted', 'confirmed'])
         .gte('work_date', filter.date_from)
         .lte('work_date', filter.date_to)
         .order('work_date')
@@ -385,7 +383,7 @@ export default function GenerateInvoicePage() {
 
         {lines.length === 0 && customItems.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <p className="text-sm">No confirmed, uninvoiced tickets or timesheets found for this client and period.</p>
+            <p className="text-sm">No uninvoiced tickets or timesheets found for this client and period.</p>
             <button onClick={() => setStep('filter')} className="mt-4 text-sm text-blue-600 hover:underline">Change filters</button>
           </div>
         ) : (

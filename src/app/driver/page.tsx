@@ -111,7 +111,7 @@ export default function DriverTodayPage() {
     : null
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-28 space-y-4">
       {profile && inspection !== undefined && (
         <DayStartModal
           name={profile.full_name}
@@ -302,6 +302,30 @@ export default function DriverTodayPage() {
                               <span className="text-gray-900 font-medium text-right">{String(value)}</span>
                             </div>
                           ))}
+                        {ticket.loads_count != null && !fd.loads_count && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500 flex-shrink-0">Loads</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.loads_count}</span>
+                          </div>
+                        )}
+                        {ticket.weight_tons && !fd.weight_tons && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500 flex-shrink-0">Weight (tons)</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.weight_tons}</span>
+                          </div>
+                        )}
+                        {ticket.material_type && !fd.material_type && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500 flex-shrink-0">Material</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.material_type}</span>
+                          </div>
+                        )}
+                        {ticket.tag_number && !fd.tag_number && (
+                          <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-gray-500 flex-shrink-0">Tag #</span>
+                            <span className="text-gray-900 font-medium text-right">{ticket.tag_number}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
