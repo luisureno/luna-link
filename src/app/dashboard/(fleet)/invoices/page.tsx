@@ -57,11 +57,11 @@ export default function InvoicesPage() {
         title="Invoices"
         subtitle="Generate and track client invoices and payroll"
         action={
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <QuickBooksWaitlistButton source="invoices_page" />
             <Link
               href="/dashboard/invoices/generate"
-              className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800 w-full sm:w-auto"
             >
               <Plus size={16} /> Generate Invoice
             </Link>

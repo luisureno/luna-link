@@ -51,7 +51,7 @@ export function QuickBooksWaitlistButton({ source = 'invoices_page' }: { source?
       <button
         type="button"
         onClick={openModal}
-        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white rounded text-sm font-medium text-gray-700 hover:bg-gray-50"
+        className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 bg-white rounded text-sm font-medium text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
       >
         <span className="w-5 h-5 rounded bg-[#2ca01c] text-white flex items-center justify-center text-[10px] font-bold">qb</span>
         QuickBooks
