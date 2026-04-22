@@ -37,7 +37,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Truck size={20} className="text-gray-900" />
-            <span className="text-base md:text-lg font-semibold tracking-tight">fleetwise</span>
+            <span className="text-base md:text-lg font-semibold tracking-tight">Fleetwise</span>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
             <a href="#pricing" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
@@ -225,7 +225,7 @@ export default function LandingPage() {
                   <div className="p-3 border-b border-white/10">
                     <div className="flex items-center gap-1.5">
                       <Truck size={12} className="text-white/70" />
-                      <span className="font-semibold text-[10px] text-white">fleetwise</span>
+                      <span className="font-semibold text-[10px] text-white">Fleetwise</span>
                     </div>
                   </div>
                   <div className="p-2 space-y-0.5">
@@ -372,7 +372,7 @@ export default function LandingPage() {
       {/* Why */}
       <section className="max-w-5xl mx-auto px-4 md:px-6 py-20">
         <div className="text-center mb-12">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Why fleetwise</p>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Why Fleetwise</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Stop losing money to paper.</h2>
         </div>
 
@@ -548,15 +548,18 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-xs text-gray-500 space-y-2">
-        <p>© {new Date().getFullYear()} fleetwise. All rights reserved.</p>
-        <p>
-          Questions?{' '}
-          <a href="mailto:luisangelmureno@gmail.com?subject=fleetwise" className="underline hover:text-gray-700">
+      <footer className="bg-[#1a1a1a] text-white py-16 px-6 text-center">
+        <div className="max-w-xl mx-auto space-y-4">
+          <h3 className="text-xl font-semibold">Have questions?</h3>
+          <p className="text-white/60 text-sm">We're here to help — reach out and we'll reply fast.</p>
+          <a
+            href="mailto:luisangelmureno@gmail.com?subject=Fleetwise"
+            className="inline-block mt-2 bg-white text-[#1a1a1a] font-semibold text-sm px-6 py-3 rounded-lg hover:bg-white/90 transition-colors"
+          >
             Contact us
           </a>
-          {' '}— we reply fast.
-        </p>
+        </div>
+        <p className="mt-12 text-xs text-white/30">© {new Date().getFullYear()} Fleetwise. All rights reserved.</p>
       </footer>
 
       {requestOpen && <RequestAccessModal onClose={() => setRequestOpen(false)} />}

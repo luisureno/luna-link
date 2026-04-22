@@ -64,7 +64,7 @@ export function TrialEndedGate({ billingHref, allowPathnames = [] }: Props) {
         <p className="text-sm text-gray-600 text-center mt-2">
           {canceled
             ? 'Reactivate your plan to get back to running loads.'
-            : 'Add billing info to keep using fleetwise. Your data is safe — nothing was deleted.'}
+            : 'Add billing info to keep using Fleetwise. Your data is safe — nothing was deleted.'}
         </p>
 
         <div className="mt-6 space-y-2">

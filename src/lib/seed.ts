@@ -14,7 +14,7 @@ const supabase = createClient(
 )
 
 async function seed() {
-  console.log('Seeding fleetwise...')
+  console.log('Seeding Fleetwise...')
 
   // Company
   const { data: company } = await supabase.from('companies').insert({
