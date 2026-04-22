@@ -344,9 +344,13 @@ export default function TicketPage() {
     }
 
     const { error } = await supabase.from('load_tickets').insert({ ...payload, tag_photo_url: tagPhotoUrl })
-    if (!error) {
-      setSuccess({ tagNumber: form.tag_number || 'Manual', time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) })
+    if (error) {
+      console.error('[ticket] insert failed:', error)
+      alert(`Failed to submit ticket: ${error.message}`)
+      setSubmitting(false)
+      return
     }
+    setSuccess({ tagNumber: form.tag_number || 'Manual', time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) })
     setSubmitting(false)
   }
 

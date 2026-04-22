@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo , useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle, FileText, Download, X } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Download, X, ArrowLeftRight, Plus, Trash2 } from 'lucide-react'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext'
 type Step = 'filter' | 'review' | 'summary'
 type LineType = 'ticket' | 'timesheet'
 
-interface Client { id: string; name: string }
+interface Client { id: string; name: string; address: string | null }
 
 interface Line {
   id: string
@@ -22,6 +22,12 @@ interface Line {
   driver_pay: number
   included: boolean
   notes: string
+}
+
+interface CustomItem {
+  id: string
+  label: string
+  amount: number
 }
 
 interface FilterState {
@@ -42,6 +48,10 @@ function dateRange() {
   }
 }
 
+function uid() {
+  return Math.random().toString(36).slice(2)
+}
+
 export default function GenerateInvoicePage() {
   const { profile } = useAuth()
   const supabase = useMemo(() => createClient(), [])
@@ -57,7 +67,15 @@ export default function GenerateInvoicePage() {
     include_tickets: true,
     include_timesheets: true,
   })
+
+  // Invoice metadata fields
+  const [clientAddress, setClientAddress] = useState('')
+  const [origin, setOrigin] = useState('')
+  const [destination, setDestination] = useState('')
+
   const [lines, setLines] = useState<Line[]>([])
+  const [customItems, setCustomItems] = useState<CustomItem[]>([])
+
   const [loading, setLoading] = useState(false)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null)
@@ -67,9 +85,16 @@ export default function GenerateInvoicePage() {
 
   useEffect(() => {
     if (!profile?.company_id) return
-    supabase.from('clients').select('id, name').eq('company_id', profile.company_id).order('name')
+    supabase.from('clients').select('id, name, address').eq('company_id', profile.company_id).order('name')
       .then(({ data }) => setClients((data ?? []) as Client[]))
   }, [profile?.company_id])
+
+  // Auto-fill billing address when client is picked
+  function onClientChange(id: string) {
+    setFilter(prev => ({ ...prev, client_id: id }))
+    const client = clients.find(c => c.id === id)
+    setClientAddress(client?.address ?? '')
+  }
 
   async function loadLines() {
     if (!filter.client_id) return
@@ -149,21 +174,37 @@ export default function GenerateInvoicePage() {
   function toggleLine(id: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, included: !l.included } : l))
   }
-
   function updateLineNotes(id: string, notes: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, notes } : l))
   }
-
   function updateLineCharge(id: string, charge: string) {
     setLines(prev => prev.map(l => l.id === id ? { ...l, client_charge: parseFloat(charge) || 0 } : l))
   }
 
+  function addCustomItem() {
+    setCustomItems(prev => [...prev, { id: uid(), label: '', amount: 0 }])
+  }
+  function updateCustomItem(id: string, field: 'label' | 'amount', value: string) {
+    setCustomItems(prev => prev.map(item =>
+      item.id === id
+        ? { ...item, [field]: field === 'amount' ? parseFloat(value) || 0 : value }
+        : item
+    ))
+  }
+  function removeCustomItem(id: string) {
+    setCustomItems(prev => prev.filter(item => item.id !== id))
+  }
+
   const includedLines = lines.filter(l => l.included)
-  const totalCharge = includedLines.reduce((s, l) => new Decimal(s).plus(l.client_charge).toNumber(), 0)
+  const customTotal = customItems.reduce((s, i) => new Decimal(s).plus(i.amount).toNumber(), 0)
+  const totalCharge = new Decimal(
+    includedLines.reduce((s, l) => new Decimal(s).plus(l.client_charge).toNumber(), 0)
+  ).plus(customTotal).toNumber()
   const totalDriverPay = includedLines.reduce((s, l) => new Decimal(s).plus(l.driver_pay).toNumber(), 0)
 
   async function createInvoice() {
-    if (includedLines.length === 0 || !filter.client_id) return
+    if (includedLines.length === 0 && customItems.length === 0) return
+    if (!filter.client_id) return
     setCreating(true)
 
     const now = new Date()
@@ -177,15 +218,20 @@ export default function GenerateInvoicePage() {
       status: 'draft',
       total_amount: totalCharge,
       total_loads: includedLines.filter(l => l.type === 'ticket').length,
-      lines_total: includedLines.length,
-      lines_confirmed: includedLines.length,
+      lines_total: includedLines.length + customItems.length,
+      lines_confirmed: includedLines.length + customItems.length,
       date_from: filter.date_from,
       date_to: filter.date_to,
+      client_address: clientAddress || null,
+      origin: origin || null,
+      destination: destination || null,
+      custom_items: customItems.length > 0
+        ? customItems.map(({ label, amount }) => ({ label, amount }))
+        : [],
     }).select().single()
 
     if (error || !inv) { setCreating(false); return }
 
-    // Mark tickets as invoiced
     const ticketIds = includedLines.filter(l => l.type === 'ticket').map(l => l.id)
     if (ticketIds.length > 0) {
       await supabase.from('load_tickets').update({
@@ -196,7 +242,6 @@ export default function GenerateInvoicePage() {
       }).in('id', ticketIds)
     }
 
-    // Mark timesheets as invoiced
     const tsIds = includedLines.filter(l => l.type === 'timesheet').map(l => l.id)
     if (tsIds.length > 0) {
       await supabase.from('daily_timesheets').update({ status: 'invoiced' }).in('id', tsIds)
@@ -242,10 +287,12 @@ export default function GenerateInvoicePage() {
     }
   }
 
-  // ── STEP: FILTER ─────────────────────────────────────────────────────────────
+  // ── STEP 1: FILTER ───────────────────────────────────────────────────────────
   if (step === 'filter') {
+    const selectedClient = clients.find(c => c.id === filter.client_id)
+
     return (
-      <div className="max-w-lg mx-auto p-4 space-y-6">
+      <div className="max-w-lg mx-auto p-4 space-y-5">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
@@ -256,18 +303,82 @@ export default function GenerateInvoicePage() {
           </div>
         </div>
 
+        {/* Client + billing address */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bill To</p>
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-600">Client</label>
             <select
               value={filter.client_id}
-              onChange={e => setFilter(prev => ({ ...prev, client_id: e.target.value }))}
+              onChange={e => onClientChange(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
             >
               <option value="">Select a client…</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600">Billing address</label>
+            <textarea
+              rows={2}
+              value={clientAddress}
+              onChange={e => setClientAddress(e.target.value)}
+              placeholder="123 Main St, Phoenix, AZ 85001"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Origin → Destination */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Haul Route</p>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600">Point of origin</label>
+            <input
+              type="text"
+              value={origin}
+              onChange={e => setOrigin(e.target.value)}
+              placeholder="e.g. Mesa Rock Quarry, Mesa AZ"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-gray-200" />
+            <button
+              type="button"
+              onClick={() => {
+                const tmp = origin
+                setOrigin(destination)
+                setDestination(tmp)
+              }}
+              title="Swap origin and destination"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 shrink-0"
+            >
+              <ArrowLeftRight size={13} />
+              Swap
+            </button>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600">Destination</label>
+            <input
+              type="text"
+              value={destination}
+              onChange={e => setDestination(e.target.value)}
+              placeholder="e.g. Scottsdale Job Site, Scottsdale AZ"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+          </div>
+        </div>
+
+        {/* Date range + include */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Period</p>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -300,13 +411,15 @@ export default function GenerateInvoicePage() {
           disabled={!filter.client_id || loading || (!filter.include_tickets && !filter.include_timesheets)}
           className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl font-medium disabled:opacity-40 flex items-center justify-center gap-2"
         >
-          {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Load Lines →'}
+          {loading
+            ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : 'Load Lines →'}
         </button>
       </div>
     )
   }
 
-  // ── STEP: REVIEW LINES ───────────────────────────────────────────────────────
+  // ── STEP 2: REVIEW LINES ─────────────────────────────────────────────────────
   if (step === 'review') {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
@@ -320,65 +433,126 @@ export default function GenerateInvoicePage() {
           </div>
         </div>
 
-        {lines.length === 0 ? (
+        {lines.length === 0 && customItems.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <p className="text-sm">No confirmed, uninvoiced tickets or timesheets found for this client and period.</p>
             <button onClick={() => setStep('filter')} className="mt-4 text-sm text-blue-600 hover:underline">Change filters</button>
           </div>
         ) : (
           <>
-            <div className="space-y-2">
-              {lines.map(line => (
-                <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={line.included}
-                      onChange={() => toggleLine(line.id)}
-                      className="mt-0.5 w-4 h-4"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{line.driver_name}</p>
-                          <p className="text-xs text-gray-500">{line.date} · {line.description}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xs text-gray-500">Client charge</p>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={line.client_charge}
-                            onChange={e => updateLineCharge(line.id, e.target.value)}
-                            className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-                        <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full border ${line.type === 'ticket' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
-                          {line.type === 'ticket' ? 'Load' : 'Hourly'}
-                        </span>
-                      </div>
+            {/* Ticket / timesheet lines */}
+            {lines.length > 0 && (
+              <div className="space-y-2">
+                {lines.map(line => (
+                  <div key={line.id} className={`bg-white border rounded-xl p-4 transition-opacity ${line.included ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
+                    <div className="flex items-start gap-3">
                       <input
-                        type="text"
-                        value={line.notes}
-                        onChange={e => updateLineNotes(line.id, e.target.value)}
-                        placeholder="Add note to this line…"
-                        className="mt-2 w-full text-xs border border-gray-100 rounded px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                        type="checkbox"
+                        checked={line.included}
+                        onChange={() => toggleLine(line.id)}
+                        className="mt-0.5 w-4 h-4"
                       />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{line.driver_name}</p>
+                            <p className="text-xs text-gray-500">{line.date} · {line.description}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-gray-500">Client charge</p>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={line.client_charge}
+                              onChange={e => updateLineCharge(line.id, e.target.value)}
+                              className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-sm font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+                          <p className="text-xs text-green-600">Driver pay: ${line.driver_pay.toFixed(2)}</p>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full border ${line.type === 'ticket' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                            {line.type === 'ticket' ? 'Load' : 'Hourly'}
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={line.notes}
+                          onChange={e => updateLineNotes(line.id, e.target.value)}
+                          placeholder="Add note to this line…"
+                          className="mt-2 w-full text-xs border border-gray-100 rounded px-2 py-1 text-gray-600 focus:outline-none focus:ring-1 focus:ring-gray-300"
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Custom / additional items */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Additional items</p>
+                  <p className="text-xs text-gray-500">Fuel surcharge, disposal fee, equipment rental, etc.</p>
                 </div>
-              ))}
+                <button
+                  type="button"
+                  onClick={addCustomItem}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <Plus size={13} /> Add item
+                </button>
+              </div>
+
+              {customItems.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-2">No additional items. Click "Add item" to add one.</p>
+              ) : (
+                <div className="space-y-2">
+                  {customItems.map(item => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={item.label}
+                        onChange={e => updateCustomItem(item.id, 'label', e.target.value)}
+                        placeholder="Item label (e.g. Fuel surcharge)"
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      />
+                      <div className="relative shrink-0">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.amount || ''}
+                          onChange={e => updateCustomItem(item.id, 'amount', e.target.value)}
+                          placeholder="0.00"
+                          className="w-28 pl-7 border border-gray-200 rounded-lg px-3 py-2 text-sm text-right font-semibold text-blue-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeCustomItem(item.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 shrink-0"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-xs font-medium text-gray-700 pt-1 border-t border-gray-100">
+                    <span>Additional items subtotal</span>
+                    <span>${customTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Totals sticky footer */}
             <div className="sticky bottom-0 bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Lines included</span>
-                <span className="font-medium">{includedLines.length}</span>
+                <span className="font-medium">{includedLines.length}{customItems.length > 0 ? ` + ${customItems.length} custom` : ''}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-blue-600">Total client charge</span>
@@ -390,7 +564,7 @@ export default function GenerateInvoicePage() {
               </div>
               <button
                 onClick={() => setStep('summary')}
-                disabled={includedLines.length === 0}
+                disabled={includedLines.length === 0 && customItems.length === 0}
                 className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl font-medium disabled:opacity-40"
               >
                 Review Summary →
@@ -402,7 +576,7 @@ export default function GenerateInvoicePage() {
     )
   }
 
-  // ── STEP: SUMMARY + CREATE ───────────────────────────────────────────────────
+  // ── STEP 3: SUMMARY + CREATE ─────────────────────────────────────────────────
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
       {!invoiceId ? (
@@ -419,12 +593,30 @@ export default function GenerateInvoicePage() {
 
           <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Client</span>
+              <span className="font-medium">{clients.find(c => c.id === filter.client_id)?.name ?? '—'}</span>
+            </div>
+            {clientAddress && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Billing address</span>
+                <span className="font-medium text-right max-w-[60%]">{clientAddress}</span>
+              </div>
+            )}
+            {(origin || destination) && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Route</span>
+                <span className="font-medium text-right max-w-[60%]">
+                  {[origin, destination].filter(Boolean).join(' → ')}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm">
               <span className="text-gray-600">Period</span>
               <span className="font-medium">{filter.date_from} → {filter.date_to}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Lines</span>
-              <span className="font-medium">{includedLines.length}</span>
+              <span className="font-medium">{includedLines.length}{customItems.length > 0 ? ` + ${customItems.length} custom` : ''}</span>
             </div>
             <div className="border-t border-gray-100 pt-3 flex justify-between text-sm">
               <span className="text-blue-600 font-medium">Client invoice total</span>
@@ -448,15 +640,16 @@ export default function GenerateInvoicePage() {
 
           <button
             onClick={createInvoice}
-            disabled={creating || includedLines.length === 0}
+            disabled={creating || (includedLines.length === 0 && customItems.length === 0)}
             className="w-full py-3 bg-[#1a1a1a] text-white rounded-xl font-medium disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            {creating ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Create Invoice ✓'}
+            {creating
+              ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : 'Create Invoice ✓'}
           </button>
         </>
       ) : (
         <>
-          {/* Invoice created success */}
           <div className="text-center py-6">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
               <CheckCircle className="w-8 h-8 text-green-600" />

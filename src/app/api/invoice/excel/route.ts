@@ -222,6 +222,31 @@ export async function GET(request: NextRequest) {
   s1.getCell(`F${rowIdx}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFdbeafe' } }
   s1.getRow(rowIdx).height = 24
 
+  // Custom items
+  const customItems: Array<{ label: string; amount: number }> = Array.isArray(invAny.custom_items) ? invAny.custom_items : []
+  for (const ci of customItems) {
+    const amount = Number(ci.amount ?? 0)
+    s1.getCell(`B${rowIdx}`).value = ''
+    s1.getCell(`C${rowIdx}`).value = ci.label ?? 'Custom item'
+    s1.getCell(`D${rowIdx}`).value = ''
+    s1.getCell(`E${rowIdx}`).value = '—'
+    s1.getCell(`E${rowIdx}`).alignment = { horizontal: 'right' }
+    s1.getCell(`F${rowIdx}`).value = amount
+    s1.getCell(`F${rowIdx}`).numFmt = '"$"#,##0.00'
+    s1.getCell(`F${rowIdx}`).alignment = { horizontal: 'right' }
+    rowIdx++
+  }
+
+  // Route (origin → destination)
+  if (invAny.origin || invAny.destination) {
+    rowIdx += 1
+    s1.getCell(`B${rowIdx}`).value = 'Route'
+    s1.getCell(`B${rowIdx}`).font = { bold: true, size: 10, color: { argb: 'FF6b7280' } }
+    s1.getCell(`C${rowIdx}`).value = [invAny.origin, invAny.destination].filter(Boolean).join(' → ')
+    s1.mergeCells(`C${rowIdx}:F${rowIdx}`)
+    rowIdx++
+  }
+
   // Notes / footer
   if (invAny.notes) {
     rowIdx += 3
