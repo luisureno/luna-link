@@ -64,8 +64,8 @@ export default function LandingPage() {
         <h1 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05] text-gray-900">
           From paper ticket<br />to paid invoice.
         </h1>
-        <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-xl mx-auto">
-          Scan the tag. Confirm the load. Send the invoice. No spreadsheets.
+        <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
+          Scan the tag. Confirm the load. Send the invoice in minutes — not hours. No spreadsheets. No chasing drivers. No billing nights.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
