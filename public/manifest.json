@@ -1,6 +1,6 @@
 {
-  "name": "FleetWise",
-  "short_name": "FleetWise",
+  "name": "fleetwise",
+  "short_name": "fleetwise",
   "description": "Dump truck digital ticketing",
   "start_url": "/driver",
   "display": "standalone",

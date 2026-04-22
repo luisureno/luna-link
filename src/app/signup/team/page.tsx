@@ -63,7 +63,7 @@ export default function TeamStep() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join our fleet on FleetWise',
+          title: 'Join our fleet on fleetwise',
           text: 'Register to start running loads:',
           url: inviteLink,
         })

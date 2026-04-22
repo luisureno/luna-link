@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   const timesheetsList = (timesheets ?? []) as any[]
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'FleetWise'
+  wb.creator = 'fleetwise'
   wb.created = new Date()
 
   // ── Sheet 1: Formatted Invoice ──────────────────────────────────────────────
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
   // Company header
   s1.mergeCells('B2:F2')
   const companyCell = s1.getCell('B2')
-  companyCell.value = company.name ?? 'FleetWise Customer'
+  companyCell.value = company.name ?? 'fleetwise Customer'
   companyCell.font = { bold: true, size: 20, color: { argb: 'FF1a1a1a' } }
   companyCell.alignment = { vertical: 'middle' }
 

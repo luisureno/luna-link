@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   ])
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'FleetWise'
+  wb.creator = 'fleetwise'
 
   // ── Sheet 1: All Lines ──────────────────────────────────────────────────────
   const allSheet = wb.addWorksheet('All Lines')

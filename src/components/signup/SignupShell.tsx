@@ -17,7 +17,7 @@ export function SignupShell({ children }: { children: React.ReactNode }) {
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Truck size={20} className="text-gray-900" />
-            <span className="text-base md:text-lg font-semibold tracking-tight">FleetWise</span>
+            <span className="text-base md:text-lg font-semibold tracking-tight">fleetwise</span>
           </Link>
           <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
             Log in

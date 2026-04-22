@@ -36,13 +36,13 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Truck size={20} className="text-gray-900" />
-            <span className="text-base md:text-lg font-semibold tracking-tight">FleetWise</span>
+            <span className="text-base md:text-lg font-semibold tracking-tight">fleetwise</span>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
             <a href="#pricing" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Pricing
             </a>
-            <a href="mailto:luisangelmureno@gmail.com?subject=FleetWise Support" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
+            <a href="mailto:luisangelmureno@gmail.com?subject=fleetwise Support" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
               Support
             </a>
             <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
@@ -64,7 +64,7 @@ export default function LandingPage() {
           The operating system for<br />trucking companies.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-          FleetWise replaces the paper tickets, text messages, and spreadsheets your dispatchers and drivers use every day — with a single mobile-first platform that captures every load, every hour, and every gallon.
+          fleetwise replaces the paper tickets, text messages, and spreadsheets your dispatchers and drivers use every day — with a single mobile-first platform that captures every load, every hour, and every gallon.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
@@ -137,7 +137,7 @@ export default function LandingPage() {
                 <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 pt-6">
                   <div className="flex items-center gap-2">
                     <Truck size={14} className="text-gray-900" />
-                    <span className="text-xs font-semibold text-gray-900">FleetWise</span>
+                    <span className="text-xs font-semibold text-gray-900">fleetwise</span>
                   </div>
                   <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-600">C</div>
                 </div>
@@ -206,7 +206,7 @@ export default function LandingPage() {
                   <div className="p-3 border-b border-white/10">
                     <div className="flex items-center gap-1.5">
                       <Truck size={12} className="text-white/70" />
-                      <span className="font-semibold text-[10px] text-white">FleetWise</span>
+                      <span className="font-semibold text-[10px] text-white">fleetwise</span>
                     </div>
                   </div>
                   <div className="p-2 space-y-0.5">
@@ -351,7 +351,7 @@ export default function LandingPage() {
       {/* Why */}
       <section className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Why FleetWise</p>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Why fleetwise</p>
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">Stop losing money to paper.</h2>
         </div>
 
@@ -510,10 +510,10 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-8 text-center text-xs text-gray-500 space-y-2">
-        <p>© {new Date().getFullYear()} FleetWise. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} fleetwise. All rights reserved.</p>
         <p>
           Need help?{' '}
-          <a href="mailto:luisangelmureno@gmail.com?subject=FleetWise Support" className="underline hover:text-gray-700">
+          <a href="mailto:luisangelmureno@gmail.com?subject=fleetwise Support" className="underline hover:text-gray-700">
             Contact support
           </a>
         </p>

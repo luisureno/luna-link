@@ -3,13 +3,13 @@ import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
 
 export const metadata: Metadata = {
-  title: 'FleetWise',
+  title: 'fleetwise',
   description: 'Dump truck digital ticketing',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'FleetWise',
+    title: 'fleetwise',
   },
 }
 

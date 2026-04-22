@@ -61,7 +61,7 @@ export default function LoginPage() {
     <div className="min-h-full flex items-center justify-center bg-[#F8F7F5]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">FleetWise</h1>
+          <h1 className="text-3xl font-semibold text-gray-900">fleetwise</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 

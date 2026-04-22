@@ -44,7 +44,7 @@ export function Sidebar() {
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
         <Link href={homeHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Truck size={18} className="text-white/70" />
-          <span className="font-semibold text-sm">FleetWise</span>
+          <span className="font-semibold text-sm">fleetwise</span>
         </Link>
         <button onClick={() => setOpen(true)} className="p-2 -mr-2" aria-label="Open menu">
           <Menu size={20} />
@@ -68,7 +68,7 @@ export function Sidebar() {
           <div>
             <Link href={homeHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Truck size={20} className="text-white/70" />
-              <span className="font-semibold text-base">FleetWise</span>
+              <span className="font-semibold text-base">fleetwise</span>
             </Link>
             <p className="text-xs text-white/40 mt-1 truncate">{profile?.full_name ?? ''}</p>
           </div>
@@ -111,7 +111,7 @@ export function Sidebar() {
             </div>
           </div>
           <a
-            href="mailto:luisangelmureno@gmail.com?subject=FleetWise Support"
+            href="mailto:luisangelmureno@gmail.com?subject=fleetwise Support"
             className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
           >
             <span className="text-[14px]">💬</span>
