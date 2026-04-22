@@ -204,7 +204,7 @@ export default function FuelPage() {
             onChange={handleReceiptPhoto}
             disabled={scanning}
           />
-          <div className={`relative w-full rounded-2xl overflow-hidden border-2 border-dashed transition-colors ${scanning ? 'border-gray-300 bg-gray-50' : 'border-gray-400 bg-white hover:border-gray-600 hover:bg-gray-50'}`}
+          <div className={`relative w-full rounded-2xl overflow-hidden border-2 transition-colors ${scanning ? 'border-gray-300 bg-gray-50' : 'border-gray-400 bg-white hover:border-gray-600 hover:bg-gray-50'}`}
             style={{ minHeight: 180 }}>
             <div className="flex flex-col items-center justify-center gap-3 py-12 px-4">
               {scanning ? (
@@ -311,7 +311,7 @@ export default function FuelPage() {
             {!defReceiptPreview ? (
               <label className="block cursor-pointer">
                 <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleDefReceiptPhoto} disabled={scanningDef} />
-                <div className={`flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors ${scanningDef ? 'border-blue-200 text-blue-300' : 'border-blue-400 text-blue-700 hover:border-blue-600'}`}>
+                <div className={`flex items-center justify-center gap-2 py-3 border-2 rounded-xl text-sm font-medium transition-colors ${scanningDef ? 'border-blue-200 text-blue-300' : 'border-blue-400 text-blue-700 hover:border-blue-600'}`}>
                   {scanningDef
                     ? <><span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />Reading DEF receipt…</>
                     : <><Camera size={16} />Snap DEF receipt (optional)</>}
@@ -334,7 +334,7 @@ export default function FuelPage() {
                 <label className="block text-xs font-medium text-blue-800 mb-1">DEF Gallons</label>
                 <input
                   type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
-                  value={defGallons} onChange={e => { setDefGallons(e.target.value); setDefTotalOverride('') }}
+                  value={defGallons} onChange={e => setDefGallons(e.target.value)}
                   className="w-full px-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
@@ -344,7 +344,7 @@ export default function FuelPage() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
                   <input
                     type="number" inputMode="decimal" step="0.001" min="0" placeholder="0.000"
-                    value={defPricePerGallon} onChange={e => { setDefPricePerGallon(e.target.value); setDefTotalOverride('') }}
+                    value={defPricePerGallon} onChange={e => setDefPricePerGallon(e.target.value)}
                     className="w-full pl-7 pr-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
                 </div>
@@ -353,13 +353,13 @@ export default function FuelPage() {
 
             <div>
               <label className="block text-xs font-medium text-blue-800 mb-1">
-                DEF total paid <span className="text-blue-400 font-normal">(if no gallons on receipt)</span>
+                DEF total paid
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">$</span>
                 <input
                   type="number" inputMode="decimal" step="0.01" min="0" placeholder="0.00"
-                  value={defTotalOverride} onChange={e => { setDefTotalOverride(e.target.value); setDefGallons(''); setDefPricePerGallon('') }}
+                  value={defTotalOverride} onChange={e => setDefTotalOverride(e.target.value)}
                   className="w-full pl-7 pr-3 py-3 border border-blue-200 rounded-xl text-lg font-semibold text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
