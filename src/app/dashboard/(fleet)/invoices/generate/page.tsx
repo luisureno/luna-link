@@ -491,8 +491,8 @@ export default function GenerateInvoicePage() {
                 <Download className="w-5 h-5 text-green-600" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-900">Download Excel</p>
-                <p className="text-xs text-gray-500">3 sheets: invoice, driver pay, summary</p>
+                <p className="text-sm font-semibold text-gray-900">Export to Excel</p>
+                <p className="text-xs text-gray-500">3 sheets: formatted invoice, raw load tickets, raw timesheets</p>
               </div>
               {excelLoading && <span className="ml-auto w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />}
             </button>

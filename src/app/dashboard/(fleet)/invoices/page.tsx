@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, FileSpreadsheet } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { QuickBooksWaitlistButton } from '@/components/QuickBooksWaitlistButton'
 import type { Invoice, Client } from '@/types'
 
 type TabId = 'client' | 'payroll' | 'all'
@@ -56,12 +57,15 @@ export default function InvoicesPage() {
         title="Invoices"
         subtitle="Generate and track client invoices and payroll"
         action={
-          <Link
-            href="/dashboard/invoices/generate"
-            className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800"
-          >
-            <Plus size={16} /> Generate Invoice
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <QuickBooksWaitlistButton source="invoices_page" />
+            <Link
+              href="/dashboard/invoices/generate"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800"
+            >
+              <Plus size={16} /> Generate Invoice
+            </Link>
+          </div>
         }
       />
 
@@ -105,7 +109,13 @@ export default function InvoicesPage() {
                       <StatusBadge status={inv.status} />
                       <div className="flex gap-1.5">
                         <Link href={`/api/invoice/pdf?id=${inv.id}`} target="_blank" className="text-xs px-2.5 py-1.5 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">PDF</Link>
-                        <Link href={`/api/invoice/excel?id=${inv.id}`} className="text-xs px-2.5 py-1.5 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">XLS</Link>
+                        <Link
+                          href={`/api/invoice/excel?id=${inv.id}`}
+                          className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-green-600 text-green-700 rounded hover:bg-green-50"
+                          title="Download multi-sheet Excel workbook"
+                        >
+                          <FileSpreadsheet size={12} /> Excel
+                        </Link>
                         {inv.status === 'sent' && (
                           <button onClick={() => markPaid(inv.id)} className="text-xs px-2.5 py-1.5 bg-green-600 text-white rounded hover:bg-green-700">Paid</button>
                         )}
@@ -142,7 +152,13 @@ export default function InvoicesPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <Link href={`/api/invoice/pdf?id=${inv.id}`} target="_blank" className="text-xs px-2 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">PDF</Link>
-                          <Link href={`/api/invoice/excel?id=${inv.id}`} className="text-xs px-2 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">XLS</Link>
+                          <Link
+                            href={`/api/invoice/excel?id=${inv.id}`}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 border border-green-600 text-green-700 rounded hover:bg-green-50"
+                            title="Download multi-sheet Excel workbook"
+                          >
+                            <FileSpreadsheet size={11} /> Excel
+                          </Link>
                           {inv.status === 'sent' && (
                             <button onClick={() => markPaid(inv.id)} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Mark Paid</button>
                           )}
