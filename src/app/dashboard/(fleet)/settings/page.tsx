@@ -34,6 +34,8 @@ export default function SettingsPage() {
   const [templateFields, setTemplateFields] = useState<TemplateField[]>([])
   const [templateName, setTemplateName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [showUserModal, setShowUserModal] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [editingPayUserId, setEditingPayUserId] = useState<string | null>(null)
@@ -56,11 +58,12 @@ export default function SettingsPage() {
     const [usersRes, templatesRes, companyRes] = await Promise.all([
       supabase.from('users').select('*').eq('company_id', cid).order('full_name'),
       supabase.from('ticket_templates').select('*').eq('company_id', cid).order('name'),
-      supabase.from('companies').select('invite_token').eq('id', cid).single(),
+      supabase.from('companies').select('invite_token, logo_url').eq('id', cid).single(),
     ])
     setUsers(usersRes.data ?? [])
     setTemplates(templatesRes.data ?? [])
     setInviteToken((companyRes.data as any)?.invite_token ?? null)
+    setLogoUrl((companyRes.data as any)?.logo_url ?? null)
   }
 
   async function copyInviteLink() {
@@ -75,6 +78,19 @@ export default function SettingsPage() {
     setSaving(true)
     await supabase.from('companies').update(data).eq('id', profile!.company_id)
     setSaving(false)
+  }
+
+  async function uploadLogo(file: File) {
+    setUploadingLogo(true)
+    const ext = file.name.split('.').pop()
+    const path = `${profile!.company_id}/logo.${ext}`
+    const { data } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true, contentType: file.type })
+    if (data) {
+      const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(data.path)
+      await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', profile!.company_id)
+      setLogoUrl(publicUrl)
+    }
+    setUploadingLogo(false)
   }
 
   function startEditPay(u: User) {
@@ -168,6 +184,33 @@ export default function SettingsPage() {
       {tab === 'Company' && (
         <div className="bg-white border border-gray-200 rounded-lg p-5 max-w-lg">
           <h2 className="text-base font-medium mb-4">Company Info</h2>
+
+          {/* Logo upload */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Business Logo</label>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                {logoUrl
+                  ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                  : <span className="text-xs text-gray-400 text-center px-1">No logo</span>
+                }
+              </div>
+              <div>
+                <label className={`inline-block px-4 py-2 text-sm font-medium border border-gray-300 rounded cursor-pointer hover:bg-gray-50 ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {uploadingLogo ? 'Uploading…' : logoUrl ? 'Replace Logo' : 'Upload Logo'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }}
+                    disabled={uploadingLogo}
+                  />
+                </label>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG — appears on PDF &amp; Excel invoices</p>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={handleCompanySubmit(saveCompany)} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>

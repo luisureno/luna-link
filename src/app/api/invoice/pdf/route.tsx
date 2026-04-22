@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { formatDate } from '@/lib/format'
 
 const styles = StyleSheet.create({
@@ -99,7 +99,11 @@ export async function GET(request: NextRequest) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.logo}>{company?.name ?? 'fleetwise'}</Text>
+            {company?.logo_url
+              ? <Image src={company.logo_url} style={{ width: 80, height: 40, objectFit: 'contain', marginBottom: 4 }} />
+              : <Text style={styles.logo}>{company?.name ?? 'fleetwise'}</Text>
+            }
+            {company?.name && company?.logo_url && <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold' }}>{company.name}</Text>}
             {company?.address && <Text style={{ fontSize: 9, color: '#666', marginTop: 4 }}>{company.address}</Text>}
             {company?.phone && <Text style={{ fontSize: 9, color: '#666' }}>{company.phone}</Text>}
           </View>

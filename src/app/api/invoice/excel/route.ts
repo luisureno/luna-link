@@ -54,6 +54,22 @@ export async function GET(request: NextRequest) {
   wb.creator = 'fleetwise'
   wb.created = new Date()
 
+  // Fetch logo if available
+  let logoImageId: number | null = null
+  if (company.logo_url) {
+    try {
+      const logoRes = await fetch(company.logo_url)
+      if (logoRes.ok) {
+        const logoBuffer = await logoRes.arrayBuffer()
+        const ext = company.logo_url.split('?')[0].split('.').pop()?.toLowerCase()
+        const imgType = ext === 'png' ? 'png' : ext === 'svg' ? 'png' : 'jpeg'
+        logoImageId = wb.addImage({ buffer: Buffer.from(logoBuffer), extension: imgType as 'png' | 'jpeg' })
+      }
+    } catch {
+      // logo fetch failed — proceed without it
+    }
+  }
+
   // ── Sheet 1: Formatted Invoice ──────────────────────────────────────────────
   const s1 = wb.addWorksheet('Invoice', {
     pageSetup: { paperSize: 9, orientation: 'portrait', margins: { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } },
@@ -65,11 +81,19 @@ export async function GET(request: NextRequest) {
   s1.getColumn('E').width = 14
   s1.getColumn('F').width = 16
 
+  // Logo or company name header
+  if (logoImageId !== null) {
+    s1.addImage(logoImageId, { tl: { col: 1, row: 1 }, br: { col: 3, row: 3 }, editAs: 'oneCell' })
+    s1.getRow(2).height = 40
+  }
+
   // Company header
   s1.mergeCells('B2:F2')
   const companyCell = s1.getCell('B2')
-  companyCell.value = company.name ?? 'fleetwise Customer'
-  companyCell.font = { bold: true, size: 20, color: { argb: 'FF1a1a1a' } }
+  if (!logoImageId) {
+    companyCell.value = company.name ?? 'fleetwise Customer'
+    companyCell.font = { bold: true, size: 20, color: { argb: 'FF1a1a1a' } }
+  }
   companyCell.alignment = { vertical: 'middle' }
 
   if (company.address) {

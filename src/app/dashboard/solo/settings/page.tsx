@@ -18,6 +18,8 @@ export default function SoloSettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPay, setSavingPay] = useState(false)
   const [savingCompany, setSavingCompany] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -62,6 +64,7 @@ export default function SoloSettingsPage() {
         setCompanyName(companyRow.name ?? '')
         setCompanyAddress(companyRow.address ?? '')
         setCompanyPhone(companyRow.phone ?? '')
+        setLogoUrl(companyRow.logo_url ?? null)
       }
 
       setLoading(false)
@@ -119,6 +122,20 @@ export default function SoloSettingsPage() {
       .eq('id', profile!.company_id)
     setSavingCompany(false)
     flash('Company info saved')
+  }
+
+  async function uploadLogo(file: File) {
+    setUploadingLogo(true)
+    const ext = file.name.split('.').pop()
+    const path = `${profile!.company_id}/logo.${ext}`
+    const { data } = await supabase.storage.from('company-logos').upload(path, file, { upsert: true, contentType: file.type })
+    if (data) {
+      const { data: { publicUrl } } = supabase.storage.from('company-logos').getPublicUrl(data.path)
+      await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', profile!.company_id)
+      setLogoUrl(publicUrl)
+      flash('Logo saved')
+    }
+    setUploadingLogo(false)
   }
 
   async function handleSignOut() {
@@ -296,6 +313,32 @@ export default function SoloSettingsPage() {
           <h2 className="text-sm font-semibold text-gray-900">Company info</h2>
         </div>
         <p className="text-[11px] text-gray-500">Shows up on your client invoices.</p>
+
+        {/* Logo */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-2">Business Logo</label>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+              {logoUrl
+                ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                : <span className="text-[10px] text-gray-400 text-center px-1">No logo</span>
+              }
+            </div>
+            <div>
+              <label className={`inline-block px-3 py-1.5 text-xs font-medium border border-gray-300 rounded cursor-pointer hover:bg-gray-50 ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                {uploadingLogo ? 'Uploading…' : logoUrl ? 'Replace' : 'Upload Logo'}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }}
+                  disabled={uploadingLogo}
+                />
+              </label>
+              <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, SVG — appears on invoices</p>
+            </div>
+          </div>
+        </div>
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Company name</label>
