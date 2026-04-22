@@ -1,4 +1,4 @@
-const QUEUE_KEY = 'haulproof_offline_queue'
+const QUEUE_KEY = 'fleetwise_offline_queue'
 
 export interface QueuedTicket {
   localId: string

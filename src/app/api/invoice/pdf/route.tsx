@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.logo}>{company?.name ?? 'HaulProof'}</Text>
+            <Text style={styles.logo}>{company?.name ?? 'FleetWise'}</Text>
             {company?.address && <Text style={{ fontSize: 9, color: '#666', marginTop: 4 }}>{company.address}</Text>}
             {company?.phone && <Text style={{ fontSize: 9, color: '#666' }}>{company.phone}</Text>}
           </View>

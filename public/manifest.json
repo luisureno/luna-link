@@ -1,6 +1,6 @@
 {
-  "name": "HaulProof",
-  "short_name": "HaulProof",
+  "name": "FleetWise",
+  "short_name": "FleetWise",
   "description": "Dump truck digital ticketing",
   "start_url": "/driver",
   "display": "standalone",

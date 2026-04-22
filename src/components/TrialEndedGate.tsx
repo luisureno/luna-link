@@ -64,7 +64,7 @@ export function TrialEndedGate({ billingHref, allowPathnames = [] }: Props) {
         <p className="text-sm text-gray-600 text-center mt-2">
           {canceled
             ? 'Reactivate your plan to get back to running loads.'
-            : 'Add billing info to keep using HaulProof. Your data is safe — nothing was deleted.'}
+            : 'Add billing info to keep using FleetWise. Your data is safe — nothing was deleted.'}
         </p>
 
         <div className="mt-6 space-y-2">
@@ -84,7 +84,7 @@ export function TrialEndedGate({ billingHref, allowPathnames = [] }: Props) {
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
-          <span className="text-gray-500">Need help? <a href="mailto:support@haulproof.com" className="text-gray-900 font-medium">support@haulproof.com</a></span>
+          <span className="text-gray-500">Need help? <a href="mailto:support@fleetwise.com" className="text-gray-900 font-medium">support@fleetwise.com</a></span>
           <button
             onClick={handleSignOut}
             disabled={signingOut}

@@ -83,7 +83,7 @@ export default function DoneStep() {
         </div>
 
         <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-          Welcome to HaulProof{companyName ? `, ${companyName}` : ''}.
+          Welcome to FleetWise{companyName ? `, ${companyName}` : ''}.
         </h1>
         <p className="mt-3 text-sm md:text-base text-gray-600">
           Your account is live. {planName && <>You're on the <strong className="text-gray-900">{planName}</strong> plan.</>}

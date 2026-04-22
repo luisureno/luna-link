@@ -194,7 +194,7 @@ export function BillingPanel({ backHref }: Props) {
           )}
         </div>
         <p className="text-[11px] text-gray-400 mt-3">
-          Questions? Email <a href="mailto:billing@haulproof.com" className="text-gray-700 underline">billing@haulproof.com</a>.
+          Questions? Email <a href="mailto:billing@fleetwise.com" className="text-gray-700 underline">billing@fleetwise.com</a>.
         </p>
       </div>
 

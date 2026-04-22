@@ -1,6 +1,6 @@
 import type { PlanId, BillingCycle } from '@/types'
 
-const KEY = 'haulproof_signup'
+const KEY = 'fleetwise_signup'
 
 export interface SignupState {
   plan?: PlanId
