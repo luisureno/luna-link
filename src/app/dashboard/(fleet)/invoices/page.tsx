@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus, FileSpreadsheet, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
+import { Plus, FileSpreadsheet, AlertTriangle, CheckCircle2, Clock, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -27,6 +27,8 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<(Invoice & { clients: Client })[]>([])
   const [loading, setLoading] = useState(true)
   const [unpaid, setUnpaid] = useState<(Invoice & { clients: Client })[]>([])
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copyingId, setCopyingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.company_id) return
@@ -69,6 +71,59 @@ export default function InvoicesPage() {
 
   function daysSince(dateStr: string) {
     return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
+  }
+
+  async function copyInvoiceLines(inv: Invoice & { clients: Client }) {
+    setCopyingId(inv.id)
+    const from = (inv as any).date_from
+    const to = (inv as any).date_to
+    const clientName = (inv.clients as Client)?.name ?? '—'
+
+    const { data: tickets } = await supabase
+      .from('load_tickets')
+      .select('submitted_at, tag_number, form_data, billing_type, loads_count, client_charge_total')
+      .eq('company_id', profile!.company_id)
+      .eq('client_id', inv.client_id!)
+      .eq('invoice_line_confirmed', true)
+      .gte('submitted_at', from ? `${from}T00:00:00` : '')
+      .lte('submitted_at', to ? `${to}T23:59:59` : '')
+      .order('submitted_at')
+
+    const { data: timesheets } = await supabase
+      .from('daily_timesheets')
+      .select('work_date, hours_billed_client, client_charge_total')
+      .eq('company_id', profile!.company_id)
+      .eq('client_id', inv.client_id!)
+      .eq('status', 'invoiced')
+      .gte('work_date', from ?? '')
+      .lte('work_date', to ?? '')
+      .order('work_date')
+
+    const rows: string[] = []
+    for (const t of tickets ?? []) {
+      const r = t as any
+      const fd = (r.form_data ?? {}) as Record<string, unknown>
+      const tag = r.tag_number ?? (fd.tag_number ? String(fd.tag_number) : '—')
+      const loads = r.loads_count ?? (fd.loads_count ? String(fd.loads_count) : '1')
+      const desc = `${loads} load(s)`
+      const amt = Number(r.client_charge_total ?? 0).toFixed(2)
+      rows.push(`${formatDate(r.submitted_at)}\t#${tag}\t${desc}\t$${amt}`)
+    }
+    for (const t of timesheets ?? []) {
+      const r = t as any
+      const hrs = r.hours_billed_client ?? '?'
+      const amt = Number(r.client_charge_total ?? 0).toFixed(2)
+      rows.push(`${formatDate(r.work_date)}\t—\t${hrs}h on site\t$${amt}`)
+    }
+
+    const header = `Invoice ${inv.invoice_number} — ${clientName}\nPeriod: ${formatDate(from)} – ${formatDate(to)}\n\nDate\tTag #\tDescription\tAmount\n`
+    const total = `\n\nTOTAL\t\t\t$${Number(inv.total_amount ?? 0).toFixed(2)}`
+    const text = header + rows.join('\n') + total
+
+    await navigator.clipboard.writeText(text)
+    setCopyingId(null)
+    setCopiedId(inv.id)
+    setTimeout(() => setCopiedId(null), 2500)
   }
 
   return (
@@ -178,15 +233,21 @@ export default function InvoicesPage() {
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <p className="text-sm font-semibold text-gray-900">{inv.total_amount ? `$${Number(inv.total_amount).toLocaleString()}` : '—'}</p>
                       <StatusBadge status={inv.status} />
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap">
                         <Link href={`/api/invoice/pdf?id=${inv.id}`} target="_blank" className="text-xs px-2.5 py-1.5 border border-gray-200 rounded text-gray-600 hover:bg-gray-50">PDF</Link>
                         <Link
                           href={`/api/invoice/excel?id=${inv.id}`}
                           className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-green-600 text-green-700 rounded hover:bg-green-50"
-                          title="Download multi-sheet Excel workbook"
                         >
                           <FileSpreadsheet size={12} /> Excel
                         </Link>
+                        <button
+                          onClick={() => copyInvoiceLines(inv)}
+                          disabled={copyingId === inv.id}
+                          className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 border border-purple-400 text-purple-700 rounded hover:bg-purple-50 disabled:opacity-50"
+                        >
+                          {copiedId === inv.id ? <><Check size={12} /> Copied</> : copyingId === inv.id ? '…' : <><Copy size={12} /> Copy</>}
+                        </button>
                         {inv.status === 'sent' && (
                           <button onClick={() => markPaid(inv.id)} className="text-xs px-2.5 py-1.5 bg-green-600 text-white rounded hover:bg-green-700">Paid</button>
                         )}
@@ -226,10 +287,16 @@ export default function InvoicesPage() {
                           <Link
                             href={`/api/invoice/excel?id=${inv.id}`}
                             className="inline-flex items-center gap-1 text-xs px-2 py-1 border border-green-600 text-green-700 rounded hover:bg-green-50"
-                            title="Download multi-sheet Excel workbook"
                           >
                             <FileSpreadsheet size={11} /> Excel
                           </Link>
+                          <button
+                            onClick={() => copyInvoiceLines(inv)}
+                            disabled={copyingId === inv.id}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 border border-purple-400 text-purple-700 rounded hover:bg-purple-50 disabled:opacity-50"
+                          >
+                            {copiedId === inv.id ? <><Check size={11} /> Copied</> : copyingId === inv.id ? '…' : <><Copy size={11} /> Copy</>}
+                          </button>
                           {inv.status === 'sent' && (
                             <button onClick={() => markPaid(inv.id)} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Mark Paid</button>
                           )}
