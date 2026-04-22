@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus, FileSpreadsheet } from 'lucide-react'
+import { Plus, FileSpreadsheet, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -26,11 +26,24 @@ export default function InvoicesPage() {
   const [tab, setTab] = useState<TabId>('client')
   const [invoices, setInvoices] = useState<(Invoice & { clients: Client })[]>([])
   const [loading, setLoading] = useState(true)
+  const [unpaid, setUnpaid] = useState<(Invoice & { clients: Client })[]>([])
 
   useEffect(() => {
     if (!profile?.company_id) return
     loadInvoices()
+    loadUnpaid()
   }, [profile?.company_id, tab])
+
+  async function loadUnpaid() {
+    const { data } = await supabase
+      .from('invoices')
+      .select('*, clients(*)')
+      .eq('company_id', profile!.company_id)
+      .eq('invoice_type', 'client_invoice')
+      .in('status', ['draft', 'sent'])
+      .order('created_at', { ascending: true })
+    setUnpaid((data ?? []) as any)
+  }
 
   async function loadInvoices() {
     setLoading(true)
@@ -51,6 +64,11 @@ export default function InvoicesPage() {
   async function markPaid(id: string) {
     await supabase.from('invoices').update({ status: 'paid' }).eq('id', id)
     setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'paid' as const } : inv))
+    setUnpaid(prev => prev.filter(inv => inv.id !== id))
+  }
+
+  function daysSince(dateStr: string) {
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
   }
 
   return (
@@ -70,6 +88,57 @@ export default function InvoicesPage() {
           </div>
         }
       />
+
+      {/* Payment Tracker */}
+      {unpaid.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg mb-4 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">What clients owe you</p>
+              <p className="text-xs text-gray-500">{unpaid.length} unpaid invoice{unpaid.length !== 1 ? 's' : ''} · ${unpaid.reduce((s, i) => s + Number(i.total_amount ?? 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total outstanding</p>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {unpaid.map(inv => {
+              const days = daysSince(inv.created_at)
+              const isOverdue = days >= 30
+              const isWarning = days >= 14 && days < 30
+
+              return (
+                <div key={inv.id} className={`flex items-center gap-3 px-4 py-3 ${isOverdue ? 'bg-red-50' : isWarning ? 'bg-amber-50' : ''}`}>
+                  <div className="shrink-0">
+                    {isOverdue
+                      ? <AlertTriangle size={16} className="text-red-500" />
+                      : isWarning
+                      ? <Clock size={16} className="text-amber-500" />
+                      : <CheckCircle2 size={16} className="text-gray-300" />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {(inv.clients as Client)?.name ?? '—'}
+                    </p>
+                    <p className={`text-xs ${isOverdue ? 'text-red-600 font-medium' : isWarning ? 'text-amber-600' : 'text-gray-400'}`}>
+                      Invoiced {days === 0 ? 'today' : `${days} day${days !== 1 ? 's' : ''} ago`}
+                      {isOverdue ? ' · OVERDUE' : ''}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-gray-900">${Number(inv.total_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xs text-gray-400">{inv.invoice_number}</p>
+                  </div>
+                  <button
+                    onClick={() => markPaid(inv.id)}
+                    className="shrink-0 text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    Paid ✓
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 border-b border-gray-200">
