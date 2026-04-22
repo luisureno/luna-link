@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { formatDate } from '@/lib/format'
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: 'Helvetica', fontSize: 10, color: '#1a1a1a' },
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
     const uid = r.users?.id ?? 'unknown'
     if (!map.has(uid)) map.set(uid, { name: r.users?.full_name ?? '—', lines: [], total: 0 })
     const pay = Number(r.dispatcher_adjusted_pay ?? r.driver_pay_total ?? 0)
-    map.get(uid)!.lines.push({ date: r.submitted_at?.split('T')[0] ?? '', desc: `${r.loads_count} loads`, type: 'Load', pay })
+    map.get(uid)!.lines.push({ date: formatDate(r.submitted_at), desc: `${r.loads_count} loads`, type: 'Load', pay })
     map.get(uid)!.total += pay
   }
   for (const t of timesheets ?? []) {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     const uid = r.users?.id ?? 'unknown'
     if (!map.has(uid)) map.set(uid, { name: r.users?.full_name ?? '—', lines: [], total: 0 })
     const pay = Number(r.driver_pay_total ?? 0)
-    map.get(uid)!.lines.push({ date: r.work_date ?? '', desc: `${r.dispatcher_adjusted_hours ?? r.hours_paid_driver ?? '?'}h`, type: 'Hourly', pay })
+    map.get(uid)!.lines.push({ date: formatDate(r.work_date), desc: `${r.dispatcher_adjusted_hours ?? r.hours_paid_driver ?? '?'}h`, type: 'Hourly', pay })
     map.get(uid)!.total += pay
   }
 
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Driver Payroll Summary</Text>
-        <Text style={styles.subtitle}>{dateFrom} to {dateTo} · Generated {new Date().toLocaleDateString()}</Text>
+        <Text style={styles.subtitle}>{formatDate(dateFrom)} to {formatDate(dateTo)} · Generated {formatDate(new Date())}</Text>
 
         {drivers.map((driver, di) => (
           <View key={di} style={styles.driverBlock}>

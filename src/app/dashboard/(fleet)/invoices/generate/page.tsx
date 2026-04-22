@@ -6,6 +6,7 @@ import { ChevronLeft, CheckCircle, FileText, Download, X, Plus, Trash2 } from 'l
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { formatDate } from '@/lib/format'
 
 type Step = 'filter' | 'review' | 'summary'
 type LineType = 'ticket' | 'timesheet'
@@ -421,7 +422,7 @@ export default function GenerateInvoicePage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Review Lines</h1>
-            <p className="text-sm text-gray-500">Step 2 of 3 — {lines.length} line(s) found · {filter.date_from} to {filter.date_to}</p>
+            <p className="text-sm text-gray-500">Step 2 of 3 — {lines.length} line(s) found · {formatDate(filter.date_from)} to {formatDate(filter.date_to)}</p>
           </div>
         </div>
 
@@ -445,7 +446,7 @@ export default function GenerateInvoicePage() {
                     ? `${line.origin ?? '—'} → ${line.destination ?? '—'}`
                     : null
                   const metaParts = [
-                    line.date,
+                    formatDate(line.date),
                     isTicket && line.truck_number ? `Truck #${line.truck_number}` : null,
                   ].filter(Boolean)
 
@@ -634,7 +635,7 @@ export default function GenerateInvoicePage() {
             )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Period</span>
-              <span className="font-medium">{filter.date_from} → {filter.date_to}</span>
+              <span className="font-medium">{formatDate(filter.date_from)} → {formatDate(filter.date_to)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Lines</span>

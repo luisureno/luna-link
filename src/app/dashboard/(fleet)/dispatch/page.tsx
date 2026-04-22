@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { Dispatch, Client, JobSite, TicketTemplate, User } from '@/types'
+import { formatDate } from '@/lib/format'
 
 interface BillingConfig {
   id: string
@@ -170,7 +171,7 @@ export default function DispatchPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{d.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{(d.clients as Client)?.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{d.scheduled_date}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(d.scheduled_date)}</p>
                     </div>
                     <StatusBadge status={d.status} />
                   </div>
@@ -194,7 +195,7 @@ export default function DispatchPage() {
                     <tr key={d.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{d.title}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{(d.clients as Client)?.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{d.scheduled_date}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatDate(d.scheduled_date)}</td>
                       <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
                     </tr>
                   ))}

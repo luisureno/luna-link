@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import ExcelJS from 'exceljs'
+import { formatDate } from '@/lib/format'
 
 export async function GET(request: NextRequest) {
   const supabase = createClient(
@@ -92,8 +93,8 @@ export async function GET(request: NextRequest) {
   const metaStart = 8
   const metaRows: Array<[string, any]> = [
     ['Invoice #', invAny.invoice_number],
-    ['Issued', new Date(invAny.created_at ?? Date.now()).toLocaleDateString()],
-    ['Period', `${invAny.date_from} → ${invAny.date_to}`],
+    ['Issued', formatDate(invAny.created_at ?? new Date())],
+    ['Period', `${formatDate(invAny.date_from)} → ${formatDate(invAny.date_to)}`],
     ['Status', String(invAny.status ?? 'draft').toUpperCase()],
   ]
   metaRows.forEach(([label, val], i) => {
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
     ]
       .filter(Boolean)
       .join(' · ')
-    s1.getCell(`B${rowIdx}`).value = t.submitted_at?.split('T')[0] ?? ''
+    s1.getCell(`B${rowIdx}`).value = formatDate(t.submitted_at)
     s1.getCell(`C${rowIdx}`).value = desc
     s1.getCell(`D${rowIdx}`).value = t.users?.full_name ?? '—'
     s1.getCell(`E${rowIdx}`).value = qty
@@ -182,7 +183,7 @@ export async function GET(request: NextRequest) {
     const amount = Number(t.client_charge_total ?? 0)
     subtotal += amount
     const hrs = t.dispatcher_adjusted_hours ?? t.hours_billed_client ?? t.hours_worked ?? 0
-    s1.getCell(`B${rowIdx}`).value = t.work_date ?? ''
+    s1.getCell(`B${rowIdx}`).value = formatDate(t.work_date)
     s1.getCell(`C${rowIdx}`).value = ['Hourly service', t.job_sites?.name].filter(Boolean).join(' · ')
     s1.getCell(`D${rowIdx}`).value = t.users?.full_name ?? '—'
     s1.getCell(`E${rowIdx}`).value = `${hrs} hrs`

@@ -9,6 +9,7 @@ import type { AccountType } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
+import { formatDate } from '@/lib/format'
 
 const FIELD_LABELS: Record<string, string> = {
   ticket_date: 'Date', tag_number: 'Tag #', client_name: 'Client',
@@ -299,7 +300,7 @@ export default function DriverTodayPage() {
               const fd = (ticket.form_data ?? {}) as Record<string, unknown>
               const tagNum = fd.tag_number || ticket.tag_number
               const dt = new Date(ticket.submitted_at)
-              const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              const dateStr = formatDate(dt)
               const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
               const photoUrl = ticket.tag_photo_url ?? ticket.scanned_invoice_photo_url ?? (ticket.photo_urls ?? [])[0] ?? null
               const isOpen = expandedTicket === ticket.id

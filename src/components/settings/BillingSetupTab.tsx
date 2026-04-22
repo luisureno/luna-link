@@ -5,6 +5,7 @@ import { Plus, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { Client, User } from '@/types'
+import { formatDate } from '@/lib/format'
 
 type BillingType = 'per_load' | 'hourly'
 type DriverPayType = 'per_load' | 'hourly'
@@ -354,7 +355,7 @@ export function BillingSetupTab() {
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                         {latest.hourly_rate != null && <p className="text-xs text-gray-600">${Number(latest.hourly_rate).toFixed(2)}/hr</p>}
                         {latest.per_load_rate != null && <p className="text-xs text-gray-600">${Number(latest.per_load_rate).toFixed(2)}/load</p>}
-                        <p className="text-xs text-gray-400">effective {latest.effective_date}</p>
+                        <p className="text-xs text-gray-400">effective {formatDate(latest.effective_date)}</p>
                       </div>
                     ) : (
                       <p className="text-xs text-gray-400 mt-1">No pay rate set</p>

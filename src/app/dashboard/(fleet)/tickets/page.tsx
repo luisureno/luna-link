@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { LoadTicket, User, Client } from '@/types'
+import { formatDate } from '@/lib/format'
 
 type TicketRow = LoadTicket & {
   users: User
@@ -263,7 +264,7 @@ export default function TicketsPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">{(ticket.users as User)?.full_name}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{(ticket.clients as Client)?.name ?? '—'}</p>
                           <p className="text-xs text-gray-400 mt-0.5">
-                            {new Date(ticket.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {new Date(ticket.submitted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {formatDate(ticket.submitted_at)} · {new Date(ticket.submitted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
@@ -308,7 +309,7 @@ export default function TicketsPage() {
                       <tr key={ticket.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3"><input type="checkbox" checked={selected.includes(ticket.id)} onChange={() => toggleSelect(ticket.id)} className="w-4 h-4" /></td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {new Date(ticket.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{' '}
+                          {formatDate(ticket.submitted_at)}{' '}
                           {new Date(ticket.submitted_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{(ticket.users as User)?.full_name}</td>

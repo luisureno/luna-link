@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import ExcelJS from 'exceljs'
+import { formatDate } from '@/lib/format'
 
 export async function GET(request: NextRequest) {
   const supabase = createClient(
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
     const pay = Number(r.driver_pay_total ?? 0)
     const adj = r.dispatcher_adjusted_pay != null ? Number(r.dispatcher_adjusted_pay) : null
     allSheet.addRow({
-      date: r.submitted_at?.split('T')[0] ?? '',
+      date: formatDate(r.submitted_at),
       driver: r.users?.full_name ?? '—',
       desc: `${r.loads_count ?? 1} loads`,
       type: 'Load',
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     const r = t as any
     const pay = Number(r.driver_pay_total ?? 0)
     allSheet.addRow({
-      date: r.work_date ?? '',
+      date: formatDate(r.work_date),
       driver: r.users?.full_name ?? '—',
       desc: `${r.dispatcher_adjusted_hours ?? r.hours_paid_driver ?? '?'}h on site`,
       type: 'Hourly',
@@ -120,8 +121,8 @@ export async function GET(request: NextRequest) {
 
   const grandTotal = Array.from(driverMap.values()).reduce((s, d) => s + d.ticket_pay + d.ts_pay, 0)
   const data = [
-    ['Period', `${dateFrom} to ${dateTo}`],
-    ['Generated', new Date().toLocaleDateString()],
+    ['Period', `${formatDate(dateFrom)} to ${formatDate(dateTo)}`],
+    ['Generated', formatDate(new Date())],
     ['Total Drivers', driverMap.size],
     ['Total Load Lines', (tickets ?? []).length],
     ['Total Timesheet Lines', (timesheets ?? []).length],

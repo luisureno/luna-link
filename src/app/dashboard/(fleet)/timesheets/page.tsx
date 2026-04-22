@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { User, Client } from '@/types'
+import { formatDate } from '@/lib/format'
 
 interface TimesheetRow {
   id: string
@@ -266,7 +267,7 @@ export default function TimesheetsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">{sheet.users?.full_name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{sheet.clients?.name ?? '—'} · {sheet.work_date}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{sheet.clients?.name ?? '—'} · {formatDate(sheet.work_date)}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {fmt(sheet.dispatcher_adjusted_hours ?? sheet.hours_worked)} · {fmtMoney(sheet.client_charge_total)}
                         </p>
@@ -313,7 +314,7 @@ export default function TimesheetsPage() {
                   {sheets.map(sheet => (
                     <>
                       <tr key={sheet.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-700">{sheet.work_date}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{formatDate(sheet.work_date)}</td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{sheet.users?.full_name}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{sheet.clients?.name ?? '—'}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">

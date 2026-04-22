@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { User } from '@/types'
+import { formatDate } from '@/lib/format'
 
 interface FuelRow {
   id: string
@@ -174,7 +175,7 @@ export default function FuelPage() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">{log.users?.full_name ?? '—'}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {new Date(log.logged_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          {formatDate(log.logged_at)} · {new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">{log.gallons ?? '—'} gal · {fmtMoney(computeTotal(log))}</p>
                       </div>
@@ -207,7 +208,7 @@ export default function FuelPage() {
                     <>
                       <tr key={log.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {new Date(log.logged_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{' '}
+                          {formatDate(log.logged_at)}{' '}
                           {new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{log.users?.full_name ?? '—'}</td>

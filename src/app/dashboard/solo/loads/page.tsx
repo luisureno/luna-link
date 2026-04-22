@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { LoadTicket, TicketStatus, Client } from '@/types'
+import { formatDate } from '@/lib/format'
 
 type DateRange = 'today' | '7d' | '30d' | 'all'
 
@@ -206,7 +207,7 @@ export default function SoloLoadsPage() {
                       {ticket.job_site?.name ? ` · ${ticket.job_site.name}` : ''}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ·{' '}
+                      {formatDate(date)} ·{' '}
                       {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · #{ticket.id.slice(0, 8)}
                     </p>
                   </div>

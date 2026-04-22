@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { X } from 'lucide-react'
 import type { LoadTicket } from '@/types'
+import { formatDate } from '@/lib/format'
 
 type GroupedTickets = { date: string; tickets: LoadTicket[] }[]
 
@@ -109,7 +110,7 @@ export default function MyLoadsPage() {
               const fd = (ticket.form_data ?? {}) as Record<string, unknown>
               const tagNum = fd.tag_number || ticket.tag_number
               const dt = new Date(ticket.submitted_at)
-              const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              const dateStr = formatDate(dt)
               const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
               const photoUrl = ticket.tag_photo_url ?? ticket.scanned_invoice_photo_url ?? (ticket.photo_urls ?? [])[0] ?? null
               const isOpen = expanded === ticket.id

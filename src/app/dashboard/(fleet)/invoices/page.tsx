@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { QuickBooksWaitlistButton } from '@/components/QuickBooksWaitlistButton'
 import type { Invoice, Client } from '@/types'
+import { formatDate } from '@/lib/format'
 
 type TabId = 'client' | 'payroll' | 'all'
 
@@ -103,7 +104,7 @@ export default function InvoicesPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900">{inv.invoice_number}</p>
                       <p className="text-xs text-gray-600 mt-0.5">{(inv.clients as Client)?.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{inv.created_at.split('T')[0]}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(inv.created_at)}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <p className="text-sm font-semibold text-gray-900">{inv.total_amount ? `$${Number(inv.total_amount).toLocaleString()}` : '—'}</p>
@@ -146,7 +147,7 @@ export default function InvoicesPage() {
                     <tr key={inv.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{inv.invoice_number}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{(inv.clients as Client)?.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{inv.created_at.split('T')[0]}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatDate(inv.created_at)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{(inv as any).lines_total ?? (inv as any).total_loads ?? '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{inv.total_amount ? `$${Number(inv.total_amount).toLocaleString()}` : '—'}</td>
                       <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>

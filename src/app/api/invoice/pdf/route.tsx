@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { formatDate } from '@/lib/format'
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: 'Helvetica', fontSize: 10, color: '#1a1a1a' },
@@ -73,14 +74,14 @@ export async function GET(request: NextRequest) {
   const company = (inv as any).companies
   const lines = [
     ...(tickets ?? []).map((t: any) => ({
-      date: t.submitted_at?.split('T')[0] ?? '',
+      date: formatDate(t.submitted_at),
       driver: t.users?.full_name ?? '—',
       desc: `${t.loads_count ?? 1} load(s)${t.tag_number ? ` · Tag #${t.tag_number}` : ''}`,
       type: 'Load',
       amount: Number(t.client_charge_total ?? 0),
     })),
     ...(timesheets ?? []).map((t: any) => ({
-      date: t.work_date ?? '',
+      date: formatDate(t.work_date),
       driver: t.users?.full_name ?? '—',
       desc: `${t.dispatcher_adjusted_hours ?? t.hours_billed_client ?? '?'}h on site`,
       type: 'Hourly',
@@ -116,11 +117,11 @@ export async function GET(request: NextRequest) {
           </View>
           <View style={styles.metaBlock}>
             <Text style={styles.metaLabel}>Period</Text>
-            <Text style={styles.metaValue}>{(inv as any).date_from} to {(inv as any).date_to}</Text>
+            <Text style={styles.metaValue}>{formatDate((inv as any).date_from)} to {formatDate((inv as any).date_to)}</Text>
           </View>
           <View style={styles.metaBlock}>
             <Text style={styles.metaLabel}>Date</Text>
-            <Text style={styles.metaValue}>{(inv as any).created_at?.split('T')[0]}</Text>
+            <Text style={styles.metaValue}>{formatDate((inv as any).created_at)}</Text>
           </View>
         </View>
 

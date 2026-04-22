@@ -6,6 +6,7 @@ import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { formatDate } from '@/lib/format'
 
 interface DriverSummary {
   driver_id: string
@@ -275,7 +276,7 @@ export default function PayrollPage() {
                     {driver.lines.map(line => (
                       <div key={line.id} className="px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm text-gray-700">{line.date} · {line.description}</p>
+                          <p className="text-sm text-gray-700">{formatDate(line.date)} · {line.description}</p>
                           {line.adjusted_pay != null && (
                             <p className="text-xs text-amber-600 mt-0.5">
                               Adjusted from ${line.pay.toFixed(2)} → ${line.adjusted_pay.toFixed(2)}
