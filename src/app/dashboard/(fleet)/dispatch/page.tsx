@@ -9,6 +9,10 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { Dispatch, Client, User } from '@/types'
 import { formatDate } from '@/lib/format'
+
+function mapsUrl(address: string) {
+  return `https://maps.apple.com/?q=${encodeURIComponent(address)}`
+}
 import { AppLoader } from '@/components/AppLoader'
 
 const MATERIALS = [
@@ -156,7 +160,9 @@ export default function DispatchPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">{(d.clients as Client)?.name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {d.material_type && <span>{d.material_type} · </span>}
-                        {(d as any).job_site_address && <span>{(d as any).job_site_address} · </span>}
+                        {(d as any).job_site_address && (
+                          <><a href={mapsUrl((d as any).job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-800">{(d as any).job_site_address}</a>{' · '}</>
+                        )}
                         {formatDate(d.scheduled_date)}
                         {d.scheduled_time && ` · ${d.scheduled_time}`}
                       </p>
@@ -192,7 +198,11 @@ export default function DispatchPage() {
                     <tr key={d.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{(d.clients as Client)?.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{d.material_type ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{(d as any).job_site_address ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {(d as any).job_site_address
+                          ? <a href={mapsUrl((d as any).job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-900">{(d as any).job_site_address}</a>
+                          : '—'}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {formatDate(d.scheduled_date)}{d.scheduled_time ? ` · ${d.scheduled_time}` : ''}
                       </td>
