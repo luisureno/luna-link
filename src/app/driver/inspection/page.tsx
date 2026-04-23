@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle2, XCircle, Download, Home, AlertTriangle, Truck } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, XCircle, AlertTriangle, Truck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 
@@ -227,6 +227,7 @@ export default function InspectionPage() {
       setPdfUrl(pdfPublicUrl)
       setOverallStatus(overall_status)
       setPhase('done')
+      setTimeout(() => router.push('/driver'), 2200)
     } catch (err: any) {
       setSubmitError(err.message ?? 'Something went wrong.')
     } finally {
@@ -294,13 +295,13 @@ export default function InspectionPage() {
     )
   }
 
-  // ─── Done ─────────────────────────────────────────────────────────────────────
+  // ─── Done — auto-redirect home ────────────────────────────────────────────────
 
   if (phase === 'done') {
     const passed = overallStatus === 'passed'
     const failedCount = activeCategories.filter(c => results[c.id]?.passed === false).length
     return (
-      <div className="flex flex-col items-center justify-center px-6 py-16 text-center gap-5 min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center px-6 text-center gap-4 min-h-[60vh]">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center ${passed ? 'bg-green-100' : 'bg-amber-100'}`}>
           {passed ? <CheckCircle2 size={48} className="text-green-600" /> : <AlertTriangle size={48} className="text-amber-600" />}
         </div>
@@ -309,19 +310,9 @@ export default function InspectionPage() {
           <p className="text-sm text-gray-500 mt-1">
             {passed ? 'All clear — have a safe day.' : `${failedCount} area${failedCount !== 1 ? 's' : ''} flagged.`}
           </p>
+          <p className="text-xs text-gray-400 mt-3">Returning to home…</p>
         </div>
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          {pdfUrl && (
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 bg-[#1a1a1a] text-white text-sm font-semibold rounded-xl">
-              <Download size={16} /> Download PDF Report
-            </a>
-          )}
-          <button onClick={() => router.push('/driver')}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl">
-            <Home size={16} /> Return to Home
-          </button>
-        </div>
+        <span className="w-5 h-5 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin mt-1" />
       </div>
     )
   }
