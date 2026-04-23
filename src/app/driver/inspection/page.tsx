@@ -235,44 +235,50 @@ export default function InspectionPage() {
           <ChevronLeft size={16} /> Back
         </button>
 
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-sm mx-auto flex flex-col items-center text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#1a1a1a] flex items-center justify-center mb-5">
             <Truck size={24} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Pre-Trip Inspection</h1>
           <p className="text-sm text-gray-500 mb-8">What are you operating today?</p>
 
-          <div className="space-y-3">
+          <div className="space-y-3 w-full">
             <button
               onClick={() => selectVehicle('tractor_trailer')}
               disabled={savingVehicle}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                vehicleType === 'tractor_trailer'
-                  ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-                  : 'border-gray-200 bg-white hover:border-gray-400'
+              className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left bg-white transition-all ${
+                vehicleType === 'tractor_trailer' ? 'border-[#1a1a1a]' : 'border-gray-200 hover:border-gray-400'
               }`}
             >
               <span className="text-2xl">🚛</span>
               <div>
-                <p className={`font-semibold ${vehicleType === 'tractor_trailer' ? 'text-white' : 'text-gray-900'}`}>Tractor + Trailer</p>
-                <p className={`text-xs mt-0.5 ${vehicleType === 'tractor_trailer' ? 'text-white/70' : 'text-gray-500'}`}>Full inspection — truck and trailer</p>
+                <p className="font-semibold text-gray-900">Tractor + Trailer</p>
+                <p className="text-xs mt-0.5 text-gray-500">Full inspection — truck and trailer</p>
               </div>
+              {vehicleType === 'tractor_trailer' && (
+                <div className="ml-auto w-4 h-4 rounded-full bg-[#1a1a1a] flex items-center justify-center flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              )}
             </button>
 
             <button
               onClick={() => selectVehicle('tractor_only')}
               disabled={savingVehicle}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                vehicleType === 'tractor_only'
-                  ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-                  : 'border-gray-200 bg-white hover:border-gray-400'
+              className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left bg-white transition-all ${
+                vehicleType === 'tractor_only' ? 'border-[#1a1a1a]' : 'border-gray-200 hover:border-gray-400'
               }`}
             >
               <span className="text-2xl">🚚</span>
               <div>
-                <p className={`font-semibold ${vehicleType === 'tractor_only' ? 'text-white' : 'text-gray-900'}`}>Tractor Only</p>
-                <p className={`text-xs mt-0.5 ${vehicleType === 'tractor_only' ? 'text-white/70' : 'text-gray-500'}`}>Bobtail — truck items only</p>
+                <p className="font-semibold text-gray-900">Tractor Only</p>
+                <p className="text-xs mt-0.5 text-gray-500">Bobtail — truck items only</p>
               </div>
+              {vehicleType === 'tractor_only' && (
+                <div className="ml-auto w-4 h-4 rounded-full bg-[#1a1a1a] flex items-center justify-center flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
+              )}
             </button>
           </div>
         </div>
