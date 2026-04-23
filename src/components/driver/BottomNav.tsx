@@ -19,8 +19,10 @@ export function BottomNav() {
   const { accountType } = useAuth()
   const tabs = accountType === 'solo' ? allTabs.filter(t => !t.soloHidden) : allTabs
 
+  const isSolo = accountType === 'solo'
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[1500]">
+    <nav className={`fixed bottom-0 right-0 bg-white border-t border-gray-200 z-[1500] ${isSolo ? 'left-0 md:left-60' : 'left-0'}`}>
       <div className="flex">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = href === '/driver' ? pathname === href : pathname.startsWith(href)
