@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -24,6 +24,8 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ClientForm>()
 
@@ -35,6 +37,7 @@ export default function ClientsPage() {
   async function loadClients() {
     const { data } = await supabase.from('clients').select('*').eq('company_id', profile!.company_id).order('name')
     setClients(data ?? [])
+    setSelectedIds(new Set())
     setLoading(false)
   }
 
@@ -47,6 +50,40 @@ export default function ClientsPage() {
     setSubmitting(false)
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelectedIds(prev => prev.size === clients.length ? new Set() : new Set(clients.map(c => c.id)))
+  }
+
+  async function deleteSelected() {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    const label = ids.length === 1 ? 'this client' : `these ${ids.length} clients`
+    if (!confirm(`Delete ${label}? This cannot be undone.`)) return
+
+    setDeleting(true)
+    const { error } = await supabase.from('clients').delete().in('id', ids)
+    setDeleting(false)
+
+    if (error) {
+      if (error.code === '23503') {
+        alert("Can't delete — one or more of these clients is still linked to dispatches, tickets, or invoices. Remove those first.")
+      } else {
+        alert(`Delete failed: ${error.message}`)
+      }
+      return
+    }
+    await loadClients()
+  }
+
   if (loading) return <AppLoader />
 
   return (
@@ -55,9 +92,19 @@ export default function ClientsPage() {
         title="Clients"
         subtitle="Companies you haul for"
         action={
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800">
-            <Plus size={16} /> Add Client
-          </button>
+          selectedIds.size > 0 ? (
+            <button
+              onClick={deleteSelected}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              <Trash2 size={16} /> {deleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
+            </button>
+          ) : (
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] text-white text-sm rounded hover:bg-gray-800">
+              <Plus size={16} /> Add Client
+            </button>
+          )
         }
       />
 
@@ -72,17 +119,28 @@ export default function ClientsPage() {
           <>
             {/* Mobile cards */}
             <div className="sm:hidden divide-y divide-gray-100">
-              {clients.map(client => (
-                <div key={client.id} className="p-4">
-                  <p className="text-sm font-medium text-gray-900">{client.name}</p>
-                  {client.contact_name && <p className="text-xs text-gray-600 mt-1">{client.contact_name}</p>}
-                  <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                    {client.contact_phone && <p className="text-xs text-gray-500">{client.contact_phone}</p>}
-                    {client.contact_email && <p className="text-xs text-gray-500">{client.contact_email}</p>}
-                  </div>
-                  {client.address && <p className="text-xs text-gray-400 mt-1">{client.address}</p>}
-                </div>
-              ))}
+              {clients.map(client => {
+                const checked = selectedIds.has(client.id)
+                return (
+                  <label key={client.id} className={`flex items-start gap-3 p-4 cursor-pointer ${checked ? 'bg-gray-50' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleSelected(client.id)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{client.name}</p>
+                      {client.contact_name && <p className="text-xs text-gray-600 mt-1">{client.contact_name}</p>}
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                        {client.contact_phone && <p className="text-xs text-gray-500">{client.contact_phone}</p>}
+                        {client.contact_email && <p className="text-xs text-gray-500">{client.contact_email}</p>}
+                      </div>
+                      {client.address && <p className="text-xs text-gray-400 mt-1">{client.address}</p>}
+                    </div>
+                  </label>
+                )
+              })}
             </div>
 
             {/* Desktop table */}
@@ -90,6 +148,15 @@ export default function ClientsPage() {
               <table className="w-full min-w-[600px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="px-4 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={clients.length > 0 && selectedIds.size === clients.length}
+                        onChange={toggleAll}
+                        aria-label="Select all"
+                        className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                      />
+                    </th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Company</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Contact</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Phone</th>
@@ -98,15 +165,27 @@ export default function ClientsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {clients.map(client => (
-                    <tr key={client.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{client.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{client.contact_name ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{client.contact_phone ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{client.contact_email ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{client.address ?? '—'}</td>
-                    </tr>
-                  ))}
+                  {clients.map(client => {
+                    const checked = selectedIds.has(client.id)
+                    return (
+                      <tr key={client.id} className={checked ? 'bg-gray-50' : 'hover:bg-gray-50'}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSelected(client.id)}
+                            aria-label={`Select ${client.name}`}
+                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{client.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{client.contact_name ?? '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{client.contact_phone ?? '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{client.contact_email ?? '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500">{client.address ?? '—'}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
