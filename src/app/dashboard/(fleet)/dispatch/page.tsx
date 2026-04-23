@@ -130,7 +130,7 @@ export default function DispatchPage() {
     }).select().single()
 
     if (dispatchError || !dispatch) {
-      setFormError('Failed to send dispatch. Try again.')
+      setFormError(dispatchError?.message ?? 'Failed to send dispatch. Try again.')
       setSubmitting(false)
       return
     }
