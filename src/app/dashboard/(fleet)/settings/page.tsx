@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus, ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { Plus, ChevronUp, ChevronDown, Trash2, Globe } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { BillingSetupTab } from '@/components/settings/BillingSetupTab'
 import type { User, TicketTemplate, TemplateField, FieldType } from '@/types'
@@ -26,6 +27,7 @@ function generateId() {
 
 export default function SettingsPage() {
   const { profile } = useAuth()
+  const { lang, setLang } = useLanguage()
   const supabase = useMemo(() => createClient(), [])
   const [tab, setTab] = useState('Company')
   const [users, setUsers] = useState<User[]>([])
@@ -455,6 +457,29 @@ export default function SettingsPage() {
 
       {/* Billing Setup Tab */}
       {tab === 'Billing Setup' && <BillingSetupTab />}
+
+      {/* Language Preference */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5 max-w-lg mt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Globe size={16} className="text-gray-500" />
+          <h2 className="text-base font-medium text-gray-900">Language</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-3">Affects all views in the app for your session.</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLang('en')}
+            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${lang === 'en' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            English
+          </button>
+          <button
+            onClick={() => setLang('es')}
+            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${lang === 'es' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            Español
+          </button>
+        </div>
+      </div>
 
       {/* Add User Modal */}
       {showUserModal && (

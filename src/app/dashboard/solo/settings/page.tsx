@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { User, DollarSign, Building2, Sparkles, ArrowUpRight, Check, Copy } from 'lucide-react'
+import { User, DollarSign, Building2, Sparkles, ArrowUpRight, Check, Copy, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { daysLeftInTrial } from '@/lib/plan-limits'
 import type { Company, Plan } from '@/types'
 import { AppLoader } from '@/components/AppLoader'
 
 export default function SoloSettingsPage() {
   const { profile, signOut } = useAuth()
+  const { lang, setLang } = useLanguage()
   const supabase = useMemo(() => createClient(), [])
 
   const [company, setCompany] = useState<Company | null>(null)
@@ -413,6 +415,29 @@ export default function SoloSettingsPage() {
           {copied ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
           {copied ? 'Copied' : 'Copy driver invite link'}
         </button>
+      </div>
+
+      {/* Language */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Globe size={16} className="text-gray-500" />
+          <h2 className="text-sm font-semibold text-gray-900">Language</h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">Affects all views in the app for your session.</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLang('en')}
+            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${lang === 'en' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            English
+          </button>
+          <button
+            onClick={() => setLang('es')}
+            className={`flex-1 py-2 rounded border text-sm font-medium transition-colors ${lang === 'es' ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+          >
+            Español
+          </button>
+        </div>
       </div>
 
       {/* Sign out */}
