@@ -8,11 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { Dispatch, Client, User } from '@/types'
-import { formatDate } from '@/lib/format'
-
-function mapsUrl(address: string) {
-  return `https://maps.apple.com/?q=${encodeURIComponent(address)}`
-}
+import { formatDate, mapsUrl } from '@/lib/format'
 import { AppLoader } from '@/components/AppLoader'
 
 const MATERIALS = [

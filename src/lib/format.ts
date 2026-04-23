@@ -16,6 +16,10 @@ export function formatDate(input: string | Date | null | undefined): string {
   return `${mm}/${dd}/${yyyy}`
 }
 
+export function mapsUrl(address: string): string {
+  return `https://maps.apple.com/?q=${encodeURIComponent(address)}`
+}
+
 export function formatDateTime(input: string | Date | null | undefined): string {
   if (input == null || input === '') return ''
   const d = input instanceof Date ? input : new Date(input)

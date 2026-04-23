@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp, Download, Send } from 'lucide-react'
+import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp, Download, Send, Navigation } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { AccountType } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog, Dispatch } from '@/types'
-import { formatDate } from '@/lib/format'
+import { formatDate, mapsUrl } from '@/lib/format'
 import { AppLoader } from '@/components/AppLoader'
 import { Lightbox } from '@/components/ui/Lightbox'
 import { useLanguage } from '@/context/LanguageContext'
@@ -25,7 +25,7 @@ export default function DriverTodayPage() {
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null)
   const [inspection, setInspection] = useState<PreTripInspection | null | undefined>(undefined)
   const [fuelToday, setFuelToday] = useState<FuelLog[]>([])
-  const [dispatches, setDispatches] = useState<(Dispatch & { clients: { name: string } | null, job_sites: { name: string } | null })[]>([])
+  const [dispatches, setDispatches] = useState<(Dispatch & { clients: { name: string } | null })[]>([])
 
   const [loading, setLoading] = useState(true)
   const [inspectionDismissed, setInspectionDismissed] = useState(() => {
@@ -101,7 +101,7 @@ export default function DriverTodayPage() {
         .gte('logged_at', `${today}T00:00:00`),
       supabase
         .from('dispatch_assignments')
-        .select('dispatches!inner(*, clients(name), job_sites(name))')
+        .select('dispatches!inner(*, clients(name))')
         .eq('driver_id', id)
         .eq('dispatches.scheduled_date', today)
         .in('dispatches.status', ['pending', 'active']),
@@ -240,13 +240,58 @@ export default function DriverTodayPage() {
           </div>
           <div className="divide-y divide-gray-100">
             {dispatches.map(d => (
-              <div key={d.id} className="px-4 py-3">
-                <p className="text-sm font-semibold text-gray-900">{d.title}</p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  {d.clients?.name && <p className="text-xs text-gray-500">{d.clients.name}</p>}
-                  {d.job_sites?.name && <><span className="text-gray-300">·</span><p className="text-xs text-gray-500">{d.job_sites.name}</p></>}
-                  {d.notes && <><span className="text-gray-300">·</span><p className="text-xs text-gray-400 italic">{d.notes}</p></>}
+              <div key={d.id} className="px-4 py-3 space-y-2">
+                <div>
+                  <p className="text-base font-semibold text-gray-900">{d.clients?.name ?? 'Client'}</p>
+                  {d.scheduled_time && (
+                    <p className="text-xs text-gray-500 mt-0.5">Arrival {d.scheduled_time.slice(0, 5)}</p>
+                  )}
                 </div>
+
+                {d.job_site_address && (
+                  <a
+                    href={mapsUrl(d.job_site_address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 active:bg-gray-100"
+                  >
+                    <Navigation size={14} className="text-gray-700 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-900 flex-1">{d.job_site_address}</span>
+                    <span className="text-xs text-gray-500 font-medium flex-shrink-0">Open</span>
+                  </a>
+                )}
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                  {d.material_type && (
+                    <div><span className="text-gray-400">Hauling </span><span className="text-gray-900 font-medium">{d.material_type}</span></div>
+                  )}
+                  {d.billing_type && (
+                    <div>
+                      <span className="text-gray-400">Billing </span>
+                      <span className="text-gray-900 font-medium">
+                        {d.billing_type === 'per_load'
+                          ? `Per load${d.hours_per_load ? ` · ${d.hours_per_load} hrs guaranteed` : ''}`
+                          : 'Per hour'}
+                      </span>
+                    </div>
+                  )}
+                  {d.po_number && (
+                    <div><span className="text-gray-400">PO# </span><span className="text-gray-900 font-medium">{d.po_number}</span></div>
+                  )}
+                </div>
+
+                {d.notes && (
+                  <p className="text-xs text-gray-600 bg-amber-50 border border-amber-200 rounded px-2.5 py-1.5">
+                    <span className="font-medium text-amber-900">Note: </span>{d.notes}
+                  </p>
+                )}
+
+                <Link
+                  href={`/driver/ticket?dispatch=${d.id}`}
+                  className="block text-center py-2.5 bg-[#1a1a1a] text-white rounded-lg text-sm font-semibold hover:opacity-90"
+                >
+                  Start Load
+                </Link>
               </div>
             ))}
           </div>

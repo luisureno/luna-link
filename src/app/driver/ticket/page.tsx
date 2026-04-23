@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Camera, FileText, PenLine, CheckCircle, ArrowLeftRight } from 'lucide-react'
 import { DocumentScanner } from '@/components/driver/DocumentScanner'
 import Decimal from 'decimal.js'
@@ -90,6 +90,8 @@ export default function TicketPage() {
   const { profile, accountType } = useAuth()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const dispatchIdParam = searchParams.get('dispatch')
   const homePath = accountType === 'solo' ? '/dashboard/solo' : '/driver'
   const today = new Date().toISOString().split('T')[0]
   const fileInputRef = useRef<HTMLInputElement>(null) // fallback for manual retake in form
@@ -158,7 +160,9 @@ export default function TicketPage() {
     if (rate) {
       setDriverHourlyRate(rate.hourly_rate ?? null)
     }
-    if (todayDispatches.length === 1) selectDispatch(todayDispatches[0])
+    const preferred = dispatchIdParam ? todayDispatches.find(d => d.id === dispatchIdParam) : null
+    if (preferred) selectDispatch(preferred)
+    else if (todayDispatches.length === 1) selectDispatch(todayDispatches[0])
     setLoading(false)
   }
 
@@ -167,6 +171,16 @@ export default function TicketPage() {
     if (d.billing_config?.billing_type === 'hourly') {
       router.replace('/driver/timesheet')
       return
+    }
+    // Pre-fill form from dispatch details
+    const prefill: Partial<TicketForm> = {}
+    if (d.clients?.name) prefill.client_name = d.clients.name
+    const address = (d as any).job_site_address || d.job_sites?.name
+    if (address) prefill.job_site = address
+    if ((d as any).po_number) prefill.po_number = (d as any).po_number
+    if ((d as any).material_type) prefill.material_type = (d as any).material_type
+    if (Object.keys(prefill).length) {
+      setForm(f => ({ ...f, ...prefill }))
     }
     setEntryPath(null)
   }
