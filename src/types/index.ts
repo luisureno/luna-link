@@ -87,6 +87,7 @@ export interface User {
   is_active: boolean
   pay_type: 'per_load' | 'hourly' | null
   pay_rate: number | null
+  vehicle_type: 'tractor_only' | 'tractor_trailer' | null
   created_at: string
 }
 

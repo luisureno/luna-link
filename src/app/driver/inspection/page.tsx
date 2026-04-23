@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Download, Home, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, XCircle, Download, Home, AlertTriangle, Truck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 
@@ -31,7 +31,7 @@ const TRUCK_ITEMS = [
   { id: 'reflectors',        label: 'Reflectors',                 description: 'Verify all required reflectors are present, clean, and properly positioned.' },
   { id: 'safety_equipment',  label: 'Safety Equipment',           description: 'Check fire extinguisher charge, warning triangles or flares, and spare fuses and bulbs.' },
   { id: 'springs',           label: 'Springs',                    description: 'Inspect for cracks, broken leaves, U-bolt damage, or improper alignment.' },
-  { id: 'starter',           label: 'Starter',                   description: 'Engine should start without excessive cranking or unusual sounds.' },
+  { id: 'starter',           label: 'Starter',                    description: 'Engine should start without excessive cranking or unusual sounds.' },
   { id: 'steering',          label: 'Steering',                   description: 'Check for excessive play (max 10° or 2 inches at wheel). Inspect fluid level and steering hoses.' },
   { id: 'tires',             label: 'Tires',                      description: 'Check tread depth (min 4/32" steer axle, 2/32" others), inflation, sidewall damage, and valve stems.' },
   { id: 'transmission',      label: 'Transmission',               description: 'Check fluid level if accessible. Listen for unusual noises and ensure smooth shifting.' },
@@ -58,14 +58,10 @@ const TRAILER_ITEMS = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type VehicleType = 'tractor_only' | 'tractor_trailer'
+type Phase = 'vehicle' | 'truck' | 'trailer' | 'sign' | 'done'
 type ItemResult = { passed: boolean | null; note: string }
 type InspectionState = Record<string, ItemResult>
-
-const STEPS = [
-  { key: 'truck',   label: 'Truck & Tractor', items: TRUCK_ITEMS },
-  { key: 'trailer', label: 'Trailer',          items: TRAILER_ITEMS },
-  { key: 'sign',    label: 'Sign & Submit',    items: [] },
-] as const
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -73,60 +69,144 @@ export default function InspectionPage() {
   const { profile, accountType } = useAuth()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-  const homePath = accountType === 'solo' ? '/driver' : '/driver'
+  const homePath = '/driver'
 
-  // State
-  const [step, setStep] = useState(0)
+  // Flow state
+  const [phase, setPhase] = useState<Phase>('vehicle')
+  const [itemIndex, setItemIndex] = useState(0)
+  const [vehicleType, setVehicleType] = useState<VehicleType>(
+    (profile as any)?.vehicle_type ?? 'tractor_trailer'
+  )
+  const [savingVehicle, setSavingVehicle] = useState(false)
+
+  // Item results
   const [results, setResults] = useState<InspectionState>(() => {
     const init: InspectionState = {}
-    ;[...TRUCK_ITEMS, ...TRAILER_ITEMS].forEach(item => {
-      init[item.id] = { passed: null, note: '' }
-    })
+    ;[...TRUCK_ITEMS, ...TRAILER_ITEMS].forEach(i => { init[i.id] = { passed: null, note: '' } })
     return init
   })
+
+  // Sign step
   const [condition, setCondition] = useState<'satisfactory' | 'defects_corrected' | 'no_correction_needed'>('satisfactory')
   const [signature, setSignature] = useState('')
   const [certified, setCertified] = useState(false)
+
+  // Submit
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
   const [overallStatus, setOverallStatus] = useState<'passed' | 'failed'>('passed')
 
-  function setResult(id: string, patch: Partial<ItemResult>) {
-    setResults(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }))
+  // Sync vehicle type from profile once loaded
+  useEffect(() => {
+    if ((profile as any)?.vehicle_type) {
+      setVehicleType((profile as any).vehicle_type)
+    }
+  }, [profile?.id])
+
+  // ─── Navigation helpers ──────────────────────────────────────────────────────
+
+  const currentItems = phase === 'truck' ? TRUCK_ITEMS : TRAILER_ITEMS
+  const currentItem = currentItems[itemIndex]
+  const currentResult = currentItem ? results[currentItem.id] : null
+
+  function advance() {
+    if (phase === 'truck') {
+      if (itemIndex < TRUCK_ITEMS.length - 1) {
+        setItemIndex(i => i + 1)
+      } else if (vehicleType === 'tractor_trailer') {
+        setPhase('trailer')
+        setItemIndex(0)
+      } else {
+        setPhase('sign')
+      }
+    } else if (phase === 'trailer') {
+      if (itemIndex < TRAILER_ITEMS.length - 1) {
+        setItemIndex(i => i + 1)
+      } else {
+        setPhase('sign')
+      }
+    }
   }
 
-  // Step validation
-  const currentItems = STEPS[step].items as typeof TRUCK_ITEMS
-  const answeredCount = currentItems.filter(i => results[i.id]?.passed !== null).length
-  const stepComplete = step < 2 ? answeredCount === currentItems.length : (signature.trim().length >= 2 && certified)
+  function goBack() {
+    if (phase === 'truck') {
+      if (itemIndex > 0) {
+        setItemIndex(i => i - 1)
+      } else {
+        setPhase('vehicle')
+      }
+    } else if (phase === 'trailer') {
+      if (itemIndex > 0) {
+        setItemIndex(i => i - 1)
+      } else {
+        setPhase('truck')
+        setItemIndex(TRUCK_ITEMS.length - 1)
+      }
+    } else if (phase === 'sign') {
+      if (vehicleType === 'tractor_trailer') {
+        setPhase('trailer')
+        setItemIndex(TRAILER_ITEMS.length - 1)
+      } else {
+        setPhase('truck')
+        setItemIndex(TRUCK_ITEMS.length - 1)
+      }
+    }
+  }
 
-  // ─── Submit ─────────────────────────────────────────────────────────────────
+  function handlePass() {
+    if (!currentItem) return
+    setResults(prev => ({ ...prev, [currentItem.id]: { ...prev[currentItem.id], passed: true } }))
+    setTimeout(advance, 220)
+  }
+
+  function handleFail() {
+    if (!currentItem) return
+    setResults(prev => ({ ...prev, [currentItem.id]: { ...prev[currentItem.id], passed: false } }))
+  }
+
+  function setNote(note: string) {
+    if (!currentItem) return
+    setResults(prev => ({ ...prev, [currentItem.id]: { ...prev[currentItem.id], note } }))
+  }
+
+  // ─── Vehicle select ──────────────────────────────────────────────────────────
+
+  async function selectVehicle(type: VehicleType) {
+    setVehicleType(type)
+    if (profile) {
+      setSavingVehicle(true)
+      await supabase.from('users').update({ vehicle_type: type } as any).eq('id', profile.id)
+      setSavingVehicle(false)
+    }
+    setPhase('truck')
+    setItemIndex(0)
+  }
+
+  // ─── Submit ──────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
     if (!profile) return
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const allItems = [
+      const activeItems = [
         ...TRUCK_ITEMS.map(i => ({ ...i, category: 'truck' as const })),
-        ...TRAILER_ITEMS.map(i => ({ ...i, category: 'trailer' as const })),
+        ...(vehicleType === 'tractor_trailer' ? TRAILER_ITEMS.map(i => ({ ...i, category: 'trailer' as const })) : []),
       ].map(i => ({
         id: i.id,
         label: i.label,
-        passed: results[i.id].passed,
-        note: results[i.id].note,
+        passed: results[i.id]?.passed ?? null,
+        note: results[i.id]?.note ?? '',
         photo_url: null,
         category: i.category,
       }))
 
-      const failed = allItems.filter(i => i.passed === false)
+      const failed = activeItems.filter(i => i.passed === false)
       const overall_status = failed.length === 0 ? 'passed' : 'failed'
       const now = new Date().toISOString()
       const logDate = now.split('T')[0]
 
-      // Generate PDF via API route
       const pdfRes = await fetch('/api/inspection/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,9 +216,10 @@ export default function InspectionPage() {
           truckNumber: profile.truck_number,
           companyName: (profile as any)?.companies?.name ?? null,
           inspectedAt: now,
-          items: allItems,
+          items: activeItems,
           overallCondition: condition,
           signature,
+          vehicleType,
         }),
       })
 
@@ -148,14 +229,13 @@ export default function InspectionPage() {
         pdfPublicUrl = url ?? null
       }
 
-      // Save inspection record
       const { data: inspData, error: inspErr } = await supabase
         .from('pre_trip_inspections')
         .insert({
           company_id: profile.company_id,
           driver_id: profile.id,
           truck_number: profile.truck_number,
-          items: allItems,
+          items: activeItems,
           overall_status,
           inspected_at: now,
           pdf_url: pdfPublicUrl,
@@ -166,7 +246,6 @@ export default function InspectionPage() {
 
       if (inspErr) throw new Error(inspErr.message)
 
-      // Update daily log
       await supabase.from('daily_logs').upsert({
         company_id: profile.company_id,
         driver_id: profile.id,
@@ -177,7 +256,7 @@ export default function InspectionPage() {
 
       setPdfUrl(pdfPublicUrl)
       setOverallStatus(overall_status)
-      setDone(true)
+      setPhase('done')
     } catch (err: any) {
       setSubmitError(err.message ?? 'Something went wrong. Please try again.')
     } finally {
@@ -185,17 +264,106 @@ export default function InspectionPage() {
     }
   }
 
-  // ─── Done screen ─────────────────────────────────────────────────────────────
+  // ─── Progress calculation ─────────────────────────────────────────────────────
 
-  if (done) {
-    const passed = overallStatus === 'passed'
-    const failedCount = [...TRUCK_ITEMS, ...TRAILER_ITEMS].filter(i => results[i.id]?.passed === false).length
+  const totalTruck = TRUCK_ITEMS.length
+  const totalTrailer = vehicleType === 'tractor_trailer' ? TRAILER_ITEMS.length : 0
+  const totalItems = totalTruck + totalTrailer
+  const doneCount =
+    phase === 'truck' ? itemIndex :
+    phase === 'trailer' ? totalTruck + itemIndex :
+    phase === 'sign' || phase === 'done' ? totalItems : 0
+  const progressPct = totalItems > 0 ? (doneCount / totalItems) * 100 : 0
+
+  const sectionLabel =
+    phase === 'truck' ? `Truck & Tractor — ${itemIndex + 1} of ${totalTruck}` :
+    phase === 'trailer' ? `Trailer — ${itemIndex + 1} of ${totalTrailer}` :
+    phase === 'sign' ? 'Sign & Submit' : ''
+
+  // ─── Render: Vehicle select ───────────────────────────────────────────────────
+
+  if (phase === 'vehicle') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center gap-5">
+      <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
+        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+          <button onClick={() => router.back()} className="p-1.5 -ml-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="text-base font-semibold text-gray-900">Pre-Trip Inspection</h1>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-sm mx-auto w-full">
+          <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-6">
+            <Truck size={28} className="text-white" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 text-center mb-2">What are you operating today?</h2>
+          <p className="text-sm text-gray-500 text-center mb-8">
+            This determines which sections of the inspection you'll complete.
+          </p>
+
+          <div className="w-full space-y-3">
+            <button
+              onClick={() => selectVehicle('tractor_trailer')}
+              disabled={savingVehicle}
+              className={`w-full flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-colors ${
+                vehicleType === 'tractor_trailer'
+                  ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+                  : 'border-gray-200 bg-white hover:border-gray-400'
+              }`}
+            >
+              <span className="text-2xl mt-0.5">🚛</span>
+              <div>
+                <p className={`font-semibold text-base ${vehicleType === 'tractor_trailer' ? 'text-white' : 'text-gray-900'}`}>
+                  Tractor + Trailer
+                </p>
+                <p className={`text-sm mt-0.5 ${vehicleType === 'tractor_trailer' ? 'text-white/70' : 'text-gray-500'}`}>
+                  Semi with a trailer attached — full inspection including trailer items
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => selectVehicle('tractor_only')}
+              disabled={savingVehicle}
+              className={`w-full flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-colors ${
+                vehicleType === 'tractor_only'
+                  ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+                  : 'border-gray-200 bg-white hover:border-gray-400'
+              }`}
+            >
+              <span className="text-2xl mt-0.5">🚚</span>
+              <div>
+                <p className={`font-semibold text-base ${vehicleType === 'tractor_only' ? 'text-white' : 'text-gray-900'}`}>
+                  Tractor Only
+                </p>
+                <p className={`text-sm mt-0.5 ${vehicleType === 'tractor_only' ? 'text-white/70' : 'text-gray-500'}`}>
+                  Bobtail / no trailer — truck items only
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {(profile as any)?.vehicle_type && (
+            <p className="text-xs text-gray-400 mt-5 text-center">
+              Last used: {(profile as any).vehicle_type === 'tractor_only' ? 'Tractor Only' : 'Tractor + Trailer'}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Render: Done ─────────────────────────────────────────────────────────────
+
+  if (phase === 'done') {
+    const passed = overallStatus === 'passed'
+    const failedCount = [...TRUCK_ITEMS, ...(vehicleType === 'tractor_trailer' ? TRAILER_ITEMS : [])].filter(
+      i => results[i.id]?.passed === false
+    ).length
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8F7F5] p-6 text-center gap-5">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center ${passed ? 'bg-green-100' : 'bg-amber-100'}`}>
-          {passed
-            ? <CheckCircle2 size={48} className="text-green-600" />
-            : <AlertTriangle size={48} className="text-amber-600" />}
+          {passed ? <CheckCircle2 size={48} className="text-green-600" /> : <AlertTriangle size={48} className="text-amber-600" />}
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">{passed ? 'Inspection Passed' : 'Issues Reported'}</h2>
@@ -211,7 +379,7 @@ export default function InspectionPage() {
               href={pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 bg-[#1a1a1a] text-white text-sm font-medium rounded-lg hover:bg-black transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-[#1a1a1a] text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors"
             >
               <Download size={16} />
               Download Inspection Report (PDF)
@@ -219,7 +387,7 @@ export default function InspectionPage() {
           )}
           <button
             onClick={() => router.push(homePath)}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors"
           >
             <Home size={16} />
             Return to Home
@@ -229,215 +397,107 @@ export default function InspectionPage() {
     )
   }
 
-  // ─── Step render helpers ──────────────────────────────────────────────────────
+  // ─── Render: Sign & Submit ────────────────────────────────────────────────────
 
-  function renderItemStep(items: typeof TRUCK_ITEMS) {
-    return (
-      <div className="space-y-3 pb-4">
-        {items.map(item => {
-          const res = results[item.id]
-          const isFail = res.passed === false
-          const isPass = res.passed === true
-          return (
-            <div
-              key={item.id}
-              className={`bg-white rounded-xl border transition-colors ${
-                isFail ? 'border-red-300' : isPass ? 'border-green-300' : 'border-gray-200'
-              }`}
-            >
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-snug">{item.description}</p>
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0 mt-0.5">
-                    <button
-                      onClick={() => setResult(item.id, { passed: true })}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        isPass
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700'
-                      }`}
-                    >
-                      <CheckCircle2 size={13} />
-                      Pass
-                    </button>
-                    <button
-                      onClick={() => setResult(item.id, { passed: false })}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        isFail
-                          ? 'bg-red-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700'
-                      }`}
-                    >
-                      <XCircle size={13} />
-                      Fail
-                    </button>
-                  </div>
-                </div>
-
-                {isFail && (
-                  <textarea
-                    value={res.note}
-                    onChange={e => setResult(item.id, { note: e.target.value })}
-                    placeholder="Describe the issue (required for failed items)..."
-                    rows={2}
-                    className="w-full mt-1 px-3 py-2 border border-red-200 rounded-lg text-sm text-gray-900 bg-red-50 placeholder-red-300 resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
-                  />
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
-
-  function renderSignStep() {
-    const allItems = [...TRUCK_ITEMS, ...TRAILER_ITEMS]
+  if (phase === 'sign') {
+    const allItems = [...TRUCK_ITEMS, ...(vehicleType === 'tractor_trailer' ? TRAILER_ITEMS : [])]
     const failedItems = allItems.filter(i => results[i.id]?.passed === false)
+    const canSubmit = signature.trim().length >= 2 && certified
 
     return (
-      <div className="space-y-5 pb-4">
-        {/* Summary */}
-        <div className={`rounded-xl border p-4 ${failedItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-green-300 bg-green-50'}`}>
-          <p className={`text-sm font-semibold ${failedItems.length > 0 ? 'text-amber-800' : 'text-green-800'}`}>
-            {failedItems.length === 0
-              ? '✓ All items passed — vehicle is ready for service.'
-              : `⚠ ${failedItems.length} issue${failedItems.length !== 1 ? 's' : ''} flagged:`}
-          </p>
-          {failedItems.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {failedItems.map(i => (
-                <li key={i.id} className="text-xs text-amber-700 flex gap-1.5">
-                  <span className="mt-0.5 flex-shrink-0">•</span>
-                  <span><span className="font-medium">{i.label}</span>{results[i.id].note ? ` — ${results[i.id].note}` : ''}</span>
-                </li>
+      <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button onClick={goBack} className="p-1.5 -ml-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Final Step</p>
+              <h1 className="text-base font-semibold text-gray-900">Sign & Submit</h1>
+            </div>
+          </div>
+          <div className="h-1 bg-[#1a1a1a]" />
+        </div>
+
+        <div className="flex-1 px-4 pt-4 pb-32 max-w-lg mx-auto w-full space-y-5">
+          {/* Summary */}
+          <div className={`rounded-xl border p-4 ${failedItems.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-green-300 bg-green-50'}`}>
+            <p className={`text-sm font-semibold ${failedItems.length > 0 ? 'text-amber-800' : 'text-green-800'}`}>
+              {failedItems.length === 0
+                ? `✓ All ${allItems.length} items passed — vehicle is ready for service.`
+                : `⚠ ${failedItems.length} issue${failedItems.length !== 1 ? 's' : ''} flagged:`}
+            </p>
+            {failedItems.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {failedItems.map(i => (
+                  <li key={i.id} className="text-xs text-amber-700 flex gap-1.5">
+                    <span className="mt-0.5 flex-shrink-0">•</span>
+                    <span><span className="font-medium">{i.label}</span>{results[i.id]?.note ? ` — ${results[i.id].note}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Overall condition */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-900 mb-3">Overall Vehicle Condition</p>
+            <div className="space-y-2">
+              {([
+                ['satisfactory',        'Condition of vehicle is satisfactory.'],
+                ['defects_corrected',   'Above defects have been corrected.'],
+                ['no_correction_needed','Defects need NOT be corrected for safe operation.'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    condition === key ? 'border-[#1a1a1a] bg-[#1a1a1a]' : 'border-gray-300 group-hover:border-gray-500'
+                  }`}>
+                    {condition === key && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span className="text-sm text-gray-700">{label}</span>
+                  <input type="radio" name="condition" value={key} checked={condition === key} onChange={() => setCondition(key)} className="sr-only" />
+                </label>
               ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Overall condition */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm font-semibold text-gray-900 mb-3">Overall Vehicle Condition</p>
-          <div className="space-y-2">
-            {([
-              ['satisfactory',          'Condition of vehicle is satisfactory.'],
-              ['defects_corrected',      'Above defects have been corrected.'],
-              ['no_correction_needed',   'Defects need NOT be corrected for safe operation.'],
-            ] as const).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer group">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                  condition === key ? 'border-[#1a1a1a] bg-[#1a1a1a]' : 'border-gray-300 group-hover:border-gray-500'
-                }`}>
-                  {condition === key && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-                <span className="text-sm text-gray-700">{label}</span>
-                <input
-                  type="radio"
-                  name="condition"
-                  value={key}
-                  checked={condition === key}
-                  onChange={() => setCondition(key)}
-                  className="sr-only"
-                />
-              </label>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Signature */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm font-semibold text-gray-900 mb-1">Driver's Signature</p>
-          <p className="text-xs text-gray-500 mb-3">Type your full legal name to sign this report.</p>
-          <input
-            type="text"
-            value={signature}
-            onChange={e => setSignature(e.target.value)}
-            placeholder="Full legal name"
-            className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base italic text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a1a1a]"
-          />
-          {signature.trim() && (
-            <p className="mt-2 text-xs text-gray-400">Signed as: <span className="italic">{signature.trim()}</span></p>
-          )}
-        </div>
-
-        {/* Certification */}
-        <label className="flex items-start gap-3 cursor-pointer">
-          <div className="mt-0.5">
+          {/* Signature */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-900 mb-1">Driver's Signature</p>
+            <p className="text-xs text-gray-500 mb-3">Type your full legal name to sign this report.</p>
             <input
-              type="checkbox"
-              checked={certified}
-              onChange={e => setCertified(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 accent-[#1a1a1a]"
+              type="text"
+              value={signature}
+              onChange={e => setSignature(e.target.value)}
+              placeholder="Full legal name"
+              className="w-full px-3 py-3 border border-gray-200 rounded-lg text-base italic text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a1a1a]"
             />
+            {signature.trim() && (
+              <p className="mt-2 text-xs text-gray-400">Signed as: <span className="italic">{signature.trim()}</span></p>
+            )}
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            I certify that I have inspected the above vehicle(s) in accordance with applicable requirements and to the best of my knowledge, the vehicle(s) is in the condition indicated above.
-          </p>
-        </label>
 
-        {submitError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-sm text-red-700">{submitError}</p>
-          </div>
-        )}
-      </div>
-    )
-  }
+          {/* Certification */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" checked={certified} onChange={e => setCertified(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-[#1a1a1a]" />
+            <p className="text-xs text-gray-600 leading-relaxed">
+              I certify that I have inspected the above vehicle(s) in accordance with applicable FMCSA requirements and to the best of my knowledge the vehicle is in the condition indicated above.
+            </p>
+          </label>
 
-  // ─── Layout ──────────────────────────────────────────────────────────────────
-
-  const isLastStep = step === 2
-  const totalItems = step === 0 ? TRUCK_ITEMS.length : step === 1 ? TRAILER_ITEMS.length : 0
-
-  return (
-    <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={() => step > 0 ? setStep(s => s - 1) : router.back()}
-            className="p-1.5 -ml-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-400 font-medium">Step {step + 1} of 3</p>
-            <h1 className="text-base font-semibold text-gray-900 truncate">{STEPS[step].label}</h1>
-          </div>
-          {totalItems > 0 && (
-            <span className="text-xs text-gray-400 font-medium flex-shrink-0">
-              {answeredCount}/{totalItems}
-            </span>
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">{submitError}</p>
+            </div>
           )}
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-100">
-          <div
-            className="h-1 bg-[#1a1a1a] transition-all duration-300"
-            style={{ width: `${((step + (stepComplete ? 1 : answeredCount / Math.max(totalItems, 1))) / 3) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 px-4 pt-4 pb-32 max-w-lg mx-auto w-full">
-        {step === 0 && renderItemStep(TRUCK_ITEMS)}
-        {step === 1 && renderItemStep(TRAILER_ITEMS)}
-        {step === 2 && renderSignStep()}
-      </div>
-
-      {/* Footer nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 pb-safe">
-        <div className="max-w-lg mx-auto">
-          {isLastStep ? (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3">
+          <div className="max-w-lg mx-auto">
             <button
               onClick={handleSubmit}
-              disabled={!stepComplete || submitting}
+              disabled={!canSubmit || submitting}
               className="w-full py-3.5 bg-[#1a1a1a] text-white text-sm font-semibold rounded-xl disabled:opacity-40 transition-colors"
             >
               {submitting ? (
@@ -445,24 +505,105 @@ export default function InspectionPage() {
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Generating report…
                 </span>
-              ) : (
-                'Submit & Generate PDF Report'
-              )}
+              ) : 'Submit & Generate PDF Report'}
             </button>
-          ) : (
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Render: Item-by-item ─────────────────────────────────────────────────────
+
+  if (!currentItem) return null
+  const isFail = currentResult?.passed === false
+  const isPass = currentResult?.passed === true
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#F8F7F5]">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button onClick={goBack} className="p-1.5 -ml-1.5 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+            <ChevronLeft size={20} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-400 font-medium">{sectionLabel}</p>
+            <div className="text-xs text-gray-300 mt-0.5">
+              {vehicleType === 'tractor_trailer'
+                ? `${doneCount} of ${totalItems} total`
+                : `${doneCount} of ${totalItems} items`}
+            </div>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-100">
+          <div className="h-1 bg-[#1a1a1a] transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        </div>
+      </div>
+
+      {/* Item card — centered, large, easy to read */}
+      <div className="flex-1 flex flex-col justify-between px-4 pt-8 pb-8 max-w-lg mx-auto w-full">
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Category badge */}
+          <span className="inline-flex self-start items-center text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
+            {phase === 'truck' ? '🚛 Truck & Tractor' : '🔗 Trailer'}
+          </span>
+
+          {/* Item name */}
+          <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">{currentItem.label}</h2>
+
+          {/* What to look for */}
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8">
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">What to check</p>
+            <p className="text-sm text-blue-900 leading-relaxed">{currentItem.description}</p>
+          </div>
+
+          {/* Pass / Fail buttons */}
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setStep(s => s + 1)}
-              disabled={!stepComplete}
-              className="w-full py-3.5 bg-[#1a1a1a] text-white text-sm font-semibold rounded-xl disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              onClick={handlePass}
+              className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 font-semibold text-base transition-all ${
+                isPass
+                  ? 'border-green-500 bg-green-500 text-white scale-[0.98]'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50 active:scale-[0.97]'
+              }`}
             >
-              Next: {STEPS[step + 1].label}
-              <ChevronRight size={16} />
+              <CheckCircle2 size={28} className={isPass ? 'text-white' : 'text-green-500'} />
+              Pass
             </button>
-          )}
-          {!stepComplete && !isLastStep && (
-            <p className="text-center text-xs text-gray-400 mt-2">
-              {totalItems - answeredCount} item{totalItems - answeredCount !== 1 ? 's' : ''} remaining
-            </p>
+            <button
+              onClick={handleFail}
+              className={`flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 font-semibold text-base transition-all ${
+                isFail
+                  ? 'border-red-500 bg-red-500 text-white scale-[0.98]'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-red-400 hover:bg-red-50 active:scale-[0.97]'
+              }`}
+            >
+              <XCircle size={28} className={isFail ? 'text-white' : 'text-red-500'} />
+              Fail
+            </button>
+          </div>
+
+          {/* Notes — shown when fail */}
+          {isFail && (
+            <div className="mt-4 space-y-3">
+              <textarea
+                value={currentResult?.note ?? ''}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Describe the issue (required)..."
+                rows={3}
+                autoFocus
+                className="w-full px-4 py-3 border border-red-200 rounded-xl text-sm text-gray-900 bg-red-50 placeholder-red-300 resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+              <button
+                onClick={advance}
+                className="w-full py-3.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition-colors"
+              >
+                Continue →
+              </button>
+            </div>
           )}
         </div>
       </div>
