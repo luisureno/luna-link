@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp, Download } from 'lucide-react'
+import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp, Download, Send } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { AccountType } from '@/types'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
-import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
+import type { LoadTicket, CheckIn, PreTripInspection, FuelLog, Dispatch } from '@/types'
 import { formatDate } from '@/lib/format'
 import { AppLoader } from '@/components/AppLoader'
 import { Lightbox } from '@/components/ui/Lightbox'
@@ -25,6 +25,7 @@ export default function DriverTodayPage() {
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null)
   const [inspection, setInspection] = useState<PreTripInspection | null | undefined>(undefined)
   const [fuelToday, setFuelToday] = useState<FuelLog[]>([])
+  const [dispatches, setDispatches] = useState<(Dispatch & { clients: { name: string } | null, job_sites: { name: string } | null })[]>([])
 
   const [loading, setLoading] = useState(true)
   const [inspectionDismissed, setInspectionDismissed] = useState(() => {
@@ -72,7 +73,7 @@ export default function DriverTodayPage() {
   async function loadData() {
     const id = profile!.id
 
-    const [ticketsRes, checkInsRes, inspectionRes, fuelRes] = await Promise.all([
+    const [ticketsRes, checkInsRes, inspectionRes, fuelRes, dispatchRes] = await Promise.all([
       supabase
         .from('load_tickets')
         .select('*')
@@ -98,12 +99,20 @@ export default function DriverTodayPage() {
         .select('*')
         .eq('driver_id', id)
         .gte('logged_at', `${today}T00:00:00`),
+      supabase
+        .from('dispatch_assignments')
+        .select('dispatches!inner(*, clients(name), job_sites(name))')
+        .eq('driver_id', id)
+        .eq('dispatches.scheduled_date', today)
+        .in('dispatches.status', ['pending', 'active']),
     ])
 
     setTickets(ticketsRes.data ?? [])
     setLastCheckIn((checkInsRes.data ?? [])[0] ?? null)
     setInspection((inspectionRes.data ?? [])[0] ?? null)
     setFuelToday((fuelRes as { data: FuelLog[] }).data ?? [])
+    const dispatchRows = (dispatchRes.data ?? []).map((r: any) => r.dispatches).filter(Boolean)
+    setDispatches(dispatchRows)
 
     setLoading(false)
   }
@@ -219,6 +228,30 @@ export default function DriverTodayPage() {
       </div>
 
 
+
+      {/* Dispatches */}
+      {!isSolo && dispatches.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+            <Send size={13} className="text-gray-500" />
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              {dispatches.length === 1 ? 'Your Dispatch Today' : `Your Dispatches Today — ${dispatches.length}`}
+            </p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {dispatches.map(d => (
+              <div key={d.id} className="px-4 py-3">
+                <p className="text-sm font-semibold text-gray-900">{d.title}</p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  {d.clients?.name && <p className="text-xs text-gray-500">{d.clients.name}</p>}
+                  {d.job_sites?.name && <><span className="text-gray-300">·</span><p className="text-xs text-gray-500">{d.job_sites.name}</p></>}
+                  {d.notes && <><span className="text-gray-300">·</span><p className="text-xs text-gray-400 italic">{d.notes}</p></>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-3">
