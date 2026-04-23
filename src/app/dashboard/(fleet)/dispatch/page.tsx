@@ -130,8 +130,7 @@ export default function DispatchPage() {
     }).select().single()
 
     if (dispatchError || !dispatch) {
-      console.error('Dispatch insert error:', dispatchError)
-      setFormError(dispatchError ? JSON.stringify(dispatchError) : 'Failed to send dispatch. Try again.')
+      setFormError(dispatchError?.message ?? 'Failed to send dispatch. Try again.')
       setSubmitting(false)
       return
     }
