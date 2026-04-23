@@ -138,6 +138,7 @@ export interface Dispatch {
   scheduled_time: string | null
   status: DispatchStatus
   created_at: string
+  job_site_address: string | null
   material_type: string | null
   billing_type: 'per_load' | 'per_hour' | null
   hours_per_load: number | null

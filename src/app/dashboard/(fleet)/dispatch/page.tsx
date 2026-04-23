@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import type { Dispatch, Client, JobSite, TicketTemplate, User } from '@/types'
+import type { Dispatch, Client, User } from '@/types'
 import { formatDate } from '@/lib/format'
 import { AppLoader } from '@/components/AppLoader'
 
@@ -18,11 +18,10 @@ const MATERIALS = [
 
 interface DispatchForm {
   client_id: string
-  job_site_id: string
-  ticket_template_id: string
+  job_site_address: string
   scheduled_date: string
   scheduled_time: string
-  material_type: string
+  hauling: string
   billing_type: 'per_load' | 'per_hour'
   hours_per_load: string
   po_number: string
@@ -33,13 +32,10 @@ export default function DispatchPage() {
   const { profile } = useAuth()
   const supabase = useMemo(() => createClient(), [])
   const [showModal, setShowModal] = useState(false)
-  const [dispatches, setDispatches] = useState<(Dispatch & { clients: Client; job_sites: JobSite })[]>([])
+  const [dispatches, setDispatches] = useState<(Dispatch & { clients: Client })[]>([])
   const [clients, setClients] = useState<Client[]>([])
-  const [jobSites, setJobSites] = useState<JobSite[]>([])
-  const [templates, setTemplates] = useState<TicketTemplate[]>([])
   const [drivers, setDrivers] = useState<User[]>([])
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([])
-  const [selectedClientId, setSelectedClientId] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -61,18 +57,14 @@ export default function DispatchPage() {
     const cid = profile!.company_id
     const today = new Date().toISOString().split('T')[0]
 
-    const [dispatchesRes, clientsRes, jobSitesRes, templatesRes, driversRes] = await Promise.all([
-      supabase.from('dispatches').select('*, clients(*), job_sites(*)').eq('company_id', cid).gte('scheduled_date', today).order('scheduled_date'),
+    const [dispatchesRes, clientsRes, driversRes] = await Promise.all([
+      supabase.from('dispatches').select('*, clients(*)').eq('company_id', cid).gte('scheduled_date', today).order('scheduled_date'),
       supabase.from('clients').select('*').eq('company_id', cid).order('name'),
-      supabase.from('job_sites').select('*').eq('company_id', cid).eq('is_active', true).order('name'),
-      supabase.from('ticket_templates').select('*').eq('company_id', cid).eq('is_active', true),
       supabase.from('users').select('*').eq('company_id', cid).eq('role', 'driver').eq('is_active', true).order('full_name'),
     ])
 
     setDispatches((dispatchesRes.data ?? []) as any)
     setClients(clientsRes.data ?? [])
-    setJobSites(jobSitesRes.data ?? [])
-    setTemplates(templatesRes.data ?? [])
     setDrivers(driversRes.data ?? [])
     setLoading(false)
   }
@@ -82,18 +74,17 @@ export default function DispatchPage() {
     setSubmitting(true)
 
     const clientName = clients.find(c => c.id === data.client_id)?.name ?? 'Job'
-    const autoTitle = [clientName, data.material_type, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
+    const autoTitle = [clientName, data.hauling, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
 
     const { data: dispatch } = await supabase.from('dispatches').insert({
       company_id: profile!.company_id,
       dispatcher_id: profile!.id,
       title: autoTitle,
       client_id: data.client_id,
-      job_site_id: data.job_site_id,
-      ticket_template_id: data.ticket_template_id,
+      job_site_address: data.job_site_address || null,
       scheduled_date: data.scheduled_date,
       scheduled_time: data.scheduled_time || null,
-      material_type: data.material_type || null,
+      material_type: data.hauling || null,
       billing_type: data.billing_type || null,
       hours_per_load: data.billing_type === 'per_load' && data.hours_per_load ? parseFloat(data.hours_per_load) : null,
       po_number: data.po_number || null,
@@ -110,12 +101,9 @@ export default function DispatchPage() {
     setShowModal(false)
     reset({ scheduled_date: new Date().toISOString().split('T')[0], billing_type: 'per_load' })
     setSelectedDrivers([])
-    setSelectedClientId('')
     await loadData()
     setSubmitting(false)
   }
-
-  const filteredJobSites = selectedClientId ? jobSites.filter(js => js.client_id === selectedClientId) : jobSites
 
   if (loading) return <AppLoader />
 
@@ -147,6 +135,7 @@ export default function DispatchPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">{(d.clients as Client)?.name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {d.material_type && <span>{d.material_type} · </span>}
+                        {(d as any).job_site_address && <span>{(d as any).job_site_address} · </span>}
                         {formatDate(d.scheduled_date)}
                         {d.scheduled_time && ` · ${d.scheduled_time}`}
                       </p>
@@ -170,7 +159,8 @@ export default function DispatchPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Client</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Material</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Hauling</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Address</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Date</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Billing</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
@@ -181,6 +171,7 @@ export default function DispatchPage() {
                     <tr key={d.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{(d.clients as Client)?.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{d.material_type ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{(d as any).job_site_address ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {formatDate(d.scheduled_date)}{d.scheduled_time ? ` · ${d.scheduled_time}` : ''}
                       </td>
@@ -224,14 +215,14 @@ export default function DispatchPage() {
                 {errors.client_id && <p className="text-xs text-red-600 mt-1">Required</p>}
               </div>
 
-              {/* Job Site */}
+              {/* Job Site Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job Site / Address <span className="text-red-500">*</span></label>
-                <select {...register('job_site_id', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select job site…</option>
-                  {filteredJobSites.map(js => <option key={js.id} value={js.id}>{js.name}{(js as any).address ? ` — ${(js as any).address}` : ''}</option>)}
-                </select>
-                {errors.job_site_id && <p className="text-xs text-red-600 mt-1">Required</p>}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job Site Address</label>
+                <input
+                  {...register('job_site_address')}
+                  placeholder="e.g. 4521 W Camelback Rd, Phoenix, AZ"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                />
               </div>
 
               {/* Date + Arrival Time */}
@@ -246,11 +237,11 @@ export default function DispatchPage() {
                 </div>
               </div>
 
-              {/* Material */}
+              {/* Hauling */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Material Being Hauled</label>
-                <select {...register('material_type')} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select material…</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">What are you hauling?</label>
+                <select {...register('hauling')} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+                  <option value="">Select…</option>
                   {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
@@ -282,16 +273,6 @@ export default function DispatchPage() {
                     />
                   </div>
                 )}
-              </div>
-
-              {/* Ticket Template */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ticket Template <span className="text-red-500">*</span></label>
-                <select {...register('ticket_template_id', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select template…</option>
-                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-                {errors.ticket_template_id && <p className="text-xs text-red-600 mt-1">Required</p>}
               </div>
 
               {/* PO Number */}
