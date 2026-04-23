@@ -2,6 +2,7 @@
 
 import { useState, useMemo  } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Truck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -49,10 +50,10 @@ export default function LoginPage() {
     <div className="min-h-full flex items-center justify-center bg-[#F8F7F5]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-1">
+          <Link href="/" className="inline-flex items-center justify-center gap-2 mb-1 hover:opacity-70 transition-opacity">
             <Truck size={28} className="text-gray-900" />
-            <h1 className="text-3xl font-bold text-gray-900">Fleetwise</h1>
-          </div>
+            <span className="text-3xl font-bold text-gray-900">Fleetwise</span>
+          </Link>
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
