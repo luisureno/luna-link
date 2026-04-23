@@ -36,6 +36,8 @@ export default function DispatchPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [drivers, setDrivers] = useState<User[]>([])
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([])
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing')
+  const [newClientName, setNewClientName] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -71,16 +73,33 @@ export default function DispatchPage() {
 
   async function onSubmit(data: DispatchForm) {
     if (selectedDrivers.length === 0) return
+    if (clientMode === 'new' && !newClientName.trim()) return
+    if (clientMode === 'existing' && !data.client_id) return
     setSubmitting(true)
 
-    const clientName = clients.find(c => c.id === data.client_id)?.name ?? 'Job'
+    let clientId = data.client_id
+    let clientName = clients.find(c => c.id === clientId)?.name ?? 'Job'
+
+    if (clientMode === 'new') {
+      const { data: created } = await supabase
+        .from('clients')
+        .insert({ company_id: profile!.company_id, name: newClientName.trim() })
+        .select()
+        .single()
+      if (created) {
+        clientId = created.id
+        clientName = created.name
+        setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      }
+    }
+
     const autoTitle = [clientName, data.hauling, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
 
     const { data: dispatch } = await supabase.from('dispatches').insert({
       company_id: profile!.company_id,
       dispatcher_id: profile!.id,
       title: autoTitle,
-      client_id: data.client_id,
+      client_id: clientId,
       job_site_address: data.job_site_address || null,
       scheduled_date: data.scheduled_date,
       scheduled_time: data.scheduled_time || null,
@@ -101,6 +120,8 @@ export default function DispatchPage() {
     setShowModal(false)
     reset({ scheduled_date: new Date().toISOString().split('T')[0], billing_type: 'per_load' })
     setSelectedDrivers([])
+    setClientMode('existing')
+    setNewClientName('')
     await loadData()
     setSubmitting(false)
   }
@@ -203,16 +224,40 @@ export default function DispatchPage() {
 
               {/* Client */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client <span className="text-red-500">*</span></label>
-                <select
-                  {...register('client_id', { required: true })}
-                  onChange={e => { setSelectedClientId(e.target.value) }}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  <option value="">Select client…</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                {errors.client_id && <p className="text-xs text-red-600 mt-1">Required</p>}
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">Client <span className="text-red-500">*</span></label>
+                  <button
+                    type="button"
+                    onClick={() => setClientMode(m => m === 'existing' ? 'new' : 'existing')}
+                    className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-800"
+                  >
+                    {clientMode === 'existing' ? '+ Add new client' : 'Select existing'}
+                  </button>
+                </div>
+                {clientMode === 'existing' ? (
+                  <>
+                    <select
+                      {...register('client_id', { required: clientMode === 'existing' })}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    >
+                      <option value="">Select client…</option>
+                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    {errors.client_id && <p className="text-xs text-red-600 mt-1">Required</p>}
+                  </>
+                ) : (
+                  <>
+                    <input
+                      value={newClientName}
+                      onChange={e => setNewClientName(e.target.value)}
+                      placeholder="New client name…"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    />
+                    {clientMode === 'new' && !newClientName.trim() && submitting && (
+                      <p className="text-xs text-red-600 mt-1">Required</p>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Job Site Address */}
