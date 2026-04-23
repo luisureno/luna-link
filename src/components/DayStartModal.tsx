@@ -42,7 +42,7 @@ export function DayStartModal({ name, userId, inspectionDone, inspectionPath = '
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
         <div className="text-center space-y-1">
           <p className="text-3xl">🚛</p>
