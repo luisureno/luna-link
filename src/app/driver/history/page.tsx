@@ -166,20 +166,20 @@ export default function HistoryPage() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900">Pre-Trip Inspection</h3>
                     <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${dayInspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {dayInspection.overall_status === 'passed' ? '✓ Passed' : '⚠ Issues Found'}
+                      </span>
                       {dayInspection.pdf_url && (
                         <a
                           href={dayInspection.pdf_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-medium"
                         >
-                          <Download size={12} />
+                          <Download size={13} />
                           PDF
                         </a>
                       )}
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${dayInspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {dayInspection.overall_status === 'passed' ? '✓ Passed' : '⚠ Issues Found'}
-                      </span>
                     </div>
                   </div>
                   <div className="space-y-1.5">

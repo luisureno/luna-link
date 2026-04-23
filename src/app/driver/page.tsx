@@ -288,17 +288,6 @@ export default function DriverTodayPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                {inspection?.pdf_url && (
-                  <a
-                    href={inspection.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    <Download size={12} />
-                    PDF
-                  </a>
-                )}
                 {inspection === null ? (
                   <Link href="/driver/inspection" className="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg font-medium">
                     Start
@@ -308,6 +297,17 @@ export default function DriverTodayPage() {
                 ) : inspection?.overall_status === 'failed' ? (
                   <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium">Issues</span>
                 ) : null}
+                {inspection?.pdf_url && (
+                  <a
+                    href={inspection.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-medium min-w-[52px] justify-center"
+                  >
+                    <Download size={13} />
+                    PDF
+                  </a>
+                )}
               </div>
             </div>
           </div>
