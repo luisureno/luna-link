@@ -40,7 +40,7 @@ export default function DispatchPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [drivers, setDrivers] = useState<User[]>([])
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([])
-  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing')
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
   const [newClientName, setNewClientName] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -124,7 +124,7 @@ export default function DispatchPage() {
     setShowModal(false)
     reset({ scheduled_date: new Date().toISOString().split('T')[0], billing_type: 'per_load' })
     setSelectedDrivers([])
-    setClientMode('existing')
+    setClientMode('new')
     setNewClientName('')
     await loadData()
     setSubmitting(false)
@@ -241,7 +241,7 @@ export default function DispatchPage() {
                     onClick={() => setClientMode(m => m === 'existing' ? 'new' : 'existing')}
                     className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-800"
                   >
-                    {clientMode === 'existing' ? '+ Add new client' : 'Select existing'}
+                    {clientMode === 'new' ? 'Select existing client' : 'Enter new client'}
                   </button>
                 </div>
                 {clientMode === 'existing' ? (
