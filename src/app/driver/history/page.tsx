@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -165,9 +165,22 @@ export default function HistoryPage() {
                 <div className={`bg-white border rounded-lg p-4 ${dayInspection.overall_status === 'failed' ? 'border-red-200' : 'border-gray-200'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900">Pre-Trip Inspection</h3>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${dayInspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {dayInspection.overall_status === 'passed' ? '✓ Passed' : '⚠ Issues Found'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {dayInspection.pdf_url && (
+                        <a
+                          href={dayInspection.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <Download size={12} />
+                          PDF
+                        </a>
+                      )}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${dayInspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {dayInspection.overall_status === 'passed' ? '✓ Passed' : '⚠ Issues Found'}
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     {(dayInspection.items as any[]).map((item: any) => (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { MapPin, PlusCircle, List, Fuel, X, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import type { AccountType } from '@/types'
@@ -287,15 +287,28 @@ export default function DriverTodayPage() {
                   </p>
                 </div>
               </div>
-              {inspection === null ? (
-                <Link href="/driver/inspection" className="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg font-medium shrink-0">
-                  Start
-                </Link>
-              ) : inspection?.overall_status === 'passed' ? (
-                <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-medium shrink-0">Passed</span>
-              ) : inspection?.overall_status === 'failed' ? (
-                <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium shrink-0">Issues</span>
-              ) : null}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {inspection?.pdf_url && (
+                  <a
+                    href={inspection.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    <Download size={12} />
+                    PDF
+                  </a>
+                )}
+                {inspection === null ? (
+                  <Link href="/driver/inspection" className="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg font-medium">
+                    Start
+                  </Link>
+                ) : inspection?.overall_status === 'passed' ? (
+                  <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-medium">Passed</span>
+                ) : inspection?.overall_status === 'failed' ? (
+                  <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium">Issues</span>
+                ) : null}
+              </div>
             </div>
           </div>
 

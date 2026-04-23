@@ -228,6 +228,8 @@ export interface PreTripInspection {
   items: InspectionItem[]
   overall_status: 'passed' | 'failed'
   inspected_at: string
+  pdf_url: string | null
+  signature: string | null
 }
 
 export interface FuelLog {

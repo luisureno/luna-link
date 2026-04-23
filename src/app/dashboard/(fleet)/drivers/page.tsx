@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
+import { Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -89,8 +90,21 @@ export default function DriversPage() {
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pre-Trip Inspection</h3>
         {!d.inspection ? <p className="text-sm text-gray-400">Not completed today.</p> : (
           <div>
-            <div className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full mb-3 ${d.inspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {d.inspection.overall_status === 'passed' ? '✓ All Clear' : '⚠ Issues Found'}
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${d.inspection.overall_status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {d.inspection.overall_status === 'passed' ? '✓ All Clear' : '⚠ Issues Found'}
+              </div>
+              {d.inspection.pdf_url && (
+                <a
+                  href={d.inspection.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <Download size={12} />
+                  Download PDF Report
+                </a>
+              )}
             </div>
             <div className="space-y-1.5">
               {(d.inspection.items as any[]).map((item: any) => (
