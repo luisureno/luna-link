@@ -229,6 +229,24 @@ export default function DriverTodayPage() {
 
 
 
+      {/* Quick Actions */}
+      <div className="flex flex-col gap-3">
+        {!isSolo && (
+          <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
+            <MapPin size={26} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">{t('action.checkIn')}</span>
+          </Link>
+        )}
+        <Link href="/driver/ticket" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-xl py-6 hover:opacity-90">
+          <PlusCircle size={26} />
+          <span className="text-sm font-semibold">{t('action.submitTicket')}</span>
+        </Link>
+        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
+          <Fuel size={26} className="text-gray-700" />
+          <span className="text-sm font-semibold text-gray-700">{t('action.logFuel')}</span>
+        </Link>
+      </div>
+
       {/* Dispatches */}
       {!isSolo && dispatches.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -242,7 +260,7 @@ export default function DriverTodayPage() {
             {dispatches.map(d => (
               <div key={d.id} className="px-4 py-3 space-y-2">
                 <div>
-                  <p className="text-base font-semibold text-gray-900">{d.clients?.name ?? 'Client'}</p>
+                  <p className="text-base font-semibold text-gray-900">{d.clients?.name ?? d.client_name ?? 'Client'}</p>
                   {d.scheduled_time && (
                     <p className="text-xs text-gray-500 mt-0.5">Arrival {d.scheduled_time.slice(0, 5)}</p>
                   )}
@@ -297,24 +315,6 @@ export default function DriverTodayPage() {
           </div>
         </div>
       )}
-
-      {/* Quick Actions */}
-      <div className="flex flex-col gap-3">
-        {!isSolo && (
-          <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
-            <MapPin size={26} className="text-gray-700" />
-            <span className="text-sm font-semibold text-gray-700">{t('action.checkIn')}</span>
-          </Link>
-        )}
-        <Link href="/driver/ticket" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-xl py-6 hover:opacity-90">
-          <PlusCircle size={26} />
-          <span className="text-sm font-semibold">{t('action.submitTicket')}</span>
-        </Link>
-        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
-          <Fuel size={26} className="text-gray-700" />
-          <span className="text-sm font-semibold text-gray-700">{t('action.logFuel')}</span>
-        </Link>
-      </div>
 
       {/* Today's Logs */}
       <div>

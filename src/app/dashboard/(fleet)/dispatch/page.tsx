@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -61,7 +61,7 @@ export default function DispatchPage() {
     const today = new Date().toISOString().split('T')[0]
 
     const [dispatchesRes, clientsRes, driversRes] = await Promise.all([
-      supabase.from('dispatches').select('*, clients(*)').eq('company_id', cid).gte('scheduled_date', today).order('scheduled_date'),
+      supabase.from('dispatches').select('*, clients(*)').eq('company_id', cid).gte('scheduled_date', today).neq('status', 'cancelled').order('scheduled_date'),
       supabase.from('clients').select('*').eq('company_id', cid).order('name'),
       supabase.from('users').select('*').eq('company_id', cid).eq('role', 'driver').eq('is_active', true).order('full_name'),
     ])
@@ -88,32 +88,24 @@ export default function DispatchPage() {
     }
     setSubmitting(true)
 
-    let clientId = data.client_id
-    let clientName = clients.find(c => c.id === clientId)?.name ?? 'Job'
+    let clientId: string | null = data.client_id || null
+    let clientName: string | null = null
 
     if (clientMode === 'new') {
-      const { data: created, error: clientError } = await supabase
-        .from('clients')
-        .insert({ company_id: profile!.company_id, name: newClientName.trim() })
-        .select()
-        .single()
-      if (clientError || !created) {
-        setFormError('Failed to create client. Try again.')
-        setSubmitting(false)
-        return
-      }
-      clientId = created.id
-      clientName = created.name
-      setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      clientName = newClientName.trim()
+      clientId = null
+    } else {
+      clientName = clients.find(c => c.id === clientId)?.name ?? null
     }
 
-    const autoTitle = [clientName, data.hauling, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
+    const autoTitle = [clientName ?? 'Job', data.hauling, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
 
     const { data: dispatch, error: dispatchError } = await supabase.from('dispatches').insert({
       company_id: profile!.company_id,
       dispatcher_id: profile!.id,
       title: autoTitle,
       client_id: clientId,
+      client_name: clientMode === 'new' ? clientName : null,
       job_site_address: data.job_site_address || null,
       scheduled_date: data.scheduled_date,
       scheduled_time: data.scheduled_time || null,
@@ -145,6 +137,12 @@ export default function DispatchPage() {
     setSubmitting(false)
   }
 
+  async function cancelDispatch(id: string) {
+    if (!confirm('Cancel this dispatch? The driver will no longer see it.')) return
+    await supabase.from('dispatches').update({ status: 'cancelled' }).eq('id', id)
+    await loadData()
+  }
+
   if (loading) return <AppLoader />
 
   return (
@@ -172,11 +170,11 @@ export default function DispatchPage() {
                 <div key={d.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{(d.clients as Client)?.name}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{(d.clients as Client)?.name ?? d.client_name ?? '—'}</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {d.material_type && <span>{d.material_type} · </span>}
-                        {(d as any).job_site_address && (
-                          <><a href={mapsUrl((d as any).job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-800">{(d as any).job_site_address}</a>{' · '}</>
+                        {d.job_site_address && (
+                          <><a href={mapsUrl(d.job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-800">{d.job_site_address}</a>{' · '}</>
                         )}
                         {formatDate(d.scheduled_date)}
                         {d.scheduled_time && ` · ${d.scheduled_time}`}
@@ -189,7 +187,16 @@ export default function DispatchPage() {
                         </p>
                       )}
                     </div>
-                    <StatusBadge status={d.status} />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <StatusBadge status={d.status} />
+                      <button
+                        onClick={() => cancelDispatch(d.id)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                        title="Cancel dispatch"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -206,16 +213,17 @@ export default function DispatchPage() {
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Date</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Billing</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
+                    <th className="w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {dispatches.map(d => (
                     <tr key={d.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{(d.clients as Client)?.name}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{(d.clients as Client)?.name ?? d.client_name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{d.material_type ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">
-                        {(d as any).job_site_address
-                          ? <a href={mapsUrl((d as any).job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-900">{(d as any).job_site_address}</a>
+                        {d.job_site_address
+                          ? <a href={mapsUrl(d.job_site_address)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gray-900">{d.job_site_address}</a>
                           : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
@@ -227,6 +235,15 @@ export default function DispatchPage() {
                           : d.billing_type === 'per_hour' ? 'Per hour' : '—'}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+                      <td className="px-2 py-3">
+                        <button
+                          onClick={() => cancelDispatch(d.id)}
+                          className="p-1 text-gray-400 hover:text-red-600"
+                          title="Cancel dispatch"
+                        >
+                          <X size={14} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

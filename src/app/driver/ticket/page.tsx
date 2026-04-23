@@ -174,7 +174,8 @@ export default function TicketPage() {
     }
     // Pre-fill form from dispatch details
     const prefill: Partial<TicketForm> = {}
-    if (d.clients?.name) prefill.client_name = d.clients.name
+    const clientName = d.clients?.name ?? (d as any).client_name
+    if (clientName) prefill.client_name = clientName
     const address = (d as any).job_site_address || d.job_sites?.name
     if (address) prefill.job_site = address
     if ((d as any).po_number) prefill.po_number = (d as any).po_number

@@ -143,6 +143,7 @@ export interface Dispatch {
   billing_type: 'per_load' | 'per_hour' | null
   hours_per_load: number | null
   po_number: string | null
+  client_name: string | null
 }
 
 export interface DispatchAssignment {

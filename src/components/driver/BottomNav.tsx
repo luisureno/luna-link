@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Calendar, Settings } from 'lucide-react'
+import { Home, Calendar, Settings, Send } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 
@@ -14,6 +14,7 @@ export function BottomNav() {
 
   const tabs = [
     { href: '/driver', label: t('nav.today'), icon: Home },
+    ...(isSolo ? [] : [{ href: '/driver/dispatches', label: t('nav.dispatch'), icon: Send }]),
     { href: '/driver/history', label: t('nav.history'), icon: Calendar },
     { href: '/driver/settings', label: t('nav.settings'), icon: Settings },
   ]

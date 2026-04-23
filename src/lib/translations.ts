@@ -9,6 +9,7 @@ const en = {
 
   // Nav
   'nav.today': 'Today',
+  'nav.dispatch': 'Dispatch',
   'nav.history': 'History',
   'nav.settings': 'Settings',
 
@@ -286,6 +287,7 @@ const es: typeof en = {
   'greeting.welcome': 'Bienvenido de nuevo',
 
   'nav.today': 'Hoy',
+  'nav.dispatch': 'Despacho',
   'nav.history': 'Historial',
   'nav.settings': 'Ajustes',
 
