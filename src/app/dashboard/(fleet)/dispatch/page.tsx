@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo , useState } from 'react'
-import { Plus, Info } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -11,24 +11,21 @@ import type { Dispatch, Client, JobSite, TicketTemplate, User } from '@/types'
 import { formatDate } from '@/lib/format'
 import { AppLoader } from '@/components/AppLoader'
 
-interface BillingConfig {
-  id: string
-  client_id: string
-  job_type_name: string
-  billing_type: 'per_load' | 'hourly'
-  client_rate_amount: number
-  client_rate_unit: string
-  driver_hours_per_load: number | null
-  driver_pay_type: string
-}
+const MATERIALS = [
+  'Dirt', 'Fill Dirt', 'Gravel', 'Crushed Rock', 'Sand', 'Concrete Sand',
+  'Asphalt', 'Base Material', 'Debris', 'Rip Rap', 'Other',
+]
 
 interface DispatchForm {
-  title: string
   client_id: string
   job_site_id: string
   ticket_template_id: string
   scheduled_date: string
   scheduled_time: string
+  material_type: string
+  billing_type: 'per_load' | 'per_hour'
+  hours_per_load: string
+  po_number: string
   notes: string
 }
 
@@ -41,17 +38,19 @@ export default function DispatchPage() {
   const [jobSites, setJobSites] = useState<JobSite[]>([])
   const [templates, setTemplates] = useState<TicketTemplate[]>([])
   const [drivers, setDrivers] = useState<User[]>([])
-  const [billingConfigs, setBillingConfigs] = useState<BillingConfig[]>([])
-  const [driverPayRates, setDriverPayRates] = useState<Record<string, number | null>>({})
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
-  const [selectedBillingConfigId, setSelectedBillingConfigId] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<DispatchForm>({
-    defaultValues: { scheduled_date: new Date().toISOString().split('T')[0] }
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<DispatchForm>({
+    defaultValues: {
+      scheduled_date: new Date().toISOString().split('T')[0],
+      billing_type: 'per_load',
+    }
   })
+
+  const billingType = watch('billing_type')
 
   useEffect(() => {
     if (!profile?.company_id) return
@@ -62,14 +61,12 @@ export default function DispatchPage() {
     const cid = profile!.company_id
     const today = new Date().toISOString().split('T')[0]
 
-    const [dispatchesRes, clientsRes, jobSitesRes, templatesRes, driversRes, configsRes, ratesRes] = await Promise.all([
+    const [dispatchesRes, clientsRes, jobSitesRes, templatesRes, driversRes] = await Promise.all([
       supabase.from('dispatches').select('*, clients(*), job_sites(*)').eq('company_id', cid).gte('scheduled_date', today).order('scheduled_date'),
       supabase.from('clients').select('*').eq('company_id', cid).order('name'),
       supabase.from('job_sites').select('*').eq('company_id', cid).eq('is_active', true).order('name'),
       supabase.from('ticket_templates').select('*').eq('company_id', cid).eq('is_active', true),
       supabase.from('users').select('*').eq('company_id', cid).eq('role', 'driver').eq('is_active', true).order('full_name'),
-      supabase.from('client_billing_configs').select('*').eq('company_id', cid).eq('is_active', true),
-      supabase.from('driver_pay_rates').select('driver_id, hourly_rate').eq('company_id', cid).order('effective_date', { ascending: false }),
     ])
 
     setDispatches((dispatchesRes.data ?? []) as any)
@@ -77,14 +74,6 @@ export default function DispatchPage() {
     setJobSites(jobSitesRes.data ?? [])
     setTemplates(templatesRes.data ?? [])
     setDrivers(driversRes.data ?? [])
-    setBillingConfigs((configsRes.data ?? []) as BillingConfig[])
-
-    // Latest hourly rate per driver
-    const rates: Record<string, number | null> = {}
-    ;(ratesRes.data ?? []).forEach((r: any) => {
-      if (!(r.driver_id in rates)) rates[r.driver_id] = r.hourly_rate
-    })
-    setDriverPayRates(rates)
     setLoading(false)
   }
 
@@ -92,14 +81,24 @@ export default function DispatchPage() {
     if (selectedDrivers.length === 0) return
     setSubmitting(true)
 
+    const clientName = clients.find(c => c.id === data.client_id)?.name ?? 'Job'
+    const autoTitle = [clientName, data.material_type, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
+
     const { data: dispatch } = await supabase.from('dispatches').insert({
       company_id: profile!.company_id,
       dispatcher_id: profile!.id,
-      ...data,
+      title: autoTitle,
+      client_id: data.client_id,
+      job_site_id: data.job_site_id,
+      ticket_template_id: data.ticket_template_id,
+      scheduled_date: data.scheduled_date,
       scheduled_time: data.scheduled_time || null,
+      material_type: data.material_type || null,
+      billing_type: data.billing_type || null,
+      hours_per_load: data.billing_type === 'per_load' && data.hours_per_load ? parseFloat(data.hours_per_load) : null,
+      po_number: data.po_number || null,
       notes: data.notes || null,
       status: 'pending',
-      billing_config_id: selectedBillingConfigId || null,
     }).select().single()
 
     if (dispatch) {
@@ -109,39 +108,14 @@ export default function DispatchPage() {
     }
 
     setShowModal(false)
-    reset()
+    reset({ scheduled_date: new Date().toISOString().split('T')[0], billing_type: 'per_load' })
     setSelectedDrivers([])
     setSelectedClientId('')
-    setSelectedBillingConfigId('')
     await loadData()
     setSubmitting(false)
   }
 
   const filteredJobSites = selectedClientId ? jobSites.filter(js => js.client_id === selectedClientId) : jobSites
-  const clientBillingConfigs = billingConfigs.filter(c => c.client_id === selectedClientId)
-  const selectedConfig = billingConfigs.find(c => c.id === selectedBillingConfigId)
-
-  function billingPreview() {
-    if (!selectedConfig) return null
-    const rate = `$${Number(selectedConfig.client_rate_amount).toFixed(4)} ${selectedConfig.client_rate_unit.replace(/_/g, ' ')}`
-
-    if (selectedConfig.billing_type === 'per_load') {
-      const hrsPerLoad = selectedConfig.driver_hours_per_load
-      const firstDriverId = selectedDrivers[0]
-      const hourlyRate = firstDriverId ? (driverPayRates[firstDriverId] ?? null) : null
-      return {
-        clientLine: `${rate} (flat)`,
-        driverLine: hrsPerLoad ? `${hrsPerLoad} hrs/load` : 'Hours per load not set',
-        driverPay: hrsPerLoad && hourlyRate ? `$${(hrsPerLoad * hourlyRate).toFixed(2)}/load to driver` : null,
-      }
-    }
-    if (selectedConfig.billing_type === 'hourly') {
-      return { clientLine: rate, driverLine: 'Paid by actual hours at driver hourly rate', driverPay: null }
-    }
-    return null
-  }
-
-  const preview = billingPreview()
 
   if (loading) return <AppLoader />
 
@@ -158,9 +132,7 @@ export default function DispatchPage() {
       />
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />)}</div>
-        ) : dispatches.length === 0 ? (
+        {dispatches.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 text-sm">No dispatches yet. Create your first dispatch above.</p>
           </div>
@@ -172,9 +144,19 @@ export default function DispatchPage() {
                 <div key={d.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{d.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{(d.clients as Client)?.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(d.scheduled_date)}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{(d.clients as Client)?.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {d.material_type && <span>{d.material_type} · </span>}
+                        {formatDate(d.scheduled_date)}
+                        {d.scheduled_time && ` · ${d.scheduled_time}`}
+                      </p>
+                      {d.billing_type && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {d.billing_type === 'per_load'
+                            ? `Per load${d.hours_per_load ? ` · ${d.hours_per_load} hrs guaranteed` : ''}`
+                            : 'Per hour'}
+                        </p>
+                      )}
                     </div>
                     <StatusBadge status={d.status} />
                   </div>
@@ -184,21 +166,29 @@ export default function DispatchPage() {
 
             {/* Desktop table */}
             <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full min-w-[500px]">
+              <table className="w-full min-w-[600px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Title</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Client</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Material</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Date</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Billing</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {dispatches.map(d => (
                     <tr key={d.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{d.title}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{(d.clients as Client)?.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{formatDate(d.scheduled_date)}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{(d.clients as Client)?.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{d.material_type ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {formatDate(d.scheduled_date)}{d.scheduled_time ? ` · ${d.scheduled_time}` : ''}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {d.billing_type === 'per_load'
+                          ? `Per load${d.hours_per_load ? ` (${d.hours_per_load} hrs)` : ''}`
+                          : d.billing_type === 'per_hour' ? 'Per hour' : '—'}
+                      </td>
                       <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
                     </tr>
                   ))}
@@ -219,90 +209,98 @@ export default function DispatchPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
-                <input {...register('title', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900" placeholder="e.g. Morning run – Riverside Site" />
-                {errors.title && <p className="text-xs text-red-600 mt-1">Required</p>}
-              </div>
 
+              {/* Client */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Client <span className="text-red-500">*</span></label>
                 <select
                   {...register('client_id', { required: true })}
-                  onChange={e => {
-                    setSelectedClientId(e.target.value)
-                    setSelectedBillingConfigId('')
-                  }}
+                  onChange={e => { setSelectedClientId(e.target.value) }}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">Select client...</option>
+                  <option value="">Select client…</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                {errors.client_id && <p className="text-xs text-red-600 mt-1">Required</p>}
               </div>
 
-              {/* Billing Config — shown after client is selected */}
-              {selectedClientId && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Billing Config</label>
-                  {clientBillingConfigs.length === 0 ? (
-                    <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded text-sm text-amber-800">
-                      <Info size={14} className="flex-shrink-0 mt-0.5" />
-                      <span>No billing configs for this client. <a href="/dashboard/settings" className="underline font-medium">Add one in Settings → Billing Setup.</a></span>
-                    </div>
-                  ) : (
-                    <>
-                      <select
-                        value={selectedBillingConfigId}
-                        onChange={e => setSelectedBillingConfigId(e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900"
-                      >
-                        <option value="">Select billing config... (optional)</option>
-                        {clientBillingConfigs.map(c => (
-                          <option key={c.id} value={c.id}>{c.job_type_name}</option>
-                        ))}
-                      </select>
-
-                      {/* Billing preview */}
-                      {preview && (
-                        <div className="mt-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded text-xs space-y-1">
-                          <p className="font-semibold text-gray-700">Billing preview for this dispatch:</p>
-                          <p className="text-gray-600">Client charges: <span className="font-medium text-gray-900">{preview.clientLine}</span></p>
-                          <p className="text-gray-600">Driver hours: <span className="font-medium text-gray-900">{preview.driverLine}</span></p>
-                          {preview.driverPay && <p className="text-gray-600">Est. driver pay: <span className="font-medium text-gray-900">{preview.driverPay}</span></p>}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
+              {/* Job Site */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job Site <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job Site / Address <span className="text-red-500">*</span></label>
                 <select {...register('job_site_id', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select job site...</option>
-                  {filteredJobSites.map(js => <option key={js.id} value={js.id}>{js.name}</option>)}
+                  <option value="">Select job site…</option>
+                  {filteredJobSites.map(js => <option key={js.id} value={js.id}>{js.name}{(js as any).address ? ` — ${(js as any).address}` : ''}</option>)}
                 </select>
+                {errors.job_site_id && <p className="text-xs text-red-600 mt-1">Required</p>}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ticket Template <span className="text-red-500">*</span></label>
-                <select {...register('ticket_template_id', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select template...</option>
-                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Date + Arrival Time */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date <span className="text-red-500">*</span></label>
                   <input type="date" {...register('scheduled_date', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Time</label>
                   <input type="time" {...register('scheduled_time')} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900" />
                 </div>
               </div>
 
+              {/* Material */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Material Being Hauled</label>
+                <select {...register('material_type')} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+                  <option value="">Select material…</option>
+                  {MATERIALS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+
+              {/* Billing Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">How are you charging? <span className="text-red-500">*</span></label>
+                <div className="flex gap-2">
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded border-2 cursor-pointer text-sm font-medium transition-colors ${billingType === 'per_load' ? 'border-[#1a1a1a] bg-gray-50 text-gray-900' : 'border-gray-200 text-gray-500'}`}>
+                    <input type="radio" value="per_load" {...register('billing_type')} className="sr-only" />
+                    Per Load
+                  </label>
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded border-2 cursor-pointer text-sm font-medium transition-colors ${billingType === 'per_hour' ? 'border-[#1a1a1a] bg-gray-50 text-gray-900' : 'border-gray-200 text-gray-500'}`}>
+                    <input type="radio" value="per_hour" {...register('billing_type')} className="sr-only" />
+                    Per Hour
+                  </label>
+                </div>
+
+                {billingType === 'per_load' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hours per load <span className="text-xs font-normal text-gray-400">(guaranteed — driver gets paid this even if they finish early)</span></label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="e.g. 4"
+                      {...register('hours_per_load')}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Ticket Template */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ticket Template <span className="text-red-500">*</span></label>
+                <select {...register('ticket_template_id', { required: true })} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+                  <option value="">Select template…</option>
+                  {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                {errors.ticket_template_id && <p className="text-xs text-red-600 mt-1">Required</p>}
+              </div>
+
+              {/* PO Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">PO # <span className="text-xs font-normal text-gray-400">(optional — shown to driver when submitting invoice)</span></label>
+                <input {...register('po_number')} placeholder="e.g. PO-10042" className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              </div>
+
+              {/* Assign Drivers */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Assign Drivers <span className="text-red-500">*</span></label>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto border border-gray-200 rounded p-2">
@@ -314,22 +312,23 @@ export default function DispatchPage() {
                         onChange={e => setSelectedDrivers(prev => e.target.checked ? [...prev, driver.id] : prev.filter(id => id !== driver.id))}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm text-gray-700">{driver.full_name} ({driver.truck_number})</span>
+                      <span className="text-sm text-gray-700">{driver.full_name}{driver.truck_number ? ` (${driver.truck_number})` : ''}</span>
                     </label>
                   ))}
                 </div>
                 {selectedDrivers.length === 0 && <p className="text-xs text-red-600 mt-1">Select at least one driver</p>}
               </div>
 
+              {/* Notes for Drivers */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes for Drivers</label>
-                <textarea {...register('notes')} rows={2} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none" placeholder="Any special instructions..." />
+                <textarea {...register('notes')} rows={2} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none" placeholder="Any special instructions…" />
               </div>
 
               <div className="flex gap-3 pt-2 pb-safe">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={submitting || selectedDrivers.length === 0} className="flex-1 py-3 bg-[#1a1a1a] text-white rounded text-sm font-medium disabled:opacity-50">
-                  {submitting ? 'Sending...' : 'Send Dispatch'}
+                  {submitting ? 'Sending…' : 'Send Dispatch'}
                 </button>
               </div>
             </form>
