@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { Dispatch, Client, JobSite, TicketTemplate, User } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 interface BillingConfig {
   id: string
@@ -141,6 +142,8 @@ export default function DispatchPage() {
   }
 
   const preview = billingPreview()
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

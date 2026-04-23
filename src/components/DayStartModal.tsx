@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface DayStartModalProps {
   name: string
@@ -12,6 +13,7 @@ interface DayStartModalProps {
 
 export function DayStartModal({ name, userId, inspectionDone, inspectionPath = '/driver/inspection' }: DayStartModalProps) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [visible, setVisible] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
@@ -39,7 +41,7 @@ export function DayStartModal({ name, userId, inspectionDone, inspectionPath = '
 
   const firstName = name.split(' ')[0]
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening')
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-end sm:items-center justify-center p-4 bg-black/50">
@@ -53,10 +55,8 @@ export function DayStartModal({ name, userId, inspectionDone, inspectionPath = '
         </div>
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-800">Pre-Trip Inspection</p>
-          <p className="text-xs text-amber-600 mt-1">
-            Start your day right — run through your pre-trip checklist before your first load.
-          </p>
+          <p className="text-sm font-semibold text-amber-800">{t('dayStart.preTrip')}</p>
+          <p className="text-xs text-amber-600 mt-1">{t('dayStart.startDay')}</p>
         </div>
 
         <div className="space-y-2">
@@ -64,13 +64,13 @@ export function DayStartModal({ name, userId, inspectionDone, inspectionPath = '
             onClick={startInspection}
             className="w-full py-3 bg-[#1a1a1a] text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors"
           >
-            Start Pre-Trip Inspection →
+            {t('dayStart.startButton')}
           </button>
           <button
             onClick={dismiss}
             className="w-full py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            Skip for now
+            {t('dayStart.skip')}
           </button>
         </div>
       </div>

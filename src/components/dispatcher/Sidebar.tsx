@@ -24,7 +24,6 @@ const fleetNav = [
 const soloNav = [
   { href: '/driver', label: 'Today', icon: Home },
   { href: '/dashboard/solo/loads', label: 'Loads', icon: List },
-  { href: '/dashboard/solo/fuel', label: 'Fuel Map', icon: Fuel },
   { href: '/dashboard/solo/invoices', label: 'Invoices', icon: Receipt },
   { href: '/dashboard/solo/clients', label: 'Clients', icon: Building2 },
   { href: '/dashboard/solo/settings', label: 'Settings', icon: Settings },
@@ -43,8 +42,8 @@ export function Sidebar() {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[1500] bg-[#1a1a1a] text-white h-14 flex items-center justify-between px-4 border-b border-white/10">
         <Link href={homeHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Truck size={18} className="text-white/70" />
-          <span className="font-semibold text-sm">Fleetwise</span>
+          <Truck size={22} className="text-white/80" />
+          <span className="font-bold text-lg">Fleetwise</span>
         </Link>
         <button onClick={() => setOpen(true)} className="p-2 -mr-2" aria-label="Open menu">
           <Menu size={20} />
@@ -67,8 +66,8 @@ export function Sidebar() {
         <div className="p-5 border-b border-white/10 flex items-start justify-between">
           <div>
             <Link href={homeHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <Truck size={20} className="text-white/70" />
-              <span className="font-semibold text-base">Fleetwise</span>
+              <Truck size={22} className="text-white/80" />
+              <span className="font-bold text-lg">Fleetwise</span>
             </Link>
             <p className="text-xs text-white/40 mt-1 truncate">
               {accountType === 'solo' ? ((profile as any)?.companies?.name ?? profile?.full_name ?? '') : (profile?.full_name ?? '')}

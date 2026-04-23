@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { User } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 interface FuelRow {
   id: string
@@ -131,6 +132,8 @@ export default function FuelPage() {
       </div>
     )
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

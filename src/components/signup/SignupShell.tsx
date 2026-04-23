@@ -16,8 +16,8 @@ export function SignupShell({ children }: { children: React.ReactNode }) {
       <nav className="border-b border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Truck size={20} className="text-gray-900" />
-            <span className="text-base md:text-lg font-semibold tracking-tight">Fleetwise</span>
+            <Truck size={24} className="text-gray-900" />
+            <span className="text-lg md:text-xl font-bold tracking-tight">Fleetwise</span>
           </Link>
           <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
             Log in

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo , useState } from 'react'
-import { Plus, FileSpreadsheet, AlertTriangle, CheckCircle2, Clock, Copy, Check } from 'lucide-react'
+import { Plus, FileSpreadsheet, AlertTriangle, CheckCircle2, Clock, Copy, Check, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { QuickBooksWaitlistButton } from '@/components/QuickBooksWaitlistButton'
 import type { Invoice, Client } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 type TabId = 'client' | 'payroll' | 'all'
 
@@ -29,6 +30,8 @@ export default function InvoicesPage() {
   const [unpaid, setUnpaid] = useState<(Invoice & { clients: Client })[]>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [copyingId, setCopyingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.company_id) return
@@ -71,6 +74,15 @@ export default function InvoicesPage() {
 
   function daysSince(dateStr: string) {
     return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
+  }
+
+  async function deleteInvoice(id: string) {
+    setDeletingId(id)
+    await fetch(`/api/invoice/delete?id=${id}`, { method: 'DELETE' })
+    setInvoices(prev => prev.filter(i => i.id !== id))
+    setUnpaid(prev => prev.filter(i => i.id !== id))
+    setDeletingId(null)
+    setConfirmDelete(null)
   }
 
   async function copyInvoiceLines(inv: Invoice & { clients: Client }) {
@@ -125,6 +137,8 @@ export default function InvoicesPage() {
     setCopiedId(inv.id)
     setTimeout(() => setCopiedId(null), 2500)
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>
@@ -184,7 +198,7 @@ export default function InvoicesPage() {
                   </div>
                   <button
                     onClick={() => markPaid(inv.id)}
-                    className="shrink-0 text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                    className="shrink-0 text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-gray-800 font-medium"
                   >
                     Paid ✓
                   </button>
@@ -249,8 +263,14 @@ export default function InvoicesPage() {
                           {copiedId === inv.id ? <><Check size={12} /> Copied</> : copyingId === inv.id ? '…' : <><Copy size={12} /> Copy</>}
                         </button>
                         {inv.status === 'sent' && (
-                          <button onClick={() => markPaid(inv.id)} className="text-xs px-2.5 py-1.5 bg-green-600 text-white rounded hover:bg-green-700">Paid</button>
+                          <button onClick={() => markPaid(inv.id)} className="text-xs px-2.5 py-1.5 bg-green-600 text-white rounded hover:bg-gray-800">Paid</button>
                         )}
+                        <button
+                          onClick={() => setConfirmDelete(inv.id)}
+                          className="inline-flex items-center justify-center text-xs px-2.5 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -298,7 +318,7 @@ export default function InvoicesPage() {
                             {copiedId === inv.id ? <><Check size={11} /> Copied</> : copyingId === inv.id ? '…' : <><Copy size={11} /> Copy</>}
                           </button>
                           {inv.status === 'sent' && (
-                            <button onClick={() => markPaid(inv.id)} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Mark Paid</button>
+                            <button onClick={() => markPaid(inv.id)} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-gray-800">Mark Paid</button>
                           )}
                           {inv.status === 'draft' && (
                             <button
@@ -311,6 +331,12 @@ export default function InvoicesPage() {
                               Send
                             </button>
                           )}
+                          <button
+                            onClick={() => setConfirmDelete(inv.id)}
+                            className="inline-flex items-center justify-center text-xs px-2 py-1.5 border border-red-200 text-red-600 rounded hover:bg-red-50"
+                          >
+                            <Trash2 size={11} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -321,6 +347,33 @@ export default function InvoicesPage() {
           </>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Delete this invoice?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              All tickets and timesheets tied to this invoice will be unlocked and can be re-invoiced. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteInvoice(confirmDelete)}
+                disabled={deletingId === confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingId === confirmDelete ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { BottomNav } from '@/components/driver/BottomNav'
 import { TrialBanner } from '@/components/TrialBanner'
 import { TrialEndedGate } from '@/components/TrialEndedGate'
 import { DemoBanner } from '@/components/DemoBanner'
+import { AppLoader } from '@/components/AppLoader'
 
 export default function SoloLayout({ children }: { children: React.ReactNode }) {
   const { profile, loading } = useAuth()
@@ -47,8 +48,8 @@ export default function SoloLayout({ children }: { children: React.ReactNode }) 
 
   if (loading || !profile || !guardChecked) {
     return (
-      <div className="min-h-screen bg-[#F8F7F5] flex items-center justify-center">
-        <p className="text-sm text-gray-500">Loading…</p>
+      <div className="min-h-screen bg-[#F8F7F5]">
+        <AppLoader />
       </div>
     )
   }

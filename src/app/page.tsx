@@ -36,8 +36,8 @@ export default function LandingPage() {
       <nav className="border-b border-gray-200 bg-white/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Truck size={20} className="text-gray-900" />
-            <span className="text-base md:text-lg font-semibold tracking-tight">Fleetwise</span>
+            <Truck size={24} className="text-gray-900" />
+            <span className="text-lg md:text-xl font-bold tracking-tight">Fleetwise</span>
           </div>
           <div className="flex items-center gap-1 md:gap-2">
             <a href="#pricing" className="hidden sm:inline text-sm font-medium text-gray-700 hover:text-gray-900 px-2 md:px-3 py-2">
@@ -170,10 +170,6 @@ export default function LandingPage() {
                     <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2">
                       <Fuel size={13} className="text-gray-700" />
                       <span className="text-[9px] font-medium text-gray-700">Log Fuel</span>
-                    </div>
-                    <div className="flex flex-col items-center justify-center gap-1 bg-white border border-gray-200 rounded-lg p-2">
-                      <MapPin size={13} className="text-gray-700" />
-                      <span className="text-[9px] font-medium text-gray-700">Fuel Map</span>
                     </div>
                   </div>
                   {/* Today's Logs */}
@@ -383,7 +379,6 @@ export default function LandingPage() {
             'No more missed fuel receipts. Snap the receipt — gallons and price parse automatically.',
             'No more surprise breakdowns. Failed pre-trip items alert the dispatcher the moment they\'re flagged.',
             'No more payroll disputes. Live earnings by load or by hour, visible to driver and owner.',
-            'No more hunting for cheap diesel. The fuel map shows real-time prices at truck stops near you.',
             'No more chasing payments. Track every invoice from draft to paid with overdue alerts.',
             'No more guessing where drivers are. Every check-in and location is live on the dashboard.',
           ].map((item, i) => (
@@ -417,7 +412,6 @@ export default function LandingPage() {
                   '1 driver / 1 truck',
                   'AI tag scan + receipt scan',
                   'Client invoicing with auto-filled lines',
-                  'Fuel map — find cheap diesel near you',
                   'Earnings tracking per load',
                   'Pre-trip inspections',
                 ],

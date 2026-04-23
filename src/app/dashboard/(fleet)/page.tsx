@@ -8,12 +8,15 @@ import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, User, PreTripInspection } from '@/types'
+import { AppLoader } from '@/components/AppLoader'
 
 interface DriverActivity {
   driver: User
   lastCheckIn: CheckIn | null
   loadsToday: number
+  fuelToday: number
   inspectionStatus: 'passed' | 'failed' | null
+  inspectionPdfUrl: string | null
 }
 
 interface MetricCardProps {
@@ -82,8 +85,8 @@ export default function DashboardPage() {
       supabase.from('load_tickets').select('*, users!load_tickets_driver_id_fkey(*)').eq('company_id', cid).gte('submitted_at', `${today}T00:00:00`).order('submitted_at', { ascending: false }),
       supabase.from('dispatches').select('*').eq('company_id', cid).eq('scheduled_date', today).in('status', ['pending', 'active']),
       supabase.from('check_ins').select('*').eq('company_id', cid).gte('checked_in_at', `${today}T00:00:00`),
-      supabase.from('pre_trip_inspections').select('*, users(*)').eq('company_id', cid).gte('inspected_at', `${today}T00:00:00`),
-      supabase.from('fuel_logs').select('total_cost').eq('company_id', cid).gte('logged_at', `${today}T00:00:00`),
+      supabase.from('pre_trip_inspections').select('*, users(*)').eq('company_id', cid).gte('inspected_at', `${today}T00:00:00`).order('inspected_at', { ascending: false }),
+      supabase.from('fuel_logs').select('driver_id, total_cost').eq('company_id', cid).gte('logged_at', `${today}T00:00:00`),
       isOwnerDriver
         ? supabase.from('pre_trip_inspections').select('*').eq('driver_id', profile!.id).gte('inspected_at', `${today}T00:00:00`).limit(1)
         : Promise.resolve({ data: undefined }),
@@ -109,14 +112,23 @@ export default function DashboardPage() {
     }
 
     const inspectionByDriver: Record<string, 'passed' | 'failed'> = {}
-    inspections.forEach(i => { inspectionByDriver[i.driver_id] = i.overall_status })
+    const inspectionPdfByDriver: Record<string, string | null> = {}
+    inspections.forEach(i => {
+      if (!inspectionByDriver[i.driver_id]) {
+        inspectionByDriver[i.driver_id] = i.overall_status
+        inspectionPdfByDriver[i.driver_id] = (i as any).pdf_url ?? null
+      }
+    })
+
+    const fuelByDriver: Record<string, number> = {}
+    fuelLogs.forEach(f => { fuelByDriver[(f as any).driver_id] = (fuelByDriver[(f as any).driver_id] ?? 0) + 1 })
 
     const activity: DriverActivity[] = drivers.map(driver => {
       const driverCheckIns = checkIns.filter(c => c.driver_id === driver.id).sort(
         (a, b) => new Date(b.checked_in_at).getTime() - new Date(a.checked_in_at).getTime()
       )
       const driverLoads = tickets.filter(t => t.driver_id === driver.id).length
-      return { driver, lastCheckIn: driverCheckIns[0] ?? null, loadsToday: driverLoads, inspectionStatus: inspectionByDriver[driver.id] ?? null }
+      return { driver, lastCheckIn: driverCheckIns[0] ?? null, loadsToday: driverLoads, fuelToday: fuelByDriver[driver.id] ?? 0, inspectionStatus: inspectionByDriver[driver.id] ?? null, inspectionPdfUrl: inspectionPdfByDriver[driver.id] ?? null }
     })
     setDriverActivity(activity)
     setLoading(false)
@@ -140,6 +152,8 @@ export default function DashboardPage() {
     setRecentTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'confirmed' as const } : t))
     setPendingConfirmations(p => Math.max(0, p - 1))
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>
@@ -186,11 +200,19 @@ export default function DashboardPage() {
       {failedInspections.length > 0 && (
         <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-6">
           <p className="text-sm font-semibold text-red-800 mb-1">⚠️ Pre-Trip Issues Reported — {failedInspections.length} driver{failedInspections.length > 1 ? 's' : ''}</p>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {failedInspections.map(i => (
-              <p key={i.id} className="text-sm text-red-700">
-                <strong>{(i as any).users?.full_name}</strong> — {(i.items as any[]).filter(item => !item.passed).map(item => item.label).join(', ')}
-              </p>
+              <div key={i.id} className="flex items-start justify-between gap-3">
+                <p className="text-sm text-red-700">
+                  <strong>{(i as any).users?.full_name}</strong> — {(i.items as any[]).filter(item => !item.passed).map(item => item.label).join(', ')}
+                </p>
+                {(i as any).pdf_url && (
+                  <a href={(i as any).pdf_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 px-2 py-1 rounded shrink-0">
+                    <FileText size={11} /> PDF
+                  </a>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -214,7 +236,7 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 text-center py-8">No drivers on record.</p>
           ) : (
             <div className="divide-y divide-gray-100">
-              {driverActivity.map(({ driver, lastCheckIn, loadsToday: loads, inspectionStatus }) => (
+              {driverActivity.map(({ driver, lastCheckIn, loadsToday: loads, fuelToday, inspectionStatus, inspectionPdfUrl }) => (
                 <div key={driver.id} className="flex items-center gap-3 py-3">
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${lastCheckIn ? 'bg-green-500' : 'bg-gray-300'}`} />
                   <div className="flex-1 min-w-0">
@@ -225,10 +247,17 @@ export default function DashboardPage() {
                     {inspectionStatus && (
                       <span className={`text-xs font-medium ${inspectionStatus === 'passed' ? 'text-green-600' : 'text-red-600'}`}>
                         {inspectionStatus === 'passed' ? '✓ Inspection passed' : '⚠ Inspection issues'}
+                        {inspectionPdfUrl && (
+                          <a href={inspectionPdfUrl} target="_blank" rel="noopener noreferrer"
+                            className="ml-2 underline">PDF</a>
+                        )}
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{loads} loads</span>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-medium text-gray-700">{loads} loads</p>
+                    {fuelToday > 0 && <p className="text-xs text-gray-400">{fuelToday} fuel stop{fuelToday !== 1 ? 's' : ''}</p>}
+                  </div>
                 </div>
               ))}
             </div>

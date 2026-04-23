@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { daysLeftInTrial } from '@/lib/plan-limits'
 import type { Company, Plan } from '@/types'
+import { AppLoader } from '@/components/AppLoader'
 
 export default function SoloSettingsPage() {
   const { profile, signOut } = useAuth()
@@ -173,13 +174,7 @@ export default function SoloSettingsPage() {
   const daysLeft = daysLeftInTrial(company?.trial_ends_at ?? null)
   const onTrial = company?.billing_status === 'trialing'
 
-  if (loading || !profile) {
-    return (
-      <div className="p-4">
-        <p className="text-sm text-gray-500">Loading…</p>
-      </div>
-    )
-  }
+  if (loading || !profile) return <AppLoader />
 
   return (
     <div className="p-4 space-y-4">

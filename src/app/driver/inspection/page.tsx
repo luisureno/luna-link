@@ -87,7 +87,7 @@ export default function InspectionPage() {
   })
 
   const [condition, setCondition] = useState<'satisfactory' | 'defects_corrected' | 'no_correction_needed'>('satisfactory')
-  const [signature, setSignature] = useState('')
+  const [signature, setSignature] = useState(profile?.full_name ?? '')
   const [certified, setCertified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -96,6 +96,7 @@ export default function InspectionPage() {
 
   useEffect(() => {
     if ((profile as any)?.vehicle_type) setVehicleType((profile as any).vehicle_type)
+    if (profile?.full_name) setSignature(profile.full_name)
   }, [profile?.id])
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -191,7 +192,6 @@ export default function InspectionPage() {
         pdfPublicUrl = url ?? null
       }
 
-      // Insert without pdf_url/signature first (columns may not exist yet)
       const { data: inspData, error: inspErr } = await supabase
         .from('pre_trip_inspections')
         .insert({
@@ -201,20 +201,13 @@ export default function InspectionPage() {
           items,
           overall_status,
           inspected_at: now,
-        })
+          pdf_url: pdfPublicUrl,
+          signature,
+        } as any)
         .select()
         .single()
 
       if (inspErr) throw new Error(inspErr.message)
-
-      // Best-effort: attach pdf_url and signature if columns exist
-      if (inspData?.id) {
-        await supabase
-          .from('pre_trip_inspections')
-          .update({ pdf_url: pdfPublicUrl, signature } as any)
-          .eq('id', inspData.id)
-        // Silently ignore error — columns may not be migrated yet
-      }
 
       await supabase.from('daily_logs').upsert({
         company_id: profile.company_id,
@@ -417,9 +410,9 @@ export default function InspectionPage() {
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Generating report…
+                Submitting…
               </span>
-            ) : 'Submit & Generate PDF Report'}
+            ) : 'Submit'}
           </button>
         </div>
       </div>

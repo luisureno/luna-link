@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { Lightbox } from '@/components/ui/Lightbox'
 
 interface ScannedArtifactsProps {
   photos: { label: string; url: string }[]
@@ -50,27 +50,7 @@ export function ScannedArtifacts({ photos, extracted }: ScannedArtifactsProps) {
         </div>
       )}
 
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
-            aria-label="Close"
-          >
-            <X size={24} />
-          </button>
-          <img
-            src={lightbox}
-            alt=""
-            className="max-w-full max-h-full object-contain rounded"
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <Lightbox src={lightbox} onClose={() => setLightbox(null)} />
     </div>
   )
 }

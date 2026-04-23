@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle, FileText, Download, X, Plus, Trash2, Copy, Check } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Download, Plus, Trash2, Copy, Check } from 'lucide-react'
+import { Lightbox } from '@/components/ui/Lightbox'
 import Decimal from 'decimal.js'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
@@ -724,25 +725,7 @@ export default function GenerateInvoicePage() {
           </>
         )}
 
-        {lightbox && (
-          <div
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setLightbox(null)}
-          >
-            <button
-              onClick={() => setLightbox(null)}
-              className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
-            >
-              <X size={24} />
-            </button>
-            <img
-              src={lightbox}
-              alt="Scanned invoice"
-              className="max-w-full max-h-full object-contain rounded"
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
-        )}
+        <Lightbox src={lightbox} onClose={() => setLightbox(null)} />
       </div>
     )
   }

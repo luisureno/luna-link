@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import { Truck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/driver/BottomNav'
@@ -8,22 +9,22 @@ import { useAuth } from '@/context/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/dispatcher/Sidebar'
 import { DemoBanner } from '@/components/DemoBanner'
+import { AppLoader } from '@/components/AppLoader'
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext'
 
-export default function DriverLayout({ children }: { children: React.ReactNode }) {
+function DriverLayoutInner({ children }: { children: React.ReactNode }) {
   const { profile, signOut, accountType, loading } = useAuth()
+  const { t } = useLanguage()
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Block render until auth has settled. Otherwise accountType=null briefly
-  // falls into the non-solo branch and shows the wrong tabs (e.g. "Check In"
-  // for a solo user mid sign-out).
   if (loading || !profile) {
     return (
-      <div className="min-h-screen bg-[#F8F7F5] flex items-center justify-center">
-        <p className="text-sm text-gray-500">Loading…</p>
+      <div className="min-h-screen bg-[#F8F7F5]">
+        <AppLoader />
       </div>
     )
   }
@@ -69,10 +70,13 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       <DemoBanner />
       <header className="bg-[#1a1a1a] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/driver" className="font-semibold text-sm hover:opacity-80 transition-opacity">Fleetwise</Link>
+          <Link href="/driver" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Truck size={22} className="text-white/80" />
+              <span className="font-bold text-lg">Fleetwise</span>
+            </Link>
           {profile?.role !== 'driver' && (
             <Link href="/dashboard" className="text-xs text-white/50 hover:text-white transition-colors border border-white/20 rounded px-2 py-1">
-              ← Dashboard
+              {t('layout.dashboard')}
             </Link>
           )}
         </div>
@@ -85,7 +89,6 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
             </p>
           </div>
 
-          {/* Avatar button */}
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
@@ -108,14 +111,14 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
                     onClick={() => { setMenuOpen(false); fileRef.current?.click() }}
                     className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                   >
-                    📷 Upload Photo
+                    {t('layout.uploadPhoto')}
                   </button>
                   <div className="border-t border-gray-100" />
                   <button
                     onClick={handleSignOut}
                     className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                   >
-                    Sign Out
+                    {t('layout.signOut')}
                   </button>
                 </div>
               </>
@@ -132,5 +135,13 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function DriverLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <LanguageProvider>
+      <DriverLayoutInner>{children}</DriverLayoutInner>
+    </LanguageProvider>
   )
 }

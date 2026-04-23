@@ -10,19 +10,13 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, PreTripInspection, FuelLog } from '@/types'
 import { formatDate } from '@/lib/format'
-
-const FIELD_LABELS: Record<string, string> = {
-  ticket_date: 'Date', tag_number: 'Tag #', quarry_tag_number: 'Quarry Tag #', client_name: 'Client',
-  job_site: 'Job Site', origin: 'Origin', destination: 'Destination',
-  material_type: 'Material', weight_tons: 'Weight (tons)',
-  gross_weight_lbs: 'Gross (lbs)', tare_weight_lbs: 'Tare (lbs)',
-  loads_count: 'Loads', hours_worked: 'Hours', truck_number: 'Truck #',
-  trailer_number: 'Trailer #', driver_name: 'Driver', po_number: 'PO #',
-  rate_amount: 'Rate', total_amount: 'Total', notes: 'Notes',
-}
+import { AppLoader } from '@/components/AppLoader'
+import { Lightbox } from '@/components/ui/Lightbox'
+import { useLanguage } from '@/context/LanguageContext'
 
 export default function DriverTodayPage() {
-  const { profile, accountType } = useAuth()
+  const { profile, accountType, loading: authLoading } = useAuth()
+  const { t } = useLanguage()
   const isSolo = accountType === 'solo'
   const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
@@ -99,13 +93,11 @@ export default function DriverTodayPage() {
         .gte('inspected_at', `${today}T00:00:00`)
         .order('inspected_at', { ascending: false })
         .limit(1),
-      isSolo
-        ? supabase
-            .from('fuel_logs')
-            .select('*')
-            .eq('driver_id', id)
-            .gte('logged_at', `${today}T00:00:00`)
-        : Promise.resolve({ data: [] as FuelLog[] }),
+      supabase
+        .from('fuel_logs')
+        .select('*')
+        .eq('driver_id', id)
+        .gte('logged_at', `${today}T00:00:00`),
     ])
 
     setTickets(ticketsRes.data ?? [])
@@ -123,23 +115,42 @@ export default function DriverTodayPage() {
 
   const payType = profile?.pay_type ?? null
   const payRate = profile?.pay_rate ?? null
+
+  // Sum hours_worked from today's tickets (hourly workers)
+  const ticketHours = tickets.reduce((sum, t) => {
+    const fw = (t.form_data ?? {}) as Record<string, unknown>
+    const h = (t as any).hours_worked ?? (fw.hours_worked ? parseFloat(String(fw.hours_worked)) : 0)
+    return sum + (Number(h) || 0)
+  }, 0)
+
   const earnings = payType && payRate != null
     ? payType === 'per_load'
       ? payRate * tickets.length
-      : payRate * parseFloat(hoursOnClock)
+      : payRate * ticketHours
     : null
 
   const companyName = (profile as any)?.companies?.name as string | undefined
   const firstName = profile?.full_name?.split(' ')[0] ?? ''
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening')
+  const fieldLabels: Record<string, string> = {
+    ticket_date: t('field.ticketDate'), tag_number: t('field.tagNumber'), quarry_tag_number: t('field.quarryTagNumber'),
+    client_name: t('field.clientName'), job_site: t('field.jobSite'), origin: t('field.origin'),
+    destination: t('field.destination'), material_type: t('field.materialType'), weight_tons: t('field.weightTons'),
+    gross_weight_lbs: t('field.grossWeightLbs'), tare_weight_lbs: t('field.tareWeightLbs'),
+    loads_count: t('field.loadsCount'), hours_worked: t('field.hoursWorked'), truck_number: t('field.truckNumber'),
+    trailer_number: t('field.trailerNumber'), driver_name: t('field.driverName'), po_number: t('field.poNumber'),
+    rate_amount: t('field.rateAmount'), total_amount: t('field.totalAmount'), notes: t('field.notes'),
+  }
+
+  if (authLoading || loading) return <AppLoader message="Loading your day…" />
 
   return (
     <div className="p-4 pb-28 space-y-4">
       {/* Welcome header */}
       <div>
-        <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{greeting}</p>
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
+        <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{greeting}, {firstName}</h1>
         {isSolo && companyName && (
           <p className="text-sm text-gray-500 mt-0.5">{companyName}</p>
         )}
@@ -158,17 +169,17 @@ export default function DriverTodayPage() {
         <Link href="/driver/inspection" className="block bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-amber-800">Pre-Trip Inspection Required</p>
-              <p className="text-xs text-amber-600 mt-0.5">Complete before starting your day</p>
+              <p className="text-sm font-semibold text-amber-800">{t('inspection.required')}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t('inspection.completeBefore')}</p>
             </div>
-            <span className="text-amber-700 font-medium text-sm">Start →</span>
+            <span className="text-amber-700 font-medium text-sm">{t('inspection.startArrow')}</span>
           </div>
         </Link>
       )}
       {inspection?.overall_status === 'passed' && !inspectionDismissed && (
         <div className="bg-green-50 border border-green-300 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-green-800">Pre-Trip Inspection Passed</p>
+            <p className="text-sm font-semibold text-green-800">{t('inspection.passed')}</p>
             <p className="text-xs text-green-600 mt-0.5">{new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
           </div>
           <button onClick={() => { localStorage.setItem('inspection_dismissed', today); setInspectionDismissed(true) }} className="p-1 text-green-600 hover:text-green-800 ml-3 flex-shrink-0">
@@ -179,92 +190,57 @@ export default function DriverTodayPage() {
       {inspection?.overall_status === 'failed' && (
         <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-red-800">Issues Reported — Dispatcher Notified</p>
-            <p className="text-xs text-red-600 mt-0.5">{(inspection.items as any[]).filter(i => !i.passed).length} item(s) flagged</p>
+            <p className="text-sm font-semibold text-red-800">{t('inspection.issuesReported')}</p>
+            <p className="text-xs text-red-600 mt-0.5">{(inspection.items as any[]).filter(i => !i.passed).length} {t('inspection.itemsFlagged')}</p>
           </div>
         </div>
       )}
 
-      {/* Earnings Card */}
-      {earnings !== null && (
-        <div className="bg-[#1a1a1a] rounded-lg p-5">
-          <p className="text-xs text-gray-400 mb-1">Today's Earnings</p>
-          <p className="text-4xl font-bold text-white">${earnings.toFixed(2)}</p>
-          <p className="text-xs text-gray-400 mt-1">
-            {payType === 'per_load'
-              ? `$${Number(payRate).toFixed(2)}/load × ${tickets.length} load${tickets.length !== 1 ? 's' : ''}`
-              : `$${Number(payRate).toFixed(2)}/hr × ${hoursOnClock}h`}
-          </p>
+      {/* Status pill */}
+      {!isSolo && (
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${lastCheckIn ? 'bg-green-500' : 'bg-gray-300'}`} />
+          <span className={`text-xs font-medium capitalize ${lastCheckIn ? 'text-green-700' : 'text-gray-400'}`}>
+            {lastCheckIn ? lastCheckIn.location_type.replace('_', ' ') : t('status.notCheckedIn')}
+          </span>
         </div>
       )}
 
-      {/* Summary Card */}
-      <div className="bg-white border border-gray-200 rounded-lg p-5">
-        <p className="text-xs text-gray-500 mb-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-        <div className="flex items-center gap-4 mt-2 flex-wrap">
-          <div>
-            <p className="text-3xl font-semibold text-gray-900">{tickets.length}</p>
-            <p className="text-xs text-gray-500">Loads today</p>
-          </div>
-          {isSolo && (
-            <div>
-              <p className="text-3xl font-semibold text-gray-900">
-                ${fuelToday.reduce((sum, f) => sum + Number(f.total_cost ?? 0) + Number((f as any).def_total_cost ?? 0), 0).toFixed(0)}
-              </p>
-              <p className="text-xs text-gray-500">Fuel today</p>
-            </div>
-          )}
-          {!isSolo && (
-            <div>
-              <p className="text-3xl font-semibold text-gray-900">{hoursOnClock}h</p>
-              <p className="text-xs text-gray-500">On the clock</p>
-            </div>
-          )}
-          {!isSolo && lastCheckIn && (
-            <div>
-              <p className="text-sm font-medium text-green-600 capitalize">{lastCheckIn.location_type.replace('_', ' ')}</p>
-              <p className="text-xs text-gray-500">Current status</p>
-            </div>
-          )}
+      {/* Stat boxes */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+          <p className="text-2xl font-bold text-gray-900">{tickets.length}</p>
+          <p className="text-xs text-gray-500 mt-1">{t('stats.loads')}</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+          <p className="text-2xl font-bold text-gray-900">{earnings !== null ? `$${earnings.toFixed(0)}` : '—'}</p>
+          <p className="text-xs text-gray-500 mt-1">{t('stats.earned')}</p>
         </div>
       </div>
 
 
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-3">
         {!isSolo && (
-          <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
-            <MapPin size={22} className="text-gray-700" />
-            <span className="text-xs font-medium text-gray-700">Check In</span>
+          <Link href="/driver/checkin" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
+            <MapPin size={26} className="text-gray-700" />
+            <span className="text-sm font-semibold text-gray-700">{t('action.checkIn')}</span>
           </Link>
         )}
-        <Link href="/driver/ticket" className={`flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-lg p-4 min-h-[80px] hover:bg-gray-800 ${isSolo ? 'col-span-2' : ''}`}>
-          <PlusCircle size={22} />
-          <span className="text-xs font-medium">Submit Ticket</span>
+        <Link href="/driver/ticket" className="flex flex-col items-center justify-center gap-2 bg-[#1a1a1a] text-white rounded-xl py-6 hover:opacity-90">
+          <PlusCircle size={26} />
+          <span className="text-sm font-semibold">{t('action.submitTicket')}</span>
         </Link>
-        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
-          <Fuel size={22} className="text-gray-700" />
-          <span className="text-xs font-medium text-gray-700">Log Fuel</span>
+        <Link href="/driver/fuel" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-6 hover:bg-gray-50">
+          <Fuel size={26} className="text-gray-700" />
+          <span className="text-sm font-semibold text-gray-700">{t('action.logFuel')}</span>
         </Link>
-        <Link href="/driver/loads" className="flex flex-col items-center justify-center gap-2 bg-white border border-gray-200 rounded-lg p-4 min-h-[80px] hover:bg-gray-50">
-          <List size={22} className="text-gray-700" />
-          <span className="text-xs font-medium text-gray-700">My Loads</span>
-        </Link>
-        {isSolo && (
-          <Link href="/dashboard/solo/fuel" className="col-span-2 flex items-center justify-between gap-3 bg-blue-600 text-white rounded-lg px-5 py-4 hover:bg-blue-700">
-            <div>
-              <p className="text-xs font-medium text-blue-200">Diesel near you</p>
-              <p className="text-sm font-semibold">Find Cheap Fuel</p>
-            </div>
-            <MapPin size={22} className="text-blue-200" />
-          </Link>
-        )}
       </div>
 
       {/* Today's Logs */}
       <div>
-        <h2 className="text-base font-medium text-gray-900 mb-2">Today's Logs</h2>
+        <h2 className="text-base font-medium text-gray-900 mb-2">{t('today.logs')}</h2>
         <div className="space-y-2">
 
           {/* Pre-Trip Report */}
@@ -275,27 +251,27 @@ export default function DriverTodayPage() {
                   <List size={14} className="text-gray-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Pre-Trip Inspection</p>
+                  <p className="text-sm font-semibold text-gray-900">{t('inspection.title')}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {inspection === undefined
-                      ? 'Loading…'
+                      ? '…'
                       : inspection === null
-                      ? 'Not completed'
+                      ? t('inspection.notCompleted')
                       : inspection.overall_status === 'passed'
-                      ? `Passed · ${new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-                      : `${(inspection.items as any[]).filter((i: any) => !i.passed).length} issue(s) flagged`}
+                      ? `${t('inspection.passedStatus')} · ${new Date(inspection.inspected_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                      : `${(inspection.items as any[]).filter((i: any) => !i.passed).length} ${t('inspection.itemsFlagged')}`}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {inspection === null ? (
                   <Link href="/driver/inspection" className="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-lg font-medium">
-                    Start
+                    {t('inspection.start')}
                   </Link>
                 ) : inspection?.overall_status === 'passed' ? (
-                  <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-medium">Passed</span>
+                  <span className="text-xs px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-medium">{t('inspection.passedStatus')}</span>
                 ) : inspection?.overall_status === 'failed' ? (
-                  <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium">Issues</span>
+                  <span className="text-xs px-2.5 py-1 bg-red-100 text-red-700 rounded-full font-medium">{t('inspection.issuesStatus')}</span>
                 ) : null}
                 {inspection?.pdf_url && (
                   <a
@@ -305,7 +281,7 @@ export default function DriverTodayPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-medium min-w-[52px] justify-center"
                   >
                     <Download size={13} />
-                    PDF
+                    {t('inspection.pdf')}
                   </a>
                 )}
               </div>
@@ -317,7 +293,7 @@ export default function DriverTodayPage() {
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
                 <PlusCircle size={13} className="text-gray-500" />
-                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Loads — {tickets.length} submitted</p>
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{t('today.loadsSubmitted').replace('{count}', String(tickets.length))}</p>
               </div>
               <div className="divide-y divide-gray-100">
                 {tickets.map(ticket => {
@@ -341,7 +317,7 @@ export default function DriverTodayPage() {
                       >
                         <div>
                           <p className="text-sm font-semibold text-gray-900">
-                            {tagNum ? `Tag #${tagNum}` : 'No tag number'}
+                            {tagNum ? `Tag #${tagNum}` : t('ticket.noTagNumber')}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">{dateStr} · {timeStr}</p>
                         </div>
@@ -359,13 +335,13 @@ export default function DriverTodayPage() {
                               className="block w-full rounded-xl overflow-hidden border border-gray-200 bg-gray-50"
                             >
                               <img src={photoUrl} alt="Scanned ticket" className="w-full object-contain max-h-48" />
-                              <p className="text-xs text-center text-gray-400 py-1">Tap to view full screen</p>
+                              <p className="text-xs text-center text-gray-400 py-1">{t('ticket.tapFullScreen')}</p>
                             </button>
                           )}
                           <div className="grid grid-cols-2 gap-2">
                             {Object.entries(fields).map(([key, value]) => (
                               <div key={key} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                <p className="text-[10px] text-gray-400 mb-0.5">{FIELD_LABELS[key] ?? key.replace(/_/g, ' ')}</p>
+                                <p className="text-[10px] text-gray-400 mb-0.5">{fieldLabels[key] ?? key.replace(/_/g, ' ')}</p>
                                 <input
                                   value={key === 'ticket_date' ? formatDate(value) : value}
                                   onChange={e => setEditData(prev => ({ ...prev, [ticket.id]: { ...prev[ticket.id], [key]: e.target.value } }))}
@@ -379,7 +355,7 @@ export default function DriverTodayPage() {
                             disabled={saving[ticket.id]}
                             className="w-full py-2.5 bg-[#1a1a1a] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
                           >
-                            {saving[ticket.id] ? 'Saving…' : 'Save Changes'}
+                            {saving[ticket.id] ? t('ticket.saving') : t('ticket.saveChanges')}
                           </button>
                         </div>
                       )}
@@ -393,12 +369,12 @@ export default function DriverTodayPage() {
           {!loading && tickets.length === 0 && (
             <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3">
               <PlusCircle size={13} className="text-gray-400 shrink-0" />
-              <p className="text-sm text-gray-400">No loads submitted yet today.</p>
+              <p className="text-sm text-gray-400">{t('today.noLoads')}</p>
             </div>
           )}
 
-          {/* Fuel Logs (solo) */}
-          {isSolo && fuelToday.length > 0 && (
+          {/* Fuel Logs */}
+          {fuelToday.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
                 <Fuel size={13} className="text-gray-500" />
@@ -408,10 +384,10 @@ export default function DriverTodayPage() {
                 {fuelToday.map(log => (
                   <div key={log.id} className="px-4 py-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-gray-900">{log.gallons.toFixed(3)} gal · ${Number(log.price_per_gallon).toFixed(3)}/gal</p>
+                      <p className="text-sm font-semibold text-gray-900">{Number(log.gallons).toFixed(3)} gal · ${Number(log.price_per_gallon).toFixed(3)}/gal</p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {new Date(log.logged_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                        {log.def_gallons ? ` · DEF: ${log.def_gallons.toFixed(3)} gal` : ''}
+                        {(log as any).def_gallons ? ` · DEF: ${Number((log as any).def_gallons).toFixed(3)} gal` : ''}
                       </p>
                     </div>
                     <p className="text-sm font-bold text-gray-900 shrink-0">${Number(log.total_cost).toFixed(2)}</p>
@@ -421,27 +397,10 @@ export default function DriverTodayPage() {
             </div>
           )}
 
-          {isSolo && !loading && fuelToday.length === 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-3">
-              <Fuel size={13} className="text-gray-400 shrink-0" />
-              <p className="text-sm text-gray-400">No fuel logged today.</p>
-            </div>
-          )}
-
         </div>
       </div>
 
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 text-white/80 hover:text-white p-2">
-            <X size={24} />
-          </button>
-          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded" onClick={e => e.stopPropagation()} />
-        </div>
-      )}
+      <Lightbox src={lightbox} onClose={() => setLightbox(null)} />
     </div>
   )
 }

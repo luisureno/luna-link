@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Client } from '@/types'
+import { AppLoader } from '@/components/AppLoader'
 
 interface ClientForm {
   name: string
@@ -45,6 +46,8 @@ export default function ClientsPage() {
     await loadClients()
     setSubmitting(false)
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

@@ -2,6 +2,7 @@
 
 import { useState, useMemo  } from 'react'
 import { useRouter } from 'next/navigation'
+import { Truck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -18,17 +19,8 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 15000)
-    )
-
     try {
-      console.log('[login] signInWithPassword start')
-      const { data, error: authError } = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        timeout,
-      ])
-      console.log('[login] signInWithPassword done', { hasUser: !!data?.user, authError })
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
       if (authError || !data.user) {
         setError(authError?.message ?? 'Invalid email or password')
@@ -38,21 +30,17 @@ export default function LoginPage() {
 
       let role: string | null = null
       try {
-        const { data: profile } = await Promise.race([
-          supabase.from('users').select('role').eq('id', data.user.id).single(),
-          timeout,
-        ])
+        const { data: profile } = await supabase.from('users').select('role').eq('id', data.user.id).single()
         role = (profile as { role?: string } | null)?.role ?? null
-      } catch (profileErr) {
-        console.warn('[login] profile fetch failed, defaulting to /dashboard', profileErr)
+      } catch {
+        // Profile fetch failed — default redirect is fine
       }
 
       // Hard redirect ensures the session cookie is fully committed before the
       // next page mounts — prevents mobile Safari from seeing a stale auth state.
       window.location.replace(role === 'driver' ? '/driver' : '/dashboard')
     } catch (err) {
-      console.error('[login] unexpected error:', err)
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError('Could not connect. Check your internet and try again.')
       setLoading(false)
     }
   }
@@ -61,7 +49,10 @@ export default function LoginPage() {
     <div className="min-h-full flex items-center justify-center bg-[#F8F7F5]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">Fleetwise</h1>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Truck size={28} className="text-gray-900" />
+            <h1 className="text-3xl font-bold text-gray-900">Fleetwise</h1>
+          </div>
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 

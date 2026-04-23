@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { X } from 'lucide-react'
 import type { LoadTicket } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
+import { Lightbox } from '@/components/ui/Lightbox'
 
 type GroupedTickets = { date: string; tickets: LoadTicket[] }[]
 
@@ -82,9 +84,7 @@ export default function MyLoadsPage() {
     setLoading(false)
   }
 
-  if (loading) {
-    return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
-  }
+  if (loading) return <AppLoader />
 
   if (groups.length === 0) {
     return (
@@ -131,7 +131,10 @@ export default function MyLoadsPage() {
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">{dateStr} · {timeStr}</p>
                     </div>
-                    <StatusBadge status={ticket.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={ticket.status} />
+                      {isOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    </div>
                   </button>
 
                   {isOpen && (
@@ -173,17 +176,7 @@ export default function MyLoadsPage() {
         </div>
       ))}
 
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 text-white/80 hover:text-white p-2">
-            <X size={24} />
-          </button>
-          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded" onClick={e => e.stopPropagation()} />
-        </div>
-      )}
+      <Lightbox src={lightbox} onClose={() => setLightbox(null)} />
     </div>
   )
 }

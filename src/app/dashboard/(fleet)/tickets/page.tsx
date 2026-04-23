@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { LoadTicket, User, Client } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 type TicketRow = LoadTicket & {
   users: User
@@ -215,6 +216,8 @@ export default function TicketsPage() {
       </div>
     )
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

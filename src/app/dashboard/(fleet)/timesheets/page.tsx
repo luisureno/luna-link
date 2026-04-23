@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ScannedArtifacts } from '@/components/ui/ScannedArtifacts'
 import type { User, Client } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 interface TimesheetRow {
   id: string
@@ -229,6 +230,8 @@ export default function TimesheetsPage() {
       </div>
     )
   }
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { User, LoadTicket, FuelLog, PreTripInspection } from '@/types'
+import { AppLoader } from '@/components/AppLoader'
 
 interface DriverDetail {
   tickets: LoadTicket[]
@@ -151,6 +152,8 @@ export default function DriversPage() {
       </div>
     </div>
   ))
+
+  if (loading) return <AppLoader />
 
   return (
     <div>

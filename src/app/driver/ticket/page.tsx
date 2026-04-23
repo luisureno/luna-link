@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
 import { enqueue, getPendingCount } from '@/lib/offline-queue'
 import type { Dispatch, DispatchAssignment } from '@/types'
+import { AppLoader } from '@/components/AppLoader'
 
 type EntryPath = 'scan_tag' | 'scan_invoice' | 'manual' | null
 
@@ -406,7 +407,7 @@ export default function TicketPage() {
     )
   }
 
-  if (loading) return <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-200 rounded-lg animate-pulse" />)}</div>
+  if (loading) return <AppLoader />
 
   // ── Step 1: select dispatch ──────────────────────────────────────────────────
   if (!selectedDispatch) {

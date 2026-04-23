@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { LoadTicket, TicketStatus, Client } from '@/types'
 import { formatDate } from '@/lib/format'
+import { AppLoader } from '@/components/AppLoader'
 
 type DateRange = 'today' | '7d' | '30d' | 'all'
 
@@ -101,6 +102,8 @@ export default function SoloLoadsPage() {
   const payRate = profile?.pay_rate ?? null
   const estEarnings =
     payType === 'per_load' && payRate ? totalLoads * Number(payRate) : null
+
+  if (loading) return <AppLoader />
 
   return (
     <div className="p-4 space-y-4">
