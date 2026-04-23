@@ -71,8 +71,8 @@ export function Sidebar() {
               <Truck size={22} className="text-white/80" />
               <span className="font-bold text-lg">Fleetwise</span>
             </Link>
-            <p className="text-xs text-white/40 mt-1 truncate">
-              {accountType === 'solo' ? ((profile as any)?.companies?.name ?? profile?.full_name ?? '') : (profile?.full_name ?? '')}
+            <p className="text-sm font-semibold text-white/90 mt-2 truncate">
+              {(profile as any)?.companies?.name ?? ''}
             </p>
           </div>
           <button

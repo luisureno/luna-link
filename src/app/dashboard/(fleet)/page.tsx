@@ -168,9 +168,21 @@ export default function DashboardPage() {
         />
       )}
 
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-      </h1>
+      {(() => {
+        const firstName = profile?.full_name?.split(' ')[0] ?? ''
+        const hour = new Date().getHours()
+        const greeting = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening')
+        const companyName = (profile as any)?.companies?.name as string | undefined
+        return (
+          <div className="mb-6">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{greeting}, {firstName}</h1>
+            {companyName && <p className="text-sm text-gray-500 mt-0.5">{companyName}</p>}
+          </div>
+        )
+      })()}
 
       {/* Owner/Dispatcher Driver Mode */}
       {profile?.truck_number && (profile.role === 'owner' || profile.role === 'dispatcher') && (
