@@ -7,32 +7,34 @@ import {
   LayoutDashboard, Users, Send, FileText, Receipt, Building2, Settings, LogOut, Truck, Menu, X, Clock, DollarSign, Home, List, Fuel,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-
-const fleetNav = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/drivers', label: 'Drivers', icon: Users },
-  { href: '/dashboard/dispatch', label: 'Dispatch', icon: Send },
-  { href: '/dashboard/tickets', label: 'Tickets', icon: FileText },
-  { href: '/dashboard/timesheets', label: 'Timesheets', icon: Clock },
-  { href: '/dashboard/fuel', label: 'Fuel', icon: Fuel },
-  { href: '/dashboard/invoices', label: 'Invoices', icon: Receipt },
-  { href: '/dashboard/payroll', label: 'Payroll', icon: DollarSign },
-  { href: '/dashboard/clients', label: 'Clients', icon: Building2 },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-]
-
-const soloNav = [
-  { href: '/driver', label: 'Today', icon: Home },
-  { href: '/dashboard/solo/loads', label: 'Loads', icon: List },
-  { href: '/dashboard/solo/invoices', label: 'Invoices', icon: Receipt },
-  { href: '/dashboard/solo/clients', label: 'Clients', icon: Building2 },
-  { href: '/dashboard/solo/settings', label: 'Settings', icon: Settings },
-]
+import { useLanguage } from '@/context/LanguageContext'
 
 export function Sidebar() {
   const pathname = usePathname()
   const { profile, accountType, signOut } = useAuth()
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
+
+  const fleetNav = [
+    { href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard },
+    { href: '/dashboard/drivers', label: t('sidebar.drivers'), icon: Users },
+    { href: '/dashboard/dispatch', label: t('sidebar.dispatch'), icon: Send },
+    { href: '/dashboard/tickets', label: t('sidebar.tickets'), icon: FileText },
+    { href: '/dashboard/timesheets', label: t('sidebar.timesheets'), icon: Clock },
+    { href: '/dashboard/fuel', label: t('sidebar.fuel'), icon: Fuel },
+    { href: '/dashboard/invoices', label: t('sidebar.invoices'), icon: Receipt },
+    { href: '/dashboard/payroll', label: t('sidebar.payroll'), icon: DollarSign },
+    { href: '/dashboard/clients', label: t('sidebar.clients'), icon: Building2 },
+    { href: '/dashboard/settings', label: t('nav.settings'), icon: Settings },
+  ]
+
+  const soloNav = [
+    { href: '/driver', label: t('sidebar.today'), icon: Home },
+    { href: '/dashboard/solo/loads', label: t('sidebar.loads'), icon: List },
+    { href: '/dashboard/solo/invoices', label: t('sidebar.invoices'), icon: Receipt },
+    { href: '/dashboard/solo/clients', label: t('sidebar.clients'), icon: Building2 },
+    { href: '/dashboard/solo/settings', label: t('nav.settings'), icon: Settings },
+  ]
 
   const navItems = accountType === 'solo' ? soloNav : fleetNav
   const homeHref = accountType === 'solo' ? '/driver' : '/dashboard'
@@ -120,14 +122,14 @@ export function Sidebar() {
             className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
           >
             <span className="text-[14px]">💬</span>
-            Contact Support
+            {t('sidebar.contactSupport')}
           </a>
           <button
             onClick={signOut}
             className="flex items-center gap-3 w-full px-3 py-2 rounded text-sm text-white/60 hover:text-white hover:bg-white/10"
           >
             <LogOut size={16} />
-            Sign out
+            {t('sidebar.signOut')}
           </button>
         </div>
       </aside>

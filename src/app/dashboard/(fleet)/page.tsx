@@ -5,6 +5,7 @@ import { Users, FileText, Clock, Send, Fuel, Truck, PlusCircle, ShieldCheck } fr
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { DayStartModal } from '@/components/DayStartModal'
 import type { LoadTicket, CheckIn, User, PreTripInspection } from '@/types'
@@ -53,6 +54,7 @@ function SkeletonRow() {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const supabase = useMemo(() => createClient(), [])
   const today = new Date().toISOString().split('T')[0]
 
@@ -176,21 +178,21 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Truck size={16} className="text-white/60" />
-              <p className="text-sm font-semibold">My Driver Activity — Truck {profile.truck_number}</p>
+              <p className="text-sm font-semibold">{t('dash.myActivity')} — Truck {profile.truck_number}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <Link href="/driver/ticket" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
               <PlusCircle size={18} />
-              <span className="text-xs font-medium">Submit Ticket</span>
+              <span className="text-xs font-medium">{t('dash.submitTicket')}</span>
             </Link>
             <Link href="/driver/fuel" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
               <Fuel size={18} />
-              <span className="text-xs font-medium">Log Fuel</span>
+              <span className="text-xs font-medium">{t('dash.logFuel')}</span>
             </Link>
             <Link href="/driver/inspection" className="flex flex-col items-center gap-1.5 bg-white/10 hover:bg-white/20 rounded-lg p-3 transition-colors">
               <ShieldCheck size={18} />
-              <span className="text-xs font-medium">Pre-Trip</span>
+              <span className="text-xs font-medium">{t('dash.preTrip')}</span>
             </Link>
           </div>
         </div>
@@ -219,21 +221,21 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <MetricCard label="Active Drivers Today" value={activeDrivers} icon={<Users size={18} />} />
-        <MetricCard label="Loads Submitted Today" value={loadsToday} icon={<FileText size={18} />} />
-        <MetricCard label="Pending Confirmations" value={pendingConfirmations} icon={<Clock size={18} />} />
-        <MetricCard label="Open Dispatches" value={openDispatches} icon={<Send size={18} />} />
-        <MetricCard label="Fuel Spend Today" value={`$${fuelSpendToday.toFixed(2)}`} icon={<Fuel size={18} />} />
+        <MetricCard label={t('dash.activeDrivers')} value={activeDrivers} icon={<Users size={18} />} />
+        <MetricCard label={t('dash.loadsToday')} value={loadsToday} icon={<FileText size={18} />} />
+        <MetricCard label={t('dash.pendingConfirmations')} value={pendingConfirmations} icon={<Clock size={18} />} />
+        <MetricCard label={t('dash.openDispatches')} value={openDispatches} icon={<Send size={18} />} />
+        <MetricCard label={t('dash.fuelSpend')} value={`$${fuelSpendToday.toFixed(2)}`} icon={<Fuel size={18} />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Driver Activity */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <h2 className="text-base font-medium text-gray-900 mb-4">Today's Driver Activity</h2>
+          <h2 className="text-base font-medium text-gray-900 mb-4">{t('dash.driverActivity')}</h2>
           {loading ? (
             <>{[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}</>
           ) : driverActivity.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No drivers on record.</p>
+            <p className="text-sm text-gray-500 text-center py-8">{t('dash.noDrivers')}</p>
           ) : (
             <div className="divide-y divide-gray-100">
               {driverActivity.map(({ driver, lastCheckIn, loadsToday: loads, fuelToday, inspectionStatus, inspectionPdfUrl }) => (
@@ -246,7 +248,7 @@ export default function DashboardPage() {
                     </p>
                     {inspectionStatus && (
                       <span className={`text-xs font-medium ${inspectionStatus === 'passed' ? 'text-green-600' : 'text-red-600'}`}>
-                        {inspectionStatus === 'passed' ? '✓ Inspection passed' : '⚠ Inspection issues'}
+                        {inspectionStatus === 'passed' ? t('dash.inspectionPassed') : t('dash.inspectionIssues')}
                         {inspectionPdfUrl && (
                           <a href={inspectionPdfUrl} target="_blank" rel="noopener noreferrer"
                             className="ml-2 underline">PDF</a>
@@ -266,11 +268,11 @@ export default function DashboardPage() {
 
         {/* Recent Tickets */}
         <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <h2 className="text-base font-medium text-gray-900 mb-4">Recent Tickets</h2>
+          <h2 className="text-base font-medium text-gray-900 mb-4">{t('dash.recentTickets')}</h2>
           {loading ? (
             <>{[...Array(4)].map((_, i) => <SkeletonRow key={i} />)}</>
           ) : recentTickets.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No tickets submitted today.</p>
+            <p className="text-sm text-gray-500 text-center py-8">{t('dash.noTickets')}</p>
           ) : (
             <div className="divide-y divide-gray-100">
               {recentTickets.map(ticket => (
@@ -287,7 +289,7 @@ export default function DashboardPage() {
                       onClick={() => confirmTicket(ticket.id)}
                       className="text-xs px-2 py-1 bg-[#1a1a1a] text-white rounded hover:bg-gray-800"
                     >
-                      Confirm
+                      {t('dash.confirm')}
                     </button>
                   )}
                 </div>
