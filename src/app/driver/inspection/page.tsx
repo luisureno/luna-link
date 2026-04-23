@@ -191,6 +191,7 @@ export default function InspectionPage() {
         pdfPublicUrl = url ?? null
       }
 
+      // Insert without pdf_url/signature first (columns may not exist yet)
       const { data: inspData, error: inspErr } = await supabase
         .from('pre_trip_inspections')
         .insert({
@@ -200,13 +201,20 @@ export default function InspectionPage() {
           items,
           overall_status,
           inspected_at: now,
-          pdf_url: pdfPublicUrl,
-          signature,
         })
         .select()
         .single()
 
       if (inspErr) throw new Error(inspErr.message)
+
+      // Best-effort: attach pdf_url and signature if columns exist
+      if (inspData?.id) {
+        await supabase
+          .from('pre_trip_inspections')
+          .update({ pdf_url: pdfPublicUrl, signature } as any)
+          .eq('id', inspData.id)
+        // Silently ignore error — columns may not be migrated yet
+      }
 
       await supabase.from('daily_logs').upsert({
         company_id: profile.company_id,
