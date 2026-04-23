@@ -42,6 +42,7 @@ export default function DispatchPage() {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([])
   const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
   const [newClientName, setNewClientName] = useState('')
+  const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -76,30 +77,43 @@ export default function DispatchPage() {
   }
 
   async function onSubmit(data: DispatchForm) {
-    if (selectedDrivers.length === 0) return
-    if (clientMode === 'new' && !newClientName.trim()) return
-    if (clientMode === 'existing' && !data.client_id) return
+    setFormError('')
+    if (clientMode === 'new' && !newClientName.trim()) {
+      setFormError('Enter a client name.')
+      return
+    }
+    if (clientMode === 'existing' && !data.client_id) {
+      setFormError('Select a client.')
+      return
+    }
+    if (selectedDrivers.length === 0) {
+      setFormError('Select at least one driver.')
+      return
+    }
     setSubmitting(true)
 
     let clientId = data.client_id
     let clientName = clients.find(c => c.id === clientId)?.name ?? 'Job'
 
     if (clientMode === 'new') {
-      const { data: created } = await supabase
+      const { data: created, error: clientError } = await supabase
         .from('clients')
         .insert({ company_id: profile!.company_id, name: newClientName.trim() })
         .select()
         .single()
-      if (created) {
-        clientId = created.id
-        clientName = created.name
-        setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
+      if (clientError || !created) {
+        setFormError('Failed to create client. Try again.')
+        setSubmitting(false)
+        return
       }
+      clientId = created.id
+      clientName = created.name
+      setClients(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
     }
 
     const autoTitle = [clientName, data.hauling, formatDate(data.scheduled_date)].filter(Boolean).join(' · ')
 
-    const { data: dispatch } = await supabase.from('dispatches').insert({
+    const { data: dispatch, error: dispatchError } = await supabase.from('dispatches').insert({
       company_id: profile!.company_id,
       dispatcher_id: profile!.id,
       title: autoTitle,
@@ -115,17 +129,22 @@ export default function DispatchPage() {
       status: 'pending',
     }).select().single()
 
-    if (dispatch) {
-      await supabase.from('dispatch_assignments').insert(
-        selectedDrivers.map(driver_id => ({ dispatch_id: dispatch.id, driver_id, status: 'assigned' }))
-      )
+    if (dispatchError || !dispatch) {
+      setFormError('Failed to send dispatch. Try again.')
+      setSubmitting(false)
+      return
     }
+
+    await supabase.from('dispatch_assignments').insert(
+      selectedDrivers.map(driver_id => ({ dispatch_id: dispatch.id, driver_id, status: 'assigned' }))
+    )
 
     setShowModal(false)
     reset({ scheduled_date: new Date().toISOString().split('T')[0], billing_type: 'per_load' })
     setSelectedDrivers([])
     setClientMode('new')
     setNewClientName('')
+    setFormError('')
     await loadData()
     setSubmitting(false)
   }
@@ -227,7 +246,7 @@ export default function DispatchPage() {
           <div className="bg-white rounded-t-2xl sm:rounded-lg w-full sm:max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <h2 className="text-base font-medium">New Dispatch</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+              <button onClick={() => { setShowModal(false); setFormError('') }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
@@ -260,7 +279,7 @@ export default function DispatchPage() {
                     <input
                       value={newClientName}
                       onChange={e => setNewClientName(e.target.value)}
-                      placeholder="New client name…"
+                      placeholder="Client name"
                       className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
                     />
                     {clientMode === 'new' && !newClientName.trim() && submitting && (
@@ -360,6 +379,8 @@ export default function DispatchPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes for Drivers</label>
                 <textarea {...register('notes')} rows={2} className="w-full px-3 py-2.5 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none" placeholder="Any special instructions…" />
               </div>
+
+              {formError && <p className="text-xs text-red-600 -mt-1">{formError}</p>}
 
               <div className="flex gap-3 pt-2 pb-safe">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50">Cancel</button>
